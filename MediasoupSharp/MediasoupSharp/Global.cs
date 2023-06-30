@@ -1,0 +1,1 @@
+﻿global using Number = System.Int32;
