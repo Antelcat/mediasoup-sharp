@@ -1,6 +1,6 @@
 ﻿namespace MediasoupSharp;
 
-public class ortc
+public class Ortc
 {
     
 }

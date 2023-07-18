@@ -11,18 +11,18 @@ public partial class ScalabilityModeRegex
 }
 
 public record ScalabilityMode(
-    Number spatialLayers,
-    Number temporalLayers,
-    bool ksvc)
+    Number SpatialLayers,
+    Number TemporalLayers,
+    bool Ksvc)
 {
-    static ScalabilityMode parse(string? scalabilityMode)
+    static ScalabilityMode Parse(string? scalabilityMode)
     {
         var match = ScalabilityModeRegex.Regex.Matches(scalabilityMode ?? string.Empty);
         if (match.Count > 0)
         {
             return new(
-                match[1].Value.parseInt(),
-                match[2].Value.parseInt(), 
+                int.Parse(match[1].Value),
+                int.Parse(match[2].Value),
                 bool.Parse(match[3].Value));
         }
         return new ScalabilityMode(1, 1, false);

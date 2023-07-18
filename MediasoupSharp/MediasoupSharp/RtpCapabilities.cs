@@ -5,16 +5,16 @@ public class RtpCapabilities
     
 }
 
-public record RtpCodecCapability(MediaKind kind,
-    string mimeType,
-    Number clockRate,
-    Number channels,
-    dynamic parameters);
+public record RtpCodecCapability(MediaKind Kind,
+    string MimeType,
+    Number ClockRate,
+    Number Channels,
+    dynamic Parameters);
 
 public enum MediaKind
 {
-    audio,
-    video,
+    Audio,
+    Video,
 }
 
-public record RtcpFeedback(string type, string parameter);
+public record RtcpFeedback(string Type, string Parameter);

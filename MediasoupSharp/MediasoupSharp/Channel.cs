@@ -1,6 +1,6 @@
 ﻿namespace MediasoupSharp;
 
-public class Channel
+public class Channel : EnhancedEventEmitter
 {
     
 }

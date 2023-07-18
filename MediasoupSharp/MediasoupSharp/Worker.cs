@@ -1,38 +1,86 @@
-﻿using System.Runtime.InteropServices.JavaScript;
+﻿using System.Collections;
+using System.Runtime.InteropServices.JavaScript;
 
 namespace MediasoupSharp;
 
 public enum WorkerLogLevel
 {
-    debug,
-    warn,
-    error,
-    none
+    Debug,
+    Warn,
+    Error,
+    None
 }
 
 public enum WorkerLogTag
 {
-    info,
-    ice,
-    dtls,
-    rtp,
-    srtp,
-    rtcp,
-    rtx,
-    bwe,
-    score,
-    simulcast,
-    svc,
-    sctp,
-    message,
+    Info,
+    Ice,
+    Dtls,
+    Rtp,
+    Srtp,
+    Rtcp,
+    Rtx,
+    Bwe,
+    Score,
+    Simulcast,
+    Svc,
+    Sctp,
+    Message,
 }
 
 public record WorkerSettings<TWorkerAppData>(
-    WorkerLogLevel? logLevel,
-    List<WorkerLogTag>? logTags,
-    Number? rtcMinPort,
-    Number? rtcMaxPort,
-    string? dtlsCertificateFile,
-    string? dtlsPrivateKeyFile,
-    string? libwebrtcFieldTrials,
-    TWorkerAppData? appData) where TWorkerAppData : AppData;
+    WorkerLogLevel? LogLevel,
+    List<WorkerLogTag>? LogTags,
+    Number? RtcMinPort,
+    Number? RtcMaxPort,
+    string? DtlsCertificateFile,
+    string? DtlsPrivateKeyFile,
+    string? LibwebrtcFieldTrials,
+    TWorkerAppData? AppData) where TWorkerAppData : AppData;
+
+public class WorkerResourceUsage
+{
+    public Number RuUtime;
+
+    public Number RuStime;
+
+    public Number RuMaxrss;
+
+    public Number RuIxrss;
+
+    public Number RuIdrss;
+
+    public Number RuIsrss;
+
+    public Number RuMinflt;
+
+    public Number RuMajflt;
+
+    public Number RuNswap;
+
+    public Number RuInblock;
+
+    public Number RuOublock;
+
+    public Number RuMsgsnd;
+
+    public Number RuMsgrcv;
+
+    public Number RuNsignals;
+
+    public Number RuNvcsw;
+
+    public Number RuNivcsw;
+}
+
+public record WorkerEvents(
+    List<Exception> Died,
+    ArrayList Success,
+    List<Exception> Failure);
+
+public class Worker<TWorkerAppData> 
+    : EnhancedEventEmitter<WorkerEvents> 
+    where TWorkerAppData : AppData
+{
+    
+}

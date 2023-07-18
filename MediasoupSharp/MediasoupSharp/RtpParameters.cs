@@ -1,23 +1,23 @@
 ﻿namespace MediasoupSharp;
 
-public record RtpParameters(string mid,
-    List<RtpCodecParameters> codecs
+public record RtpParameters(string Mid,
+    List<RtpCodecParameters> Codecs
 );
 
 public record RtpHeaderExtensionParameters(
-    string uri,
-    Number id,
-    bool encrypt,
-    dynamic parameters);
+    string Uri,
+    Number Id,
+    bool Encrypt,
+    dynamic Parameters);
 
-public record RtpCodecParameters(string mimeType,
-    Number payloadType,
-    Number clockRate,
-    Number? channels,
-    dynamic? parameters,
+public record RtpCodecParameters(string MimeType,
+    Number PayloadType,
+    Number ClockRate,
+    Number? Channels,
+    dynamic? Parameters,
     List<RtcpFeedback>? RtcpFeedback);
     
 public record RtcpParameters(
-    string? cname,
-    bool? reducedSize,
-    bool? mux);
+    string? Cname,
+    bool? ReducedSize,
+    bool? Mux);

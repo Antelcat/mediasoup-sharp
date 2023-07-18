@@ -1,13 +1,13 @@
 ﻿namespace MediasoupSharp;
 
-public record SctpCapabilities(NumSctpStreams numStreams);
+public record SctpCapabilities(NumSctpStreams NumStreams);
 
-public record NumSctpStreams(Number OS,Number MIS);
+public record NumSctpStreams(Number Os,Number Mis);
 
-public record SctpParameters(Number port,Number OS,Number MIS,Number maxMessageSize);
+public record SctpParameters(Number Port,Number Os,Number Mis,Number MaxMessageSize);
 
 public record SctpStreamParameters(
-    Number streamId,
-    bool ordered,
-    Number maxPacketLifeTime,
-    Number maxRetransmits);
+    Number StreamId,
+    bool Ordered,
+    Number MaxPacketLifeTime,
+    Number MaxRetransmits);

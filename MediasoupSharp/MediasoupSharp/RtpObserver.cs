@@ -1,3 +1,3 @@
 ﻿namespace MediasoupSharp;
 
-public record RtpObserver(List<object> RouterClose, List<object> @close);
+public record RtpObserver(List<object> RouterClose, List<object> Close);
