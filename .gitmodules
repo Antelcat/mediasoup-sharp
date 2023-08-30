@@ -1,0 +1,4 @@
+[submodule "mediasoup"]
+	path = mediasoup
+	url = https://github.com/versatica/mediasoup.git
+	branch = v3
