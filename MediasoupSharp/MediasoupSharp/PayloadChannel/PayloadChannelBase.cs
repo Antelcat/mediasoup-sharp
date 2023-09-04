@@ -2,6 +2,7 @@
 using System.Runtime.Serialization;
 using MediasoupSharp.Channel;
 using MediasoupSharp.Exceptions;
+using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.PayloadChannel
 {

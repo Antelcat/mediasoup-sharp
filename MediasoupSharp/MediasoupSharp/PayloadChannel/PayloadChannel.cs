@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json;
 using MediasoupSharp.Channel;
+using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.PayloadChannel
 {

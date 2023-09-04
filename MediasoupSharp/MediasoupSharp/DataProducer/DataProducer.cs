@@ -1,7 +1,9 @@
 ﻿using System.Text;
 using MediasoupSharp.Channel;
 using MediasoupSharp.Exceptions;
+using MediasoupSharp.Internal;
 using MediasoupSharp.PayloadChannel;
+using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.DataProducer
 {

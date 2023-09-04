@@ -4,6 +4,7 @@ using MediasoupSharp.Exceptions;
 using MediasoupSharp.PayloadChannel;
 using MediasoupSharp.Producer;
 using MediasoupSharp.Transport;
+using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.DirectTransport
 {
@@ -41,7 +42,8 @@ namespace MediasoupSharp.DirectTransport
             Func<RtpCapabilities> getRouterRtpCapabilities,
             Func<string, Task<Producer.Producer?>> getProducerById,
             Func<string, Task<DataProducer.DataProducer?>> getDataProducerById
-            ) : base(loggerFactory, @internal, data, channel, payloadChannel, appData, getRouterRtpCapabilities, getProducerById, getDataProducerById)
+        ) : base(loggerFactory, @internal, data, channel, payloadChannel, appData, getRouterRtpCapabilities,
+            getProducerById, getDataProducerById)
         {
             _logger = loggerFactory.CreateLogger<DirectTransport>();
 
@@ -151,22 +153,23 @@ namespace MediasoupSharp.DirectTransport
             switch (@event)
             {
                 case "trace":
-                    {
-                        var trace = data!.Deserialize<TransportTraceEventData>()!;
+                {
+                    var trace = data!.Deserialize<TransportTraceEventData>()!;
 
-                        Emit("trace", trace);
+                    Emit("trace", trace);
 
-                        // Emit observer event.
-                        Observer.Emit("trace", trace);
+                    // Emit observer event.
+                    Observer.Emit("trace", trace);
 
-                        break;
-                    }
+                    break;
+                }
 
                 default:
-                    {
-                        _logger.LogError($"OnChannelMessage() | DiectTransport:{TransportId} Ignoring unknown event{@event}");
-                        break;
-                    }
+                {
+                    _logger.LogError(
+                        $"OnChannelMessage() | DiectTransport:{TransportId} Ignoring unknown event{@event}");
+                    break;
+                }
             }
         }
 
@@ -180,17 +183,17 @@ namespace MediasoupSharp.DirectTransport
             switch (@event)
             {
                 case "rtcp":
-                    {
-                        Emit("rtcp", payload);
+                {
+                    _ = Emit("rtcp", payload);
 
-                        break;
-                    }
+                    break;
+                }
 
                 default:
-                    {
-                        _logger.LogError($"Ignoring unknown event \"{@event}\"");
-                        break;
-                    }
+                {
+                    _logger.LogError($"Ignoring unknown event \"{@event}\"");
+                    break;
+                }
             }
         }
 
