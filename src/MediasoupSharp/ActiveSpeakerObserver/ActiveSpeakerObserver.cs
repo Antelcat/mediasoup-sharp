@@ -33,7 +33,7 @@ namespace MediasoupSharp.ActiveSpeakerObserver
                 {
                     case "dominantspeaker":
                     {
-                        var producer = this.GetProducerById(data!.producerId);
+                        var producer = GetProducerById(data!.producerId);
 
                         if (!producer)
                         {

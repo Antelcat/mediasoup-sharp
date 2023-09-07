@@ -1,6 +1,6 @@
 ﻿namespace MediasoupSharp.AudioLevelObserver
 {
-    public class AudioLevelObserverOptions
+    public class AudioLevelObserverOptions<TAudioLevelObserverAppData>
     {
         /// <summary>
         /// Maximum number of entries in the 'volumes”' event. Default 1.
@@ -21,6 +21,6 @@
         /// <summary>
         /// Custom application data.
         /// </summary>
-        public Dictionary<string, object>? AppData { get; set; } = new Dictionary<string, object>();
+        public TAudioLevelObserverAppData? AppData { get; set; }
     }
 }

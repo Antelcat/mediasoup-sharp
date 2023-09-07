@@ -1,7 +1,11 @@
 ﻿namespace MediasoupSharp.Consumer
 {
-    public class ConsumerOptions : ConsumerOptionsBase
+    public class ConsumerOptions<TConsumerAppData> : ConsumerOptionsBase
     {
+        /// <summary>
+        /// The id of the Producer to consume.
+        /// </summary>
+        public string ProducerId { get; set; }
         /// <summary>
         /// RTP capabilities of the consuming endpoint.
         /// </summary>
@@ -34,6 +38,16 @@
         /// If unset, the highest ones are selected.
         /// </summary>
         public ConsumerLayers? PreferredLayers { get; set; }
+        
+        /// <summary>
+        /// Whether this Consumer should enable RTP retransmissions, storing sent RTP
+        /// and processing the incoming RTCP NACK from the remote Consumer. If not set
+        /// it's true by default for video codecs and false for audio codecs. If set
+        /// to true, NACK will be enabled if both endpoints (mediasoup and the remote
+        /// Consumer) support NACK for this codec. When it comes to audio codecs, just
+        /// OPUS supports NACK.
+        /// </summary>
+        public bool? EnableRtx { get; set; }
 
         /// <summary>
         /// Whether this Consumer should ignore DTX packets (only valid for Opus codec).

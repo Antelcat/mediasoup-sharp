@@ -210,7 +210,7 @@ namespace MediasoupSharp.Channel
                 throw new InvalidStateException("Channel closed");
             }
 
-            var request = $"{id}:{method}:{handlerId}:{(data == null ? string.Empty : JsonSerializer.Serialize(data))}";
+            var request = $"{id}:{method}:{handlerId}:{(data == null ? string.Empty : data.Serialize())}";
             var buffer = Encoding.UTF8.GetBytes(request);
             if (buffer.Length > MESSAGE_MAX_LEN)
             {

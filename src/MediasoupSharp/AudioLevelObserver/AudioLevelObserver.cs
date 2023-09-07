@@ -1,6 +1,4 @@
-﻿using MediasoupSharp.Channel;
-using MediasoupSharp.PayloadChannel;
-using MediasoupSharp.RtpObserver;
+﻿using MediasoupSharp.RtpObserver;
 using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.AudioLevelObserver
@@ -33,13 +31,14 @@ namespace MediasoupSharp.AudioLevelObserver
                 {
                     case "volumes":
                     {
-                        var volumes = ((List<dynamic>)data!).Select(x =>
-                            new
-                            {
-                                producer = GetProducerById(x.producerId),
-                                x.volume
-                            }
-                        ).DistinctBy(x => x.producer);
+                        var volumes = ((List<dynamic>)data!)
+                            .Select(x =>
+                                new AudioLevelObserverVolume
+                                {
+                                    Producer = GetProducerById(x.producerId),
+                                    Volume = x.volume
+                                }
+                            ).DistinctBy(x => x.Producer);
 
                         if (volumes.Any())
                         {
