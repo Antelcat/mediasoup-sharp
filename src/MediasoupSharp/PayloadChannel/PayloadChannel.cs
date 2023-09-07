@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.PayloadChannel
 {
-    public class PayloadChannel : PayloadChannelBase
+    public class PayloadChannel : EnhancedEventEmitter
     {
         #region Constants
 

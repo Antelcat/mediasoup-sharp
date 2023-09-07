@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediasoupSharp", "MediasoupSharp\MediasoupSharp.csproj", "{AE1F9E80-2D11-43BB-BD2A-4AA566501098}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibuvSharp", "..\libuv-sharp\src\LibuvSharp\LibuvSharp.csproj", "{46E2BF6D-DD8B-4B4B-AE34-F72633550888}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{AE1F9E80-2D11-43BB-BD2A-4AA566501098}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AE1F9E80-2D11-43BB-BD2A-4AA566501098}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AE1F9E80-2D11-43BB-BD2A-4AA566501098}.Release|Any CPU.Build.0 = Release|Any CPU
+		{46E2BF6D-DD8B-4B4B-AE34-F72633550888}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{46E2BF6D-DD8B-4B4B-AE34-F72633550888}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{46E2BF6D-DD8B-4B4B-AE34-F72633550888}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{46E2BF6D-DD8B-4B4B-AE34-F72633550888}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -2,9 +2,10 @@
 {
     public class Sent
     {
-        public RequestMessage RequestMessage { get; set; }
-
-        public Action<string?> Resolve { get; set; }
+        public int Id { get; set; }
+        
+        public string Method { get; set; }
+        public Action<object?> Resolve { get; set; }
 
         public Action<Exception> Reject { get; set; }
 

@@ -1,101 +1,72 @@
 ﻿using MediasoupSharp.Channel;
 using MediasoupSharp.PayloadChannel;
 using MediasoupSharp.RtpObserver;
+using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.AudioLevelObserver
 {
-    public class AudioLevelObserver : RtpObserver.RtpObserver
+    public class AudioLevelObserver<TAudioLevelObserverAppData>
+        : RtpObserver<TAudioLevelObserverAppData, AudioLevelObserverEvents>
     {
         /// <summary>
         /// Logger.
         /// </summary>
-        private readonly ILogger<AudioLevelObserver> logger;
+        private readonly ILogger logger;
 
-        /// <summary>
-        /// <para>Events:</para>
-        /// <para>@emits volumes - (volumes: AudioLevelObserverVolume[])</para>
-        /// <para>@emits silence</para>
-        /// <para>Observer events:</para>
-        /// <para>@emits close</para>
-        /// <para>@emits pause</para>
-        /// <para>@emits resume</para>
-        /// <para>@emits addproducer - (producer: Producer)</para>
-        /// <para>@emits removeproducer - (producer: Producer)</para>
-        /// <para>@emits volumes - (volumes: AudioLevelObserverVolume[])</para>
-        /// <para>@emits silence</para>
-        /// </summary>
-        /// <param name="loggerFactory"></param>
-        /// <param name="internal"></param>
-        /// <param name="channel"></param>
-        /// <param name="payloadChannel"></param>
-        /// <param name="appData"></param>
-        /// <param name="getProducerById"></param>
         public AudioLevelObserver(ILoggerFactory loggerFactory,
-            RtpObserverInternal @internal,
-            IChannel channel,
-            IPayloadChannel payloadChannel,
-            Dictionary<string, object>? appData,
-            Func<string, Task<Producer.Producer?>> getProducerById
-            ) : base(loggerFactory, @internal, channel, payloadChannel, appData, getProducerById)
+            AudioLevelObserverConstructorOptions<TAudioLevelObserverAppData> args
+        ) : base(loggerFactory, args)
         {
-            logger = loggerFactory.CreateLogger<AudioLevelObserver>();
+            logger = loggerFactory.CreateLogger(GetType());
         }
 
-#pragma warning disable VSTHRD100 // Avoid async void methods
-        protected override async void OnChannelMessage(string targetId, string @event, string? data)
-#pragma warning restore VSTHRD100 // Avoid async void methods
+        public IEnhancedEventEmitter<AudioLevelObserverObserverEvents> Observer =>
+            base.Observer as IEnhancedEventEmitter<AudioLevelObserverObserverEvents>;
+
+        private void HandleWorkerNotifications()
         {
-            if (targetId != Internal.RtpObserverId)
+            Channel.On(Internal.RtpObserverId, async args =>
             {
-                return;
-            }
-
-            switch (@event)
-            {
-                case "volumes":
+                var @event = args![0] as string;
+                var data = args.Length > 0 ? (dynamic)args[1] : null;
+                switch (@event)
+                {
+                    case "volumes":
                     {
-                        var notification = data!.Deserialize<AudioLevelObserverVolumeNotificationData[]>()!;
-
-                        var volumes = new List<AudioLevelObserverVolume>();
-                        foreach (var item in notification)
-                        {
-                            var producer = await GetProducerById(item.ProducerId);
-                            if (producer != null)
+                        var volumes = ((List<dynamic>)data!).Select(x =>
+                            new
                             {
-                                volumes.Add(new AudioLevelObserverVolume
-                                {
-                                    Producer = producer,
-                                    Volume = item.Volume,
-                                });
+                                producer = GetProducerById(x.producerId),
+                                x.volume
                             }
-                        }
+                        ).DistinctBy(x => x.producer);
 
-                        if (volumes.Count > 0)
+                        if (volumes.Any())
                         {
-                            
-                            Emit(nameof(volumes), volumes);
+                            _ = Emit(nameof(volumes), volumes);
 
                             // Emit observer event.
-                            Observer.Emit(nameof(volumes), volumes);
+                            _ = Observer.SafeEmit(nameof(volumes), volumes);
                         }
 
                         break;
                     }
-                case "silence":
+                    case "silence":
                     {
-                        Emit("silence");
+                        _ = SafeEmit("silence");
 
                         // Emit observer event.
-                        Observer.Emit("silence");
+                        _ = Observer.SafeEmit("silence");
 
                         break;
                     }
-                default:
+                    default:
                     {
-                        logger.LogError($"OnChannelMessage() | Ignoring unknown event{@event}");
+                        logger.LogError("OnChannelMessage() | Ignoring unknown event '{Event}' ", @event);
                         break;
                     }
-            }
+                }
+            });
         }
     }
 }

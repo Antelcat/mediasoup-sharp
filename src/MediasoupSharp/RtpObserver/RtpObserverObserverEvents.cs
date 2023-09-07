@@ -1,6 +1,6 @@
 ﻿namespace MediasoupSharp.RtpObserver;
 
-public class RtpObserverObserverEvents
+public record RtpObserverObserverEvents
 {
     public List<object> Close { get; set; } = new();
     public List<object> Pause { get; set; } = new();

@@ -2,7 +2,8 @@
 
 namespace MediasoupSharp.RtpObserver
 {
-    public abstract class RtpObserver<TRtpObserverAppData, TEvents> : EnhancedEventEmitter<TEvents> 
+    public abstract class RtpObserver<TRtpObserverAppData, TEvents> 
+        : EnhancedEventEmitter<TEvents> 
         where TEvents : RtpObserverEvents
     {
         /// <summary>
@@ -11,19 +12,9 @@ namespace MediasoupSharp.RtpObserver
         private readonly ILogger logger;
 
         /// <summary>
-        /// Whether the Producer is closed.
-        /// </summary>
-        private bool closed;
-
-        /// <summary>
-        /// Paused flag.
-        /// </summary>
-        private bool paused;
-
-        /// <summary>
         /// Internal data.
         /// </summary>
-        public RtpObserverInternal Internal { get; }
+        public RtpObserverObserverInternal Internal { get; }
 
         /// <summary>
         /// Channel instance.
@@ -43,70 +34,59 @@ namespace MediasoupSharp.RtpObserver
         /// <summary>
         /// Method to retrieve a Producer.
         /// </summary>
-        protected readonly Func<string, Task<Producer.Producer?>> GetProducerById;
+        protected readonly Func<string, Producer.Producer?> GetProducerById;
 
         /// <summary>
         /// Observer instance.
         /// </summary>
         public EnhancedEventEmitter<RtpObserverObserverEvents> Observer { get; }
 
-        /// <summary>
-        /// <para>Events:</para>
-        /// <para>@emits routerclose</para>
-        /// <para>@emits @close</para>
-        /// <para>Observer events:</para>
-        /// <para>@emits close</para>
-        /// <para>@emits pause</para>
-        /// <para>@emits resume</para>
-        /// <para>@emits addproducer - (producer: Producer)</para>
-        /// <para>@emits removeproducer - (producer: Producer)</para>
-        /// </summary>
-        /// <param name="loggerFactory"></param>
-        /// <param name="internal"></param>
-        /// <param name="channel"></param>
-        /// <param name="payloadChannel"></param>
-        /// <param name="appData"></param>
-        /// <param name="getProducerById"></param>
         protected RtpObserver(ILoggerFactory loggerFactory,
-            RtpObserverInternal @internal,
-            Channel.Channel channel,
-            PayloadChannel.PayloadChannel payloadChannel,
-            TRtpObserverAppData? appData,
-            Func<string, Task<Producer.Producer?>> getProducerById
+            RtpObserverConstructorOptions<TRtpObserverAppData> args
         ) : base(loggerFactory.CreateLogger("EnhancedEventEmitter"))
         {
             logger = loggerFactory.CreateLogger(typeof(RtpObserver<,>));
 
-            Internal = @internal;
-            Channel = channel;
-            PayloadChannel = payloadChannel;
-            AppData = appData ?? default;
-            GetProducerById = getProducerById;
+            Internal = args.Internal;
+            Channel = args.Channel;
+            PayloadChannel = args.PayloadChannel;
+            AppData = args.AppData ?? default;
+            GetProducerById = args.GetProducerById;
             Observer = new EnhancedEventEmitter<RtpObserverObserverEvents>(logger);
         }
+
+        /// <summary>
+        /// Whether the Producer is closed.
+        /// </summary>
+        public bool Closed { get; private set; }
+
+        /// <summary>
+        /// Paused flag.
+        /// </summary>
+        public bool Paused { get; private set; }
 
         /// <summary>
         /// Close the RtpObserver.
         /// </summary>
         public void Close()
         {
-            if (closed)
+            if (Closed)
             {
                 return;
             }
 
             logger.LogDebug("Close() | RtpObserver:{RtpObserverId}", Internal.RtpObserverId);
 
-            closed = true;
+            Closed = true;
 
             // Remove notification subscriptions.
-            Channel.MessageEvent -= OnChannelMessage;
-            //PayloadChannel.MessageEvent -= OnPayloadChannelMessage;
+            Channel.RemoveAllListeners(Internal.RtpObserverId);
+            PayloadChannel.RemoveAllListeners(Internal.RtpObserverId);
 
-            var reqData = new { RtpObserverId = Internal.RtpObserverId };
+            var reqData = new { rtpObserverId = Internal.RtpObserverId };
 
             // Fire and forget
-            Channel.RequestAsync("router.closeRtpObserver", Internal.RouterId, reqData)
+            Channel.Request("router.closeRtpObserver", Internal.RouterId, reqData)
                 .ContinueWith((t) => { }, TaskContinuationOptions.OnlyOnFaulted);
 
             _ = Emit("@close");
@@ -115,27 +95,23 @@ namespace MediasoupSharp.RtpObserver
             _ = Observer.SafeEmit("close");
         }
 
-        public bool Closed => closed;
-        public bool Paused => paused;
-
-
         /// <summary>
         /// Router was closed.
         /// </summary>
-        public async Task RouterClosedAsync()
+        public void RouterClosed()
         {
-            if (closed)
+            if (Closed)
             {
                 return;
             }
 
             logger.LogDebug("RouterClosed() | RtpObserver:{InternalRtpObserverId}", Internal.RtpObserverId);
 
-            closed = true;
+            Closed = true;
 
             // Remove notification subscriptions.
-            Channel.MessageEvent -= OnChannelMessage;
-            //PayloadChannel.MessageEvent -= OnPayloadChannelMessage;
+            Channel.RemoveAllListeners(Internal.RtpObserverId);
+            PayloadChannel.RemoveAllListeners(Internal.RtpObserverId);
 
             _ = SafeEmit("routerclose");
 
@@ -150,12 +126,12 @@ namespace MediasoupSharp.RtpObserver
         {
             logger.LogDebug("PauseAsync() | RtpObserver:{InternalRtpObserverId}", Internal.RtpObserverId);
 
-            var wasPaused = paused;
+            var wasPaused = Paused;
 
             // Fire and forget
-            await Channel.RequestAsync("rtpObserver.pause", Internal.RtpObserverId);
+            await Channel.Request("rtpObserver.pause", Internal.RtpObserverId);
 
-            paused = true;
+            Paused = true;
 
             // Emit observer event.
             if (!wasPaused)
@@ -171,16 +147,16 @@ namespace MediasoupSharp.RtpObserver
         {
             logger.LogDebug("ResumeAsync() | RtpObserver:{InternalRtpObserverId}", Internal.RtpObserverId);
 
-            var wasPaused = paused;
+            var wasPaused = Paused;
 
-            await Channel.RequestAsync("rtpObserver.resume", Internal.RtpObserverId);
+            await Channel.Request("rtpObserver.resume", Internal.RtpObserverId);
 
-            paused = false;
+            Paused = false;
 
             // Emit observer event.
             if (wasPaused)
             {
-                await Observer.Emit("resume");
+                await Observer.SafeEmit("resume");
             }
         }
 
@@ -190,9 +166,10 @@ namespace MediasoupSharp.RtpObserver
         public async Task AddProducerAsync(RtpObserverAddRemoveProducerOptions rtpObserverAddRemoveProducerOptions)
         {
             var producerId = rtpObserverAddRemoveProducerOptions.ProducerId;
+            
             logger.LogDebug("AddProducerAsync() | RtpObserver:{InternalRtpObserverId}", producerId);
 
-            var producer = await GetProducerById(producerId);
+            var producer = GetProducerById(producerId);
 
             if (producer == null)
             {
@@ -200,11 +177,11 @@ namespace MediasoupSharp.RtpObserver
             }
 
             var reqData = new { producerId };
-            // Fire and forget
-            await Channel.RequestAsync("rtpObserver.addProducer", Internal.RtpObserverId, reqData);
+            
+            await Channel.Request("rtpObserver.addProducer", Internal.RtpObserverId, reqData);
 
             // Emit observer event.
-            await Observer.Emit("addproducer", producer);
+            await Observer.SafeEmit("addproducer", producer);
         }
 
         /// <summary>
@@ -213,26 +190,23 @@ namespace MediasoupSharp.RtpObserver
         public async Task RemoveProducerAsync(RtpObserverAddRemoveProducerOptions rtpObserverAddRemoveProducerOptions)
         {
             var producerId = rtpObserverAddRemoveProducerOptions.ProducerId;
+            
             logger.LogDebug("RemoveProducerAsync() | RtpObserver:{InternalRtpObserverId}", Internal.RtpObserverId);
-
-            var producer = await GetProducerById(producerId);
+            
+            var producer = GetProducerById(producerId);
+            
             if (producer == null)
             {
                 throw new KeyNotFoundException($"Producer with id {producerId} not found");
             }
 
             var reqData = new { producerId };
+            
             // Fire and forget
-            await Channel.RequestAsync("rtpObserver.removeProducer", Internal.RtpObserverId, reqData);
+            await Channel.Request("rtpObserver.removeProducer", Internal.RtpObserverId, reqData);
 
             // Emit observer event.
-            await Observer.Emit("removeproducer", producer);
+            await Observer.SafeEmit("removeproducer", producer);
         }
-
-        #region Event Handlers
-
-        protected abstract void OnChannelMessage(string targetId, string @event, string? data);
-
-        #endregion Event Handlers
     }
 }
