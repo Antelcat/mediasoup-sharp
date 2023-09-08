@@ -3,12 +3,40 @@ using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.Consumer;
 
-internal class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents>
+internal class Consumer<TConsumerAppData> : Consumer
 {
-    /// <summary>
-    /// Logger.
-    /// </summary>
-    private readonly ILogger logger;
+	public Consumer(
+		ConsumerInternal @internal,
+		ConsumerData data,
+		Channel.Channel channel,
+		PayloadChannel.PayloadChannel payloadChannel,
+		TConsumerAppData? appData,
+		bool paused,
+		bool producerPaused,
+		ConsumerScore? score,
+		ConsumerLayers? preferredLayers)
+		: base(
+			@internal,
+			data,
+			channel,
+			payloadChannel,
+			appData,
+			paused,
+			producerPaused,
+			score,
+			preferredLayers)
+	{
+	}
+
+	public new TConsumerAppData AppData
+	{
+		get => (TConsumerAppData)base.AppData;
+		set => base.AppData = value;
+	}
+}
+
+internal class Consumer : EnhancedEventEmitter<ConsumerEvents>
+{
 
     /// <summary>
     /// Internal data.
@@ -35,7 +63,7 @@ internal class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents>
     /// <summary>
     /// App custom data.
     /// </summary>
-    public TConsumerAppData AppData { get; set; }
+    public object AppData { get; protected set; }
 
     public bool Paused { get; private set; }
 
@@ -67,33 +95,46 @@ internal class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents>
     /// <summary>
     /// Observer instance.
     /// </summary>
-    internal readonly EnhancedEventEmitter<ConsumerObserverEvents> observer;
+    internal EnhancedEventEmitter<ConsumerObserverEvents> Observer => observer ??= new();
+	
+    #region Extra
 
-    public Consumer(ILoggerFactory loggerFactory,
+    private EnhancedEventEmitter<ConsumerObserverEvents>? observer;
+    public override ILoggerFactory LoggerFactory
+    {
+	    init
+	    {
+		    observer = new EnhancedEventEmitter<ConsumerObserverEvents>
+		    {
+			    LoggerFactory = value
+		    };
+		    base.LoggerFactory = value;
+	    }
+    }
+
+    #endregion
+    
+    public Consumer(
         ConsumerInternal @internal,
         ConsumerData data,
         Channel.Channel channel,
         PayloadChannel.PayloadChannel payloadChannel,
-        TConsumerAppData? appData,
+        object? appData,
         bool paused,
         bool producerPaused,
         ConsumerScore? score,
         ConsumerLayers? preferredLayers
-    ) : base(loggerFactory.CreateLogger("Consumer[]"))
+    ) 
     {
-        logger = loggerFactory.CreateLogger(GetType());
-        logger.LogDebug("varructor()");
-
         this.@internal = @internal;
         this.data = data;
         this.channel = channel;
         PayloadChannel = payloadChannel;
-        AppData = appData ?? default!;
+        AppData = appData ?? new();
         Paused = paused;
         ProducerPaused = producerPaused;
         Score = score!;
         PreferredLayers = preferredLayers;
-        observer = new EnhancedEventEmitter<ConsumerObserverEvents>(logger);
         
         HandleWorkerNotifications();
     }
@@ -120,7 +161,7 @@ internal class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents>
             return;
         }
 
-        logger.LogDebug("CloseAsync() | Consumer:{Id}", Id);
+        Logger?.LogDebug("CloseAsync() | Consumer:{Id}", Id);
 
         Closed = true;
 
@@ -138,7 +179,7 @@ internal class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents>
         _ = Emit("@close");
 
         // Emit observer event.
-        _ = observer.SafeEmit("close");
+        _ = Observer.SafeEmit("close");
     }
 
     /// <summary>
@@ -151,7 +192,7 @@ internal class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents>
             return;
         }
 
-        logger.LogDebug("TransportClosed() | Consumer:{Id}", Id);
+        Logger?.LogDebug("TransportClosed() | Consumer:{Id}", Id);
         
         Closed = true;
 
@@ -162,7 +203,7 @@ internal class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents>
         _ = SafeEmit("transportclose");
 
         // Emit observer event.
-        _ = observer.SafeEmit("close");
+        _ = Observer.SafeEmit("close");
     }
 
     /// <summary>
@@ -170,7 +211,7 @@ internal class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents>
     /// </summary>
     public async Task<object> DumpAsync()
     {
-        logger.LogDebug("DumpAsync() | Consumer:{Id}", Id);
+        Logger?.LogDebug("DumpAsync() | Consumer:{Id}", Id);
 
         return (await channel.Request("consumer.dump", @internal.ConsumerId))!;
     }
@@ -180,7 +221,7 @@ internal class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents>
     /// </summary>
     public async Task<List<object>> GetStatsAsync()
     {
-        logger.LogDebug("GetStatsAsync() | Consumer:{Id}", Id);
+        Logger?.LogDebug("GetStatsAsync() | Consumer:{Id}", Id);
 
         return (await channel.Request("consumer.getStats", @internal.ConsumerId) as List<object>)!;
     }
@@ -190,7 +231,7 @@ internal class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents>
     /// </summary>
     public async Task PauseAsync()
     {
-        logger.LogDebug("PauseAsync() | Consumer:{Id}", Id);
+        Logger?.LogDebug("PauseAsync() | Consumer:{Id}", Id);
 
         var wasPaused = Paused || ProducerPaused;
 
@@ -202,7 +243,7 @@ internal class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents>
         // Emit observer event.
         if (!wasPaused)
         {
-            _ = observer.SafeEmit("pause");
+            _ = Observer.SafeEmit("pause");
         }
     }
 
@@ -211,7 +252,7 @@ internal class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents>
     /// </summary>
     public async Task ResumeAsync()
     {
-        logger.LogDebug("ResumeAsync() | Consumer:{Id}", Id);
+        Logger?.LogDebug("ResumeAsync() | Consumer:{Id}", Id);
 
         var wasPaused = Paused || ProducerPaused;
 
@@ -223,7 +264,7 @@ internal class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents>
         // Emit observer event.
         if (wasPaused && !ProducerPaused)
         {
-            _ = observer.SafeEmit("resume");
+            _ = Observer.SafeEmit("resume");
         }
     }
 
@@ -232,7 +273,7 @@ internal class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents>
     /// </summary>
     public async Task SetPreferredLayersAsync(ConsumerLayers consumerLayers)
     {
-        logger.LogDebug("SetPreferredLayersAsync() | Consumer:{Id}", Id);
+        Logger?.LogDebug("SetPreferredLayersAsync() | Consumer:{Id}", Id);
 
         //TODO : Naming
         var reqData = new { spatialLayer = consumerLayers.SpatialLayer, temporalLayer = consumerLayers.TemporalLayer };
@@ -246,7 +287,7 @@ internal class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents>
     /// </summary>
     public async Task SetPriorityAsync(int priority)
     {
-        logger.LogDebug("SetPriorityAsync() | Consumer:{Id}", Id);
+        Logger?.LogDebug("SetPriorityAsync() | Consumer:{Id}", Id);
 
         //TODO : Check Naming
         var reqData = new { Priority = priority };
@@ -259,7 +300,7 @@ internal class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents>
     /// </summary>
     public async Task UnsetPriorityAsync()
     {
-        logger.LogDebug("UnsetPriorityAsync() | Consumer:{Id}", Id);
+        Logger?.LogDebug("UnsetPriorityAsync() | Consumer:{Id}", Id);
 
         //TODO : Check Naming
         var reqData = new { Priority = 1 };
@@ -273,7 +314,7 @@ internal class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents>
     /// </summary>
     public async Task RequestKeyFrameAsync()
     {
-        logger.LogDebug("RequestKeyFrameAsync() | Consumer:{Id}", Id);
+        Logger?.LogDebug("RequestKeyFrameAsync() | Consumer:{Id}", Id);
 
         await channel.Request("consumer.requestKeyFrame", @internal.ConsumerId);
     }
@@ -283,7 +324,7 @@ internal class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents>
     /// </summary>
     public async Task EnableTraceEventAsync(ConsumerTraceEventType[] types)
     {
-        logger.LogDebug("EnableTraceEventAsync() | Consumer:{Id}", Id);
+        Logger?.LogDebug("EnableTraceEventAsync() | Consumer:{Id}", Id);
 
         var reqData = new
         {
@@ -316,11 +357,11 @@ internal class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents>
 				    channel.RemoveAllListeners(@internal.ConsumerId);
 				    PayloadChannel.RemoveAllListeners(@internal.ConsumerId);
 
-				    _ = Emit("@producerclose");
-				    _ = SafeEmit("producerclose");
+				    await Emit("@producerclose");
+				    await SafeEmit("producerclose");
 
 				    // Emit observer event.
-				    _ = observer.SafeEmit("close");
+				    await Observer.SafeEmit("close");
 
 				    break;
 			    }
@@ -336,12 +377,12 @@ internal class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents>
 
 				    ProducerPaused = true;
 
-				    _ = SafeEmit("producerpause");
+				    await SafeEmit("producerpause");
 
 				    // Emit observer event.
 				    if (!wasPaused)
 				    {
-					    _ = observer.SafeEmit("pause");
+					    await Observer.SafeEmit("pause");
 				    }
 
 				    break;
@@ -358,12 +399,12 @@ internal class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents>
 
 				    ProducerPaused = false;
 
-				    _ = SafeEmit("producerresume");
+				    await SafeEmit("producerresume");
 
 				    // Emit observer event.
 				    if (wasPaused && !Paused)
 				    {
-					    _ = observer.SafeEmit("resume");
+					    await Observer.SafeEmit("resume");
 				    }
 
 				    break;
@@ -371,28 +412,28 @@ internal class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents>
 
 			    case "score":
 			    {
-				    var score = data as ConsumerScore;
+				    var score = (data as ConsumerScore)!;
 
 				    Score = score;
 
-				    this.SafeEmit("score", score);
+				    await SafeEmit("score", score);
 
 				    // Emit observer event.
-				    observer.SafeEmit("score", score);
+				    await SafeEmit("score", score);
 
 				    break;
 			    }
 
 			    case "layerschange":
 			    {
-				    var layers = data as ConsumerLayers;
+				    var layers = (data as ConsumerLayers)!;
 
 				    CurrentLayers = layers;
 
-				    _ = SafeEmit("layerschange", layers);
+				    await SafeEmit("layerschange", layers);
 
 				    // Emit observer event.
-				    _ = observer.SafeEmit("layerschange", layers);
+				    await Observer.SafeEmit("layerschange", layers);
 
 				    break;
 			    }
@@ -404,14 +445,14 @@ internal class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents>
 				    _ = SafeEmit("trace", trace);
 
 				    // Emit observer event.
-				    _ = observer.SafeEmit("trace", trace);
+				    _ = Observer.SafeEmit("trace", trace);
 
 				    break;
 			    }
 
 			    default:
 			    {
-				    logger.LogError("ignoring unknown event  ' %s'", @event);
+				    Logger?.LogError("ignoring unknown event  ' %s'", @event);
 				    break;
 			    }
 		    }
@@ -433,14 +474,14 @@ internal class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents>
 
 				    var packet = payload;
 
-				    _ = SafeEmit("rtp", packet);
+				    await SafeEmit("rtp", packet);
 
 				    break;
 			    }
 
 			    default:
 			    {
-				    logger.LogError("ignoring unknown event {E}", @event);
+				    Logger?.LogError("ignoring unknown event {E}", @event);
 				    break;
 			    }
 		    }

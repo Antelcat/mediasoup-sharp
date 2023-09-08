@@ -1,15 +1,35 @@
-﻿using System.Text;
-using System.Text.Json;
-using LibuvSharp;
-using MediasoupSharp.Channel;
+﻿using System.Security.Cryptography.X509Certificates;
 using MediasoupSharp.Exceptions;
-using MediasoupSharp.PayloadChannel;
 using MediasoupSharp.SctpParameters;
 using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.DataConsumer;
 
-public class DataConsumer<TDataConsumerAppData> : EnhancedEventEmitter<DataConsumerEvents>
+internal class DataConsumer<TDataConsumerAppData> : DataConsumer
+{
+    public DataConsumer(
+        ILoggerFactory loggerFactory,
+        DataConsumerInternal @internal,
+        DataConsumerData data,
+        Channel.Channel channel,
+        PayloadChannel.PayloadChannel payloadChannel,
+        TDataConsumerAppData? appData)
+        : base(loggerFactory,
+            @internal,
+            data,
+            channel,
+            payloadChannel,
+            appData)
+    { }
+
+    public new TDataConsumerAppData AppData
+    {
+        get => (TDataConsumerAppData)base.AppData;
+        set => base.AppData = value;
+    }
+}
+
+internal class DataConsumer : EnhancedEventEmitter<DataConsumerEvents>
 {
     /// <summary>
     /// Logger.
@@ -50,24 +70,32 @@ public class DataConsumer<TDataConsumerAppData> : EnhancedEventEmitter<DataConsu
     /// <summary>
     /// App custom data.
     /// </summary>
-    public TDataConsumerAppData AppData { get; set; }
+    public object AppData { get; set; }
 
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EnhancedEventEmitter<DataConsumerObserverEvents> Observer { get; }
+    internal EnhancedEventEmitter<DataConsumerObserverEvents> Observer => observer ??= new();
 
+    #region Extra
+
+    private EnhancedEventEmitter<DataConsumerObserverEvents>? observer;
+    public override ILoggerFactory LoggerFactory
+    {
+        init
+        {
+            observer = new EnhancedEventEmitter<DataConsumerObserverEvents>
+            {
+                LoggerFactory = value
+            };
+            base.LoggerFactory = value;
+        }
+    }
+
+    #endregion
+    
     /// <summary>
-    /// <para>Events:</para>
-    /// <para>@emits transportclose</para>
-    /// <para>@emits dataproducerclose</para>
-    /// <para>@emits message - (message: Buffer, ppid: number)</para>
-    /// <para>@emits sctpsendbufferfull</para>
-    /// <para>@emits bufferedamountlow - (bufferedAmount: number)</para>
-    /// <para>@emits @close</para>
-    /// <para>@emits @dataproducerclose</para>
-    /// <para>Observer events:</para>
-    /// <para>@emits close</para>
+    /// 
     /// </summary>
     /// <param name="loggerFactory"></param>
     /// <param name="internal"></param>
@@ -80,8 +108,8 @@ public class DataConsumer<TDataConsumerAppData> : EnhancedEventEmitter<DataConsu
         DataConsumerData data,
         Channel.Channel channel,
         PayloadChannel.PayloadChannel payloadChannel,
-        TDataConsumerAppData? appData
-    ) : base(loggerFactory.CreateLogger("DataConsumer"))
+        object? appData
+    ) 
     {
         logger = loggerFactory.CreateLogger(GetType());
 
@@ -89,9 +117,8 @@ public class DataConsumer<TDataConsumerAppData> : EnhancedEventEmitter<DataConsu
         this.data = data;
         this.channel = channel;
         this.payloadChannel = payloadChannel;
-        AppData = appData ?? default!;
-        Observer = new EnhancedEventEmitter<DataConsumerObserverEvents>(logger);
-
+        AppData = appData ?? new();
+  
         HandleWorkerNotifications();
     }
 

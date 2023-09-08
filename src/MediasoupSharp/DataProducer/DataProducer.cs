@@ -1,18 +1,27 @@
-﻿using System.Text;
-using MediasoupSharp.Exceptions;
-using MediasoupSharp.SctpParameters;
+﻿using MediasoupSharp.SctpParameters;
 using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.DataProducer;
 
+internal class DataProducer : DataProducer<object>
+{
+    public DataProducer(
+        DataProducerInternal @internal,
+        DataProducerData data,
+        Channel.Channel channel,
+        PayloadChannel.PayloadChannel payloadChannel,
+        object? appData)
+        : base(
+            @internal,
+            data,
+            channel,
+            payloadChannel,
+            appData)
+    {
+    }
+}
 internal class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataProducerEvents>
 {
-    /// <summary>
-    /// Logger.
-    /// </summary>
-    private readonly ILogger logger;
-    
-
     /// <summary>
     /// Internal data.
     /// </summary>
@@ -46,34 +55,47 @@ internal class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataPro
     /// <summary>
     /// Observer instance.
     /// </summary>
-    private readonly EnhancedEventEmitter<DataProducerObserverEvents> observer;
+    private EnhancedEventEmitter<DataProducerObserverEvents> Observer => observer ??= new();
+
+    #region Extra
+    private EnhancedEventEmitter<DataProducerObserverEvents>? observer;
+
+    public override ILoggerFactory LoggerFactory
+    {
+        init
+        {
+            observer = new EnhancedEventEmitter<DataProducerObserverEvents>
+            {
+                LoggerFactory = value
+            };
+            base.LoggerFactory = value;
+        }
+    }
+
+    #endregion
 
     /// <summary>
     /// 
     /// </summary>
-    /// <param name="loggerFactory"></param>
     /// <param name="internal"></param>
     /// <param name="data"></param>
     /// <param name="channel"></param>
     /// <param name="payloadChannel"></param>
     /// <param name="appData"></param>
-    public DataProducer(ILoggerFactory loggerFactory,
+    public DataProducer(
         DataProducerInternal @internal,
         DataProducerData data,
         Channel.Channel channel,
         PayloadChannel.PayloadChannel payloadChannel,
         TDataProducerAppData? appData
-    ) : base(loggerFactory.CreateLogger("DataProducer"))
+    )
     {
-        logger = loggerFactory.CreateLogger(GetType());
-
         this.@internal = @internal;
         this.data = data;
         this.channel = channel;
         this.payloadChannel = payloadChannel;
         AppData = appData ?? default!;
-        observer = new EnhancedEventEmitter<DataProducerObserverEvents>(logger);
-        
+
         HandleWorkerNotifications();
     }
 
@@ -99,7 +121,7 @@ internal class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataPro
             return;
         }
 
-        logger.LogDebug("CloseAsync() | DataProducer:{Id}", Id);
+        Logger?.LogDebug("CloseAsync() | DataProducer:{Id}", Id);
 
         Closed = true;
 
@@ -117,21 +139,21 @@ internal class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataPro
         _ = Emit("@close");
 
         // Emit observer event.
-        _ = observer.SafeEmit("close");
+        _ = Observer.SafeEmit("close");
 
     }
 
     /// <summary>
     /// Transport was closed.
     /// </summary>
-    public async Task TransportClosedAsync()
+    public void TransportClosed()
     {
         if (Closed)
         {
             return;
         }
 
-        logger.LogDebug("TransportClosedAsync() | DataProducer:{Id}", Id);
+        Logger?.LogDebug("TransportClosedAsync() | DataProducer:{Id}", Id);
 
         Closed = true;
 
@@ -142,7 +164,7 @@ internal class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataPro
         _ = Emit("transportclose");
 
         // Emit observer event.
-        _ = observer.SafeEmit("close");
+        _ = Observer.SafeEmit("close");
     }
 
     /// <summary>
@@ -150,7 +172,7 @@ internal class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataPro
     /// </summary>
     public async Task<object> DumpAsync()
     {
-        logger.LogDebug("DumpAsync() | DataProducer:{Id}", Id);
+        Logger?.LogDebug("DumpAsync() | DataProducer:{Id}", Id);
 
         return (await channel.Request("dataProducer.dump", @internal.DataProducerId))!;
     }
@@ -160,7 +182,7 @@ internal class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataPro
     /// </summary>
     public async Task<List<DataProducerStat>> GetStatsAsync()
     {
-        logger.LogDebug("GetStatsAsync() | DataProducer:{Id}", Id);
+        Logger?.LogDebug("GetStatsAsync() | DataProducer:{Id}", Id);
 
         return (await channel.Request("dataProducer.getStats", @internal.DataProducerId) as List<DataProducerStat>)!;
     }

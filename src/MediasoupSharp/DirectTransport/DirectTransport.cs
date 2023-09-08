@@ -1,51 +1,25 @@
-﻿using MediasoupSharp.Channel;
-using MediasoupSharp.Consumer;
+﻿using MediasoupSharp.Consumer;
 using MediasoupSharp.Exceptions;
-using MediasoupSharp.PayloadChannel;
 using MediasoupSharp.Producer;
-using MediasoupSharp.Transport;
-using Microsoft.Extensions.Logging;
+
 
 namespace MediasoupSharp.DirectTransport;
 
-public class DirectTransport : Transport.Transport
+internal class DirectTransport<TDirectTransportAppData> 
+    : Transport.Transport<TDirectTransportAppData,DirectTransportEvents,DirectTransportObserverEvents>
 {
-    /// <summary>
-    /// Logger.
-    /// </summary>
-    private readonly ILogger<DirectTransport> logger;
+    
+    private readonly DirectTransportData data;
 
     /// <summary>
-    /// <para>Events:</para>
-    /// <para>@emits rtcp - (packet: Buffer)</para>
-    /// <para>@emits trace - (trace: TransportTraceEventData)</para>
-    /// <para>Observer events:</para>
-    /// <para>@emits close</para>
-    /// <para>@emits newdataproducer - (dataProducer: DataProducer)</para>
-    /// <para>@emits newdataconsumer - (dataProducer: DataProducer)</para>
-    /// <para>@emits trace - (trace: TransportTraceEventData)</para>
+    /// 
     /// </summary>
-    /// <param name="loggerFactory"></param>
-    /// <param name="internal"></param>
-    /// <param name="data"></param>
-    /// <param name="channel"></param>
-    /// <param name="appData"></param>
-    /// <param name="getRouterRtpCapabilities"></param>
-    /// <param name="getProducerById"></param>
-    /// <param name="getDataProducerById"></param>
-    public DirectTransport(ILoggerFactory loggerFactory,
-        TransportInternal @internal,
-        TransportBaseData data,
-        IChannel channel,
-        IPayloadChannel payloadChannel,
-        Dictionary<string, object>? appData,
-        Func<RtpCapabilities> getRouterRtpCapabilities,
-        Func<string, Task<Producer.Producer?>> getProducerById,
-        Func<string, Task<DataProducer.DataProducer?>> getDataProducerById
-    ) : base(loggerFactory, @internal, data, channel, payloadChannel, appData, getRouterRtpCapabilities,
-        getProducerById, getDataProducerById)
+    /// <param name="options"></param>
+    public DirectTransport(
+        DirectTransportConstructorOptions<TDirectTransportAppData> options
+    ) : base(options)
     {
-        logger = loggerFactory.CreateLogger<DirectTransport>();
+        data = new DirectTransportData();
 
         HandleWorkerNotifications();
     }
@@ -54,10 +28,12 @@ public class DirectTransport : Transport.Transport
     /// Close the DirectTransport.
     /// </summary>
     /// <returns></returns>
-    protected override Task OnCloseAsync()
+    public void Close()
     {
-        // Do nothing
-        return Task.CompletedTask;
+        if (Closed)
+        {
+            return;
+        }
     }
 
     /// <summary>
@@ -69,6 +45,11 @@ public class DirectTransport : Transport.Transport
         return Task.CompletedTask;
     }
 
+    public override Task<List<object>> GetStatsAsync()
+    {
+        throw new NotImplementedException();
+    }
+
     /// <summary>
     /// NO-OP method in DirectTransport.
     /// </summary>
@@ -76,7 +57,7 @@ public class DirectTransport : Transport.Transport
     /// <returns></returns>
     public override Task ConnectAsync(object parameters)
     {
-        logger.LogDebug($"ConnectAsync() | DiectTransport:{TransportId}");
+        Logger?.LogDebug($"ConnectAsync() | DiectTransport:{TransportId}");
         return Task.CompletedTask;
     }
 
@@ -87,7 +68,7 @@ public class DirectTransport : Transport.Transport
     /// <returns></returns>
     public override Task<string> SetMaxIncomingBitrateAsync(int bitrate)
     {
-        logger.LogError($"SetMaxIncomingBitrateAsync() | DiectTransport:{TransportId} Bitrate:{bitrate}");
+        Logger?.LogError("SetMaxIncomingBitrateAsync() | DiectTransport:{Id} Bitrate:{Bitrate}", Id, bitrate);
         throw new NotImplementedException("SetMaxIncomingBitrateAsync() not implemented in DirectTransport");
     }
 
@@ -98,7 +79,7 @@ public class DirectTransport : Transport.Transport
     /// <returns></returns>
     public override Task<string> SetMaxOutgoingBitrateAsync(int bitrate)
     {
-        logger.LogError($"SetMaxOutgoingBitrateAsync() | DiectTransport:{TransportId} Bitrate:{bitrate}");
+        Logger?.LogError($"SetMaxOutgoingBitrateAsync() | DiectTransport:{TransportId} Bitrate:{bitrate}");
         throw new NotImplementedException("SetMaxOutgoingBitrateAsync is not implemented in DirectTransport");
     }
 
@@ -107,7 +88,7 @@ public class DirectTransport : Transport.Transport
     /// </summary>
     public override Task<Producer.Producer> ProduceAsync(ProducerOptions producerOptions)
     {
-        logger.LogError($"ProduceAsync() | DiectTransport:{TransportId}");
+        Logger?.LogError($"ProduceAsync() | DiectTransport:{TransportId}");
         throw new NotImplementedException("ProduceAsync() is not implemented in DirectTransport");
     }
 
@@ -118,7 +99,7 @@ public class DirectTransport : Transport.Transport
     /// <returns></returns>
     public override Task<Consumer.Consumer> ConsumeAsync(ConsumerOptions consumerOptions)
     {
-        logger.LogError($"ConsumeAsync() | DiectTransport:{TransportId}");
+        Logger?.LogError($"ConsumeAsync() | DiectTransport:{TransportId}");
         throw new NotImplementedException("ConsumeAsync() not implemented in DirectTransport");
     }
 
@@ -166,7 +147,7 @@ public class DirectTransport : Transport.Transport
 
             default:
             {
-                logger.LogError(
+                Logger?.LogError(
                     $"OnChannelMessage() | DiectTransport:{TransportId} Ignoring unknown event{@event}");
                 break;
             }
@@ -191,7 +172,7 @@ public class DirectTransport : Transport.Transport
 
             default:
             {
-                logger.LogError($"Ignoring unknown event \"{@event}\"");
+                Logger?.LogError($"Ignoring unknown event \"{@event}\"");
                 break;
             }
         }

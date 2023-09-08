@@ -2,6 +2,6 @@
 
 public record RouterInternal
 {
-    public string RouterId { get; }
+    public string RouterId { get; set; }
   
 }

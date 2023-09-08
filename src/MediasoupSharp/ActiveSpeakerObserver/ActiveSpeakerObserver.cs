@@ -3,23 +3,18 @@ using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.ActiveSpeakerObserver;
 
-public class ActiveSpeakerObserver<TActiveSpeakerObserverAppData> :
+internal class ActiveSpeakerObserver<TActiveSpeakerObserverAppData> :
     RtpObserver<TActiveSpeakerObserverAppData, ActiveSpeakerObserverEvents>
 {
-    /// <summary>
-    /// Logger.
-    /// </summary>
-    private readonly ILogger logger;
 
-    public ActiveSpeakerObserver(ILoggerFactory loggerFactory,
+    public ActiveSpeakerObserver(
         RtpObserverObserverConstructorOptions<TActiveSpeakerObserverAppData> args
-    ) : base(loggerFactory, args)
+    ) : base(args)
     {
-        logger = loggerFactory.CreateLogger(GetType());
         HandleWorkerNotifications();
     }
 
-    public IEnhancedEventEmitter<ActiveSpeakerObserverObserverEvents> Observer =>
+    internal IEnhancedEventEmitter<ActiveSpeakerObserverObserverEvents> Observer =>
         base.Observer as IEnhancedEventEmitter<ActiveSpeakerObserverObserverEvents>;
 
 
@@ -40,7 +35,10 @@ public class ActiveSpeakerObserver<TActiveSpeakerObserverAppData> :
                         break;
                     }
 
-                    ActiveSpeakerObserverDominantSpeaker dominantSpeaker = new(producer);
+                    ActiveSpeakerObserverDominantSpeaker dominantSpeaker = new()
+                    {
+                        Producer = producer
+                    };
 
                     await SafeEmit("dominantspeaker", dominantSpeaker);
                     await Observer.SafeEmit("dominantspeaker", dominantSpeaker);
@@ -49,7 +47,7 @@ public class ActiveSpeakerObserver<TActiveSpeakerObserverAppData> :
 
                 default:
                 {
-                    logger.LogError("ignoring unknown event '{E}' ", @event);
+                    Logger?.LogError("ignoring unknown event '{E}' ", @event);
                     break;
                 }
             }

@@ -4,87 +4,68 @@ using MediasoupSharp.Consumer;
 using MediasoupSharp.DataConsumer;
 using MediasoupSharp.DataProducer;
 using MediasoupSharp.Exceptions;
-using MediasoupSharp.PayloadChannel;
 using MediasoupSharp.Producer;
+using MediasoupSharp.RtpParameters;
+using MediasoupSharp.SctpParameters;
+using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.Transport;
 
-public abstract class Transport : EventEmitter
+internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
+    : EnhancedEventEmitter<TEvents>
+    where TEvents : TransportEvents
+    where TObserverEvents : TransportObserverEvents
 {
-    /// <summary>
-    /// Logger factory for create logger.
-    /// </summary>
-    private readonly ILoggerFactory loggerFactory;
-
-    /// <summary>
-    /// Logger.
-    /// </summary>
-    private readonly ILogger<Transport> logger;
-
-    /// <summary>
-    /// Whether the Transport is closed.
-    /// </summary>
-    protected bool Closed { get; private set; }
-
-    /// <summary>
-    /// Close locker.
-    /// </summary>
-    protected readonly AsyncReaderWriterLock CloseLock = new();
 
     /// <summary>
     /// Internal data.
     /// </summary>
-    protected TransportInternal Internal { get; }
-
-    /// <summary>
-    /// Trannsport id.
-    /// </summary>
-    public string TransportId => Internal.TransportId;
+    protected readonly TransportInternal Internal;
 
     /// <summary>
     /// Transport data.
     /// </summary>
-    public TransportBaseData BaseData { get; }
+    private readonly TransportData data;
 
     /// <summary>
     /// Channel instance.
     /// </summary>
-    protected readonly IChannel Channel;
+    protected readonly Channel.Channel Channel;
 
     /// <summary>
     /// PayloadChannel instance.
     /// </summary>
-    protected readonly IPayloadChannel PayloadChannel;
+    protected readonly PayloadChannel.PayloadChannel PayloadChannel;
+
+    /// <summary>
+    /// Whether the Transport is closed.
+    /// </summary>
+    public bool Closed { get; private set; }
 
     /// <summary>
     /// App custom data.
     /// </summary>
-    public Dictionary<string, object> AppData { get; }
+    public TTransportAppData AppData { get; set; }
 
     /// <summary>
     /// Method to retrieve Router RTP capabilities.
     /// </summary>
-    protected readonly Func<RtpCapabilities> GetRouterRtpCapabilities;
+    private readonly Func<RtpCapabilities> getRouterRtpCapabilities;
 
     /// <summary>
     /// Method to retrieve a Producer.
     /// </summary>
-    protected readonly Func<string, Task<Producer.Producer?>> GetProducerById;
+    protected readonly Func<string, Producer.Producer?> GetProducerById;
 
     /// <summary>
     /// Method to retrieve a DataProducer.
     /// </summary>
-    protected readonly Func<string, Task<DataProducer.DataProducer?>> GetDataProducerById;
+    protected readonly Func<string, DataProducer.DataProducer?> GetDataProducerById;
 
     /// <summary>
     /// Producers map.
     /// </summary>
-    protected readonly Dictionary<string, Producer.Producer> Producers = new();
-
-    /// <summary>
-    /// Producers locker.
-    /// </summary>
-    protected readonly AsyncAutoResetEvent ProducersLock = new();
+    private readonly Dictionary<string, Producer.Producer> producers = new();
 
     /// <summary>
     /// Consumers map.
@@ -92,19 +73,9 @@ public abstract class Transport : EventEmitter
     protected readonly Dictionary<string, Consumer.Consumer> Consumers = new();
 
     /// <summary>
-    /// Consumers locker.
-    /// </summary>
-    protected readonly AsyncAutoResetEvent ConsumersLock = new();
-
-    /// <summary>
     /// DataProducers map.
     /// </summary>
     protected readonly Dictionary<string, DataProducer.DataProducer> DataProducers = new();
-
-    /// <summary>
-    /// DataProducers locker.
-    /// </summary>
-    protected readonly AsyncAutoResetEvent DataProducersLock = new();
 
     /// <summary>
     /// DataConsumers map.
@@ -112,335 +83,280 @@ public abstract class Transport : EventEmitter
     protected readonly Dictionary<string, DataConsumer.DataConsumer> DataConsumers = new();
 
     /// <summary>
-    /// DataConsumers locker.
-    /// </summary>
-    protected readonly AsyncAutoResetEvent DataConsumersLock = new();
-
-    /// <summary>
     /// RTCP CNAME for Producers.
     /// </summary>
     private string? cnameForProducers;
 
     /// <summary>
-    /// Next MID for Consumers. It's converted into string when used.
+    /// Next MID for Consumers. It"s converted into string when used.
     /// </summary>
     private int nextMidForConsumers = 0;
-
-    private readonly object nextMidForConsumersLock = new();
 
     /// <summary>
     /// Buffer with available SCTP stream ids.
     /// </summary>
-    private int[]? sctpStreamIds;
-
-    private readonly object sctpStreamIdsLock = new();
+    private byte[]? sctpStreamIds;
 
     /// <summary>m
     /// Next SCTP stream id.
     /// </summary>
-    private int nextSctpStreamId;
+    private int nextSctpStreamId = 0;
 
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EventEmitter Observer { get; } = new EventEmitter();
+    public EnhancedEventEmitter<TObserverEvents> Observer => observer ??= new();
+    
+    #region Extra
 
-    /// <summary>
-    /// <para>Events:</para>
-    /// <para>@emits routerclose</para>
-    /// <para>@emits listenserverclose</para>
-    /// <para>@emits trace - (trace: TransportTraceEventData)</para>
-    /// <para>@emits @close</para>
-    /// <para>@emits @newproducer - (producer: Producer)</para>
-    /// <para>@emits @producerclose - (producer: Producer)</para>
-    /// <para>@emits @newdataproducer - (dataProducer: DataProducer)</para>
-    /// <para>@emits @dataproducerclose - (dataProducer: DataProducer)</para>
-    /// <para>@emits @listenserverclose</para>
-    /// <para>Observer events:</para>
-    /// <para>@emits close</para>
-    /// <para>@emits newproducer - (producer: Producer)</para>
-    /// <para>@emits newconsumer - (producer: Producer)</para>
-    /// <para>@emits newdataproducer - (dataProducer: DataProducer)</para>
-    /// <para>@emits newdataconsumer - (dataProducer: DataProducer)</para>
-    /// </summary>
-    /// <param name="loggerFactory"></param>
-    /// <param name="internal"></param>
-    /// <param name="data"></param>
-    /// <param name="channel"></param>
-    /// <param name="payloadChannel"></param>
-    /// <param name="appData"></param>
-    /// <param name="getRouterRtpCapabilities"></param>
-    /// <param name="getProducerById"></param>
-    /// <param name="getDataProducerById"></param>
-    protected Transport(ILoggerFactory loggerFactory,
-        TransportInternal @internal,
-        TransportBaseData data,
-        IChannel channel,
-        IPayloadChannel payloadChannel,
-        Dictionary<string, object>? appData,
-        Func<RtpCapabilities> getRouterRtpCapabilities,
-        Func<string, Task<Producer.Producer?>> getProducerById,
-        Func<string, Task<DataProducer.DataProducer?>> getDataProducerById
-    )
+    private EnhancedEventEmitter<TObserverEvents>? observer;
+    public override ILoggerFactory LoggerFactory
     {
-        this.loggerFactory = loggerFactory;
-        logger = loggerFactory.CreateLogger<Transport>();
-
-        Internal = @internal;
-        BaseData = data;
-        Channel = channel;
-        PayloadChannel = payloadChannel;
-        AppData = appData ?? new Dictionary<string, object>();
-        GetRouterRtpCapabilities = getRouterRtpCapabilities;
-        GetProducerById = getProducerById;
-        GetDataProducerById = getDataProducerById;
-
-        ProducersLock.Set();
-        ConsumersLock.Set();
-        DataProducersLock.Set();
-        DataConsumersLock.Set();
+        init
+        {
+            observer = new EnhancedEventEmitter<TObserverEvents>
+            {
+                LoggerFactory = value
+            };
+            base.LoggerFactory = value;
+        }
     }
+
+    #endregion
+    protected Transport(
+        TransportConstructorOptions<TTransportAppData> arg
+    ) 
+    {
+        Internal = arg.Internal;
+        data = arg.Data;
+        Channel = arg.Channel;
+        PayloadChannel = arg.PayloadChannel;
+        AppData = arg.AppData ?? (TTransportAppData)FormatterServices.GetUninitializedObject(typeof(TTransportAppData));
+        getRouterRtpCapabilities = arg.GetRouterRtpCapabilities;
+        GetProducerById = arg.GetProducerById;
+        GetDataProducerById = arg.GetDataProducerById;
+    }
+
+    public string Id => Internal.TransportId;
+
+    internal Channel.Channel ChannelForTesting => Channel;
 
     /// <summary>
     /// Close the Transport.
     /// </summary>
-    public async Task CloseAsync()
+    public void Close()
     {
-        logger.LogDebug($"CloseAsync() | Transport:{TransportId}");
-
-        await using (await CloseLock.WriteLockAsync())
+        if (Closed)
         {
-            if (Closed)
-            {
-                return;
-            }
-
-            Closed = true;
-
-            await OnCloseAsync();
-
-            // Remove notification subscriptions.
-            //_channel.MessageEvent -= OnChannelMessage;
-            //_payloadChannel.MessageEvent -= OnPayloadChannelMessage;
-
-            var reqData = new { TransportId = Internal.TransportId };
-
-            // Fire and forget
-            Channel.RequestAsync(MethodId.ROUTER_CLOSE_TRANSPORT, Internal.RouterId, reqData)
-                .ContinueWithOnFaultedHandleLog(logger);
-
-            await CloseIternalAsync(true);
-
-            Emit("@close");
-
-            // Emit observer event.
-            Observer.Emit("close");
+            return;
         }
-    }
 
-    protected abstract Task OnCloseAsync();
+        Logger?.LogDebug("CloseAsync() | Transport:{Id}", Id);
+
+        Closed = true;
+
+        // Remove notification subscriptions.
+        Channel.RemoveAllListeners(Internal.TransportId);
+        PayloadChannel.RemoveAllListeners(Internal.TransportId);
+
+        // TODO : Naming
+        var reqData = new { transportId = Internal.TransportId };
+
+        // Fire and forget
+        Channel.Request("router.closeTransport", Internal.RouterId, reqData)
+            .ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
+
+        // Close every Producer.
+        foreach (var producer in producers.Values)
+        {
+            producer.TransportClosed();
+
+            // Must tell the Router.
+            _ = Emit("@producerclose", producer);
+        }
+
+        producers.Clear();
+
+        // Close every Consumer.
+        foreach (var consumer in Consumers.Values)
+        {
+            consumer.TransportClosed();
+        }
+
+        Consumers.Clear();
+
+        // Close every DataProducer.
+        foreach (var dataProducer in DataProducers.Values)
+        {
+            dataProducer.TransportClosed();
+
+            // Must tell the Router.
+            _ = Emit("@dataproducerclose", dataProducer);
+        }
+
+        DataProducers.Clear();
+
+        // Close every DataConsumer.
+        foreach (var dataConsumer in DataConsumers.Values)
+        {
+            dataConsumer.TransportClosed();
+        }
+
+        DataConsumers.Clear();
+
+
+        _ = Emit("@close");
+
+        // Emit observer event.
+        _ = Observer.SafeEmit("close");
+    }
 
     /// <summary>
     /// Router was closed.
     /// </summary>
-    public async Task RouterClosedAsync()
+    public virtual void RouterClosed()
     {
-        logger.LogDebug($"RouterClosed() | Transport:{TransportId}");
-
-        await using (await CloseLock.WriteLockAsync())
+        if (Closed)
         {
-            if (Closed)
-            {
-                return;
-            }
-
-            Closed = true;
-
-            await OnRouterClosedAsync();
-
-            // Remove notification subscriptions.
-            //_channel.MessageEvent -= OnChannelMessage;
-            //_payloadChannel.MessageEvent -= OnPayloadChannelMessage;
-
-            await CloseIternalAsync(false);
-
-            Emit("routerclose");
-
-            // Emit observer event.
-            Observer.Emit("close");
+            return;
         }
-    }
 
-    protected abstract Task OnRouterClosedAsync();
+        Logger?.LogDebug("RouterClosed() | Transport:{Id}", Id);
 
-    private async Task CloseIternalAsync(bool tellRouter)
-    {
+        Closed = true;
+
+        // Remove notification subscriptions.
+        Channel.RemoveAllListeners(Internal.TransportId);
+        PayloadChannel.RemoveAllListeners(Internal.TransportId);
+
         // Close every Producer.
-        await ProducersLock.WaitAsync();
-        try
+        foreach (var producer in producers.Values)
         {
-            foreach (var producer in Producers.Values)
-            {
-                await producer.TransportClosedAsync();
+            producer.TransportClosed();
 
-                // Must tell the Router.
-                Emit("@producerclose", producer);
-            }
+            // NOTE: No need to tell the Router since it already knows (it has
+            // been closed in fact).
+        }
 
-            Producers.Clear();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "CloseIternalAsync()");
-        }
-        finally
-        {
-            ProducersLock.Set();
-        }
+        producers.Clear();
 
         // Close every Consumer.
-        await ConsumersLock.WaitAsync();
-        try
+        foreach (var consumer in Consumers.Values)
         {
-            foreach (var consumer in Consumers.Values)
-            {
-                await consumer.TransportClosedAsync();
-            }
+            consumer.TransportClosed();
+        }
 
-            Consumers.Clear();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "CloseIternalAsync()");
-        }
-        finally
-        {
-            ConsumersLock.Set();
-        }
+        Consumers.Clear();
 
         // Close every DataProducer.
-        await DataProducersLock.WaitAsync();
-        try
+        foreach (var dataProducer in DataProducers.Values)
         {
-            foreach (var dataProducer in DataProducers.Values)
-            {
-                await dataProducer.TransportClosedAsync();
+            dataProducer.TransportClosed();
 
-                // If call by CloseAsync()
-                if (tellRouter)
-                {
-                    // Must tell the Router.
-                    Emit("@dataproducerclose", dataProducer);
-                }
-                else
-                {
-                    // NOTE: No need to tell the Router since it already knows (it has
-                    // been closed in fact).
-                }
-            }
+            // NOTE: No need to tell the Router since it already knows (it has
+            // been closed in fact).
+        }
 
-            DataProducers.Clear();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "CloseIternalAsync()");
-        }
-        finally
-        {
-            DataProducersLock.Set();
-        }
+        DataProducers.Clear();
 
         // Close every DataConsumer.
-        await DataConsumersLock.WaitAsync();
-        try
+        foreach (var dataConsumer in DataConsumers.Values)
         {
-            foreach (var dataConsumer in DataConsumers.Values)
-            {
-                await dataConsumer.TransportClosedAsync();
-            }
+            dataConsumer.TransportClosed();
+        }
 
-            DataConsumers.Clear();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "CloseIternalAsync()");
-        }
-        finally
-        {
-            DataConsumersLock.Set();
-        }
+        DataConsumers.Clear();
+
+
+        _ = SafeEmit("routerclose");
+
+        // Emit observer event.
+        _ = Observer.SafeEmit("close");
     }
 
     /// <summary>
-    /// Listen server was closed (this just happens in WebRtcTransports when their associated WebRtcServer is closed).
+    /// Listen server was closed (this just happens in WebRtcTransports when their
+    /// associated WebRtcServer is closed).
+    /// @private
     /// </summary>
-    /// <returns></returns>
-    public async Task ListenServerClosedAsync()
+    private void ListenServerClosed()
     {
-        await using (await CloseLock.WriteLockAsync())
+        if (Closed)
         {
-            if (Closed)
-            {
-                return;
-            }
-
-            Closed = true;
-
-            logger.LogDebug($"ListenServerClosedAsync() | Transport:{TransportId}");
-
-            // Remove notification subscriptions.
-            //_channel.MessageEvent -= OnChannelMessage;
-            //_payloadChannel.MessageEvent -= OnPayloadChannelMessage;
-
-            await CloseIternalAsync(false);
-
-            // Need to emit this event to let the parent Router know since
-            // transport.listenServerClosed() is called by the listen server.
-            // NOTE: Currently there is just WebRtcServer for WebRtcTransports.
-            Emit("@listenserverclose");
-            Emit("listenserverclose");
-
-            // Emit observer event.
-            Observer.Emit("close");
+            return;
         }
+
+        Logger?.LogDebug("listenServerClosed()");
+
+        Closed = true;
+
+        // Remove notification subscriptions.
+        Channel.RemoveAllListeners(Internal.TransportId);
+        PayloadChannel.RemoveAllListeners(Internal.TransportId);
+
+        // Close every Producer.
+        foreach (var producer in producers.Values)
+        {
+            producer.TransportClosed();
+
+            // NOTE: No need to tell the Router since it already knows (it has
+            // been closed in fact).
+        }
+
+        producers.Clear();
+
+        // Close every Consumer.
+        foreach (var consumer in Consumers.Values)
+        {
+            consumer.TransportClosed();
+        }
+
+        Consumers.Clear();
+
+        // Close every DataProducer.
+        foreach (var dataProducer in DataProducers.Values)
+        {
+            dataProducer.TransportClosed();
+
+            // NOTE: No need to tell the Router since it already knows (it has
+            // been closed in fact).
+        }
+
+        DataProducers.Clear();
+
+        // Close every DataConsumer.
+        foreach (var dataConsumer in DataConsumers.Values)
+        {
+            dataConsumer.TransportClosed();
+        }
+
+        DataConsumers.Clear();
+
+        // Need to emit this event to let the parent Router know since
+        // transport.listenServerClosed() is called by the listen server.
+        // NOTE: Currently there is just WebRtcServer for WebRtcTransports.
+        _ = Emit("@listenserverclose");
+
+        _ = SafeEmit("listenserverclose");
+
+        // Emit observer event.
+        _ = Observer.SafeEmit("close");
     }
 
     /// <summary>
     /// Dump Transport.
     /// </summary>
-    public async Task<string> DumpAsync()
+    public async Task<object> DumpAsync()
     {
-        logger.LogDebug($"DumpAsync() | Transport:{TransportId}");
+        Logger?.LogDebug("DumpAsync() | Transport:{Id}", Id);
 
-        await using (await CloseLock.ReadLockAsync())
-        {
-            if (Closed)
-            {
-                throw new InvalidStateException("Transport closed");
-            }
-
-            return (await Channel.RequestAsync(MethodId.TRANSPORT_DUMP, Internal.TransportId))!;
-        }
+        return (await Channel.Request("transport.dump", Internal.TransportId))!;
     }
 
     /// <summary>
     /// Get Transport stats.
     /// </summary>
-    public async Task<string> GetStatsAsync()
-    {
-        // 在 Node.js 实现中，Transport 类没有实现 getState 方法。
-        logger.LogDebug($"GetStatsAsync() | Transport:{TransportId}");
-
-        await using (await CloseLock.ReadLockAsync())
-        {
-            if (Closed)
-            {
-                throw new InvalidStateException("Transport closed");
-            }
-
-            return (await Channel.RequestAsync(MethodId.TRANSPORT_GET_STATS, Internal.TransportId))!;
-        }
-    }
+    public abstract Task<List<object>> GetStatsAsync();
 
     /// <summary>
     /// Provide the Transport remote parameters.
@@ -454,22 +370,14 @@ public abstract class Transport : EventEmitter
     /// </summary>
     /// <param name="bitrate"></param>
     /// <returns></returns>
-    public virtual async Task SetMaxIncomingBitrateAsync(int bitrate)
+    public async Task SetMaxIncomingBitrateAsync(int bitrate)
     {
-        logger.LogDebug($"SetMaxIncomingBitrateAsync() | Transport:{TransportId} Bitrate:{bitrate}");
+        Logger?.LogDebug("SetMaxIncomingBitrateAsync() | Transport:{Id} Bitrate:{Bitrate}", Id, bitrate);
 
-        await using (await CloseLock.ReadLockAsync())
-        {
-            if (Closed)
-            {
-                throw new InvalidStateException("Transport closed");
-            }
+        // TODO : Naming
+        var reqData = new { bitrate };
 
-            var reqData = new { Bitrate = bitrate };
-            // Fire and forget
-            Channel.RequestAsync(MethodId.TRANSPORT_SET_MAX_INCOMING_BITRATE, Internal.TransportId, reqData)
-                .ContinueWithOnFaultedHandleLog(logger);
-        }
+        await Channel.Request("transport.setMaxIncomingBitrate", Internal.TransportId, reqData);
     }
 
     /// <summary>
@@ -477,165 +385,148 @@ public abstract class Transport : EventEmitter
     /// </summary>
     /// <param name="bitrate"></param>
     /// <returns></returns>
-    public virtual async Task SetMaxOutgoingBitrateAsync(int bitrate)
+    public async Task SetMaxOutgoingBitrateAsync(int bitrate)
     {
-        logger.LogDebug($"setMaxOutgoingBitrate() | Transport:{TransportId} Bitrate:{bitrate}");
+        Logger?.LogDebug("setMaxOutgoingBitrate() | Transport:{Id} Bitrate:{Bitrate}", Id, bitrate);
 
-        await using (await CloseLock.ReadLockAsync())
-        {
-            if (Closed)
-            {
-                throw new InvalidStateException("Transport closed");
-            }
+        // TODO : Naming
+        var reqData = new { bitrate };
 
-            var reqData = new { Bitrate = bitrate };
-            // Fire and forget
-            Channel.RequestAsync(MethodId.TRANSPORT_SET_MAX_OUTGOING_BITRATE, Internal.TransportId, reqData)
-                .ContinueWithOnFaultedHandleLog(logger);
-        }
+        await Channel.Request("transport.setMaxOutgoingBitrate", Internal.TransportId, reqData);
     }
+
+    /// <summary>
+    /// Set minimum outgoing bitrate for sending media.
+    /// </summary>
+    /// <param name="bitrate"></param>
+    public async Task SetMinOutgoingBitrate(int bitrate)
+    {
+        Logger?.LogDebug("setMinOutgoingBitrate() {Bitrate}", bitrate);
+
+        var reqData = new { bitrate };
+
+        await Channel.Request(
+            "transport.setMinOutgoingBitrate", Internal.TransportId, reqData);
+    }
+
 
     /// <summary>
     /// Create a Producer.
     /// </summary>
-    public virtual async Task<Producer.Producer> ProduceAsync(ProducerOptions producerOptions)
+    public virtual async Task<Producer.Producer<TProducerAppData>> ProduceAsync<TProducerAppData>(
+        ProducerOptions<TProducerAppData> producerOptions)
     {
-        logger.LogDebug($"ProduceAsync() | Transport:{TransportId}");
+        var id = producerOptions.Id;
+        var kind = producerOptions.Kind;
+        var rtpParameters = producerOptions.RtpParameters;
+        var paused = producerOptions.Paused ?? false;
+        var keyFrameRequestDelay = producerOptions.KeyFrameRequestDelay;
+        var appData = producerOptions.AppData;
 
-        if (!producerOptions.Id.IsNullOrWhiteSpace() && Producers.ContainsKey(producerOptions.Id!))
+        Logger?.LogDebug("ProduceAsync() | Transport:{Id}", Id);
+
+        if (!id.IsNullOrEmpty() && producers.ContainsKey(producerOptions.Id!))
         {
             throw new Exception($"a Producer with same id \"{producerOptions.Id}\" already exists");
         }
-
-        await using (await CloseLock.ReadLockAsync())
+        else if (kind is not (MediaKind.audio or MediaKind.video))
         {
-            if (Closed)
-            {
-                throw new InvalidStateException("Transport closed");
-            }
-
-            // This may throw.
-            ORTC.Ortc.ValidateRtpParameters(producerOptions.RtpParameters);
-
-            // If missing or empty encodings, add one.
-            // 在 mediasoup-worker 中，要求 Encodings 至少要有一个元素。
-            if (producerOptions.RtpParameters.Encodings.IsNullOrEmpty())
-            {
-                producerOptions.RtpParameters.Encodings = new List<RtpEncodingParameters>
-                {
-                    // 对 RtpEncodingParameters 序列化时，Rid、CodecPayloadType 和 Rtx 为 null 会忽略，因为客户端库对其有校验。
-                    new()
-                };
-            }
-
-            // Don't do this in PipeTransports since there we must keep CNAME value in
-            // each Producer.
-            // TODO: (alby) 反模式
-            if (GetType() != typeof(PipeTransport.PipeTransport))
-            {
-                // If CNAME is given and we don't have yet a CNAME for Producers in this
-                // Transport, take it.
-                if (cnameForProducers.IsNullOrWhiteSpace()
-                    && producerOptions.RtpParameters.Rtcp != null
-                    && !producerOptions.RtpParameters.Rtcp.CNAME.IsNullOrWhiteSpace())
-                {
-                    cnameForProducers = producerOptions.RtpParameters.Rtcp.CNAME;
-                }
-                // Otherwise if we don't have yet a CNAME for Producers and the RTP parameters
-                // do not include CNAME, create a random one.
-                else if (cnameForProducers.IsNullOrWhiteSpace())
-                {
-                    cnameForProducers = Guid.NewGuid().ToString()[..8];
-                }
-
-                // Override Producer's CNAME.
-                // 对 RtcpParameters 序列化时，CNAME 和 ReducedSize 为 null 会忽略，因为客户端库对其有校验。
-                producerOptions.RtpParameters.Rtcp ??= new RtcpParameters();
-                producerOptions.RtpParameters.Rtcp.CNAME = cnameForProducers;
-            }
-
-            var routerRtpCapabilities = GetRouterRtpCapabilities();
-
-            // This may throw.
-            var rtpMapping =
-                ORTC.Ortc.GetProducerRtpParametersMapping(producerOptions.RtpParameters, routerRtpCapabilities);
-
-            // This may throw.
-            var consumableRtpParameters = ORTC.Ortc.GetConsumableRtpParameters(
-                producerOptions.Kind,
-                producerOptions.RtpParameters,
-                routerRtpCapabilities,
-                rtpMapping);
-
-            var reqData = new
-            {
-                ProducerId = producerOptions.Id.IsNullOrWhiteSpace()
-                    ? Guid.NewGuid().ToString()
-                    : producerOptions.Id,
-                producerOptions.Kind,
-                producerOptions.RtpParameters,
-                RtpMapping = rtpMapping,
-                producerOptions.KeyFrameRequestDelay,
-                producerOptions.Paused,
-            };
-
-            var resData = await Channel.RequestAsync(MethodId.TRANSPORT_PRODUCE, Internal.TransportId, reqData);
-            var responseData = resData!.Deserialize<TransportProduceResponseData>();
-            var data = new ProducerData
-            {
-                Kind = producerOptions.Kind,
-                RtpParameters = producerOptions.RtpParameters,
-                Type = responseData.Type,
-                ConsumableRtpParameters = consumableRtpParameters
-            };
-
-            var producer = new Producer.Producer(loggerFactory,
-                new ProducerInternal(Internal.RouterId, Internal.TransportId, reqData.ProducerId),
-                data,
-                Channel,
-                PayloadChannel,
-                producerOptions.AppData,
-                producerOptions.Paused!.Value);
-
-            producer.On("@close", async (_, _) =>
-            {
-                await ProducersLock.WaitAsync();
-                try
-                {
-                    Producers.Remove(producer.ProducerId);
-                    Emit("@producerclose", producer);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "@close");
-                }
-                finally
-                {
-                    ProducersLock.Set();
-                }
-            });
-
-            await ProducersLock.WaitAsync();
-            try
-            {
-                Producers[producer.ProducerId] = producer;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "ProduceAsync()");
-            }
-            finally
-            {
-                ProducersLock.Set();
-            }
-
-            Emit("@newproducer", producer);
-
-            // Emit observer event.
-            Observer.Emit("newproducer", producer);
-
-            return producer;
+            throw new TypeError($"invalid kind {kind}");
         }
+
+        // This may throw.
+        ORTC.Ortc.ValidateRtpParameters(rtpParameters);
+
+        // If missing or empty encodings, add one.
+        if (!rtpParameters.Encodings.IsNullOrEmpty())
+        {
+            producerOptions.RtpParameters.Encodings = new List<RtpEncodingParameters>
+            {
+                new()
+            };
+        }
+
+        // Don"t do this in PipeTransports since there we must keep CNAME value in
+        // each Producer.
+        // TODO: (alby) 反模式
+        if (this is PipeTransport.PipeTransport)
+        {
+            // If CNAME is given and we don"t have yet a CNAME for Producers in this
+            // Transport, take it.
+            if (cnameForProducers.IsNullOrWhiteSpace()
+                && producerOptions.RtpParameters.Rtcp != null
+                && !producerOptions.RtpParameters.Rtcp.Cname.IsNullOrWhiteSpace())
+            {
+                cnameForProducers = producerOptions.RtpParameters.Rtcp.Cname;
+            }
+            // Otherwise if we don"t have yet a CNAME for Producers and the RTP parameters
+            // do not include CNAME, create a random one.
+            else if (cnameForProducers.IsNullOrWhiteSpace())
+            {
+                cnameForProducers = Guid.NewGuid().ToString()[..8];
+            }
+
+            // Override Producer"s CNAME.
+            // 对 RtcpParameters 序列化时，CNAME 和 ReducedSize 为 null 会忽略，因为客户端库对其有校验。
+            producerOptions.RtpParameters.Rtcp ??= new RtcpParameters();
+            producerOptions.RtpParameters.Rtcp.Cname = cnameForProducers;
+        }
+
+        var routerRtpCapabilities = getRouterRtpCapabilities();
+
+        // This may throw.
+        var rtpMapping =
+            ORTC.Ortc.GetProducerRtpParametersMapping(rtpParameters, routerRtpCapabilities);
+
+        // This may throw.
+        var consumableRtpParameters = ORTC.Ortc.GetConsumableRtpParameters(
+            kind, rtpParameters, routerRtpCapabilities, rtpMapping);
+
+        var reqData = new
+        {
+            ProducerId = id.IsNullOrWhiteSpace() ? Guid.NewGuid().ToString() : id!,
+            kind,
+            rtpParameters,
+            rtpMapping,
+            keyFrameRequestDelay,
+            paused,
+        };
+
+        var status = await Channel.Request("transport.produce", Internal.TransportId, reqData) as dynamic;
+        var data = new ProducerData
+        {
+            Kind = kind,
+            RtpParameters = rtpParameters,
+            Type = status!.Type,
+            ConsumableRtpParameters = consumableRtpParameters
+        };
+
+        var producer = new Producer<TProducerAppData>(
+            new ProducerInternal
+            {
+                RouterId = Internal.RouterId,
+                TransportId = Internal.TransportId,
+                ProducerId = reqData.ProducerId
+            },
+            data,
+            Channel,
+            PayloadChannel,
+            appData,
+            paused);
+
+        producers[producer.Id] = producer;
+        producer.On("@close", async _ =>
+        {
+            producers.Remove(producer.Id);
+            var __ = Emit("@producerclose", producer);
+        });
+
+        _ = Emit("@newproducer", producer);
+
+        // Emit observer event.
+        _ = Observer.SafeEmit("newproducer", producer);
+
+        return producer;
     }
 
     /// <summary>
@@ -643,169 +534,141 @@ public abstract class Transport : EventEmitter
     /// </summary>
     /// <param name="consumerOptions"></param>
     /// <returns></returns>
-    public virtual async Task<Consumer.Consumer> ConsumeAsync(ConsumerOptions consumerOptions)
+    public virtual async Task<Consumer.Consumer<TConsumerAppData>> ConsumeAsync<TConsumerAppData>(
+        ConsumerOptions<TConsumerAppData> consumerOptions)
     {
-        logger.LogDebug($"ConsumeAsync() | Transport:{TransportId}");
+        var producerId = consumerOptions.ProducerId;
+        var rtpCapabilities = consumerOptions.RtpCapabilities;
+        var paused = consumerOptions.Paused ?? false;
+        var mid = consumerOptions.Mid;
+        var preferredLayers = consumerOptions.PreferredLayers;
+        var ignoreDtx = consumerOptions.IgnoreDtx ?? false;
+        var enableRtx = consumerOptions.EnableRtx;
+        var pipe = consumerOptions.Pipe ?? false;
+        var appData = consumerOptions.AppData;
 
-        if (consumerOptions.ProducerId.IsNullOrWhiteSpace())
+        Logger?.LogDebug("ConsumeAsync() | Transport:{Id}", Id);
+
+        if (producerId.IsNullOrWhiteSpace())
         {
-            throw new ArgumentException($"{nameof(consumerOptions.ProducerId)} can't be null or white space.");
+            throw new TypeError("missing producerId");
         }
 
-        if (consumerOptions.RtpCapabilities == null)
+        if (mid?.Length == 0)
         {
-            throw new ArgumentNullException(nameof(consumerOptions.RtpCapabilities));
+            throw new TypeError("if given, mid must be non empty string");
         }
 
-        if (consumerOptions.Mid != null && consumerOptions.Mid.IsNullOrWhiteSpace())
+        // This may throw.
+        ORTC.Ortc.ValidateRtpCapabilities(consumerOptions.RtpCapabilities);
+
+        var producer = GetProducerById(consumerOptions.ProducerId);
+
+        if (producer == null)
         {
-            throw new ArgumentException($"{nameof(consumerOptions.Mid)} can't be null or white space.");
+            throw new NullReferenceException($"Producer with id {consumerOptions.ProducerId} not found");
         }
 
-        consumerOptions.Paused ??= false;
+        // If enableRtx is not given, set it to true if video and false if audio.
+        enableRtx ??= producer.Kind == MediaKind.video;
 
-        await using (await CloseLock.ReadLockAsync())
+        // TODO : Some changes here
+        // This may throw.
+        var rtpParameters = ORTC.Ortc.GetConsumerRtpParameters(
+            producer.ConsumableRtpParameters,
+            consumerOptions.RtpCapabilities,
+            pipe);
+
+        if (!pipe)
         {
-            if (Closed)
+            if (mid != null)
             {
-                throw new InvalidStateException("Transport closed");
+                rtpParameters.Mid = mid;
             }
-
-            // This may throw.
-            ORTC.Ortc.ValidateRtpCapabilities(consumerOptions.RtpCapabilities);
-
-            var producer = await GetProducerById(consumerOptions.ProducerId);
-            if (producer == null)
+            else
             {
-                throw new NullReferenceException($"Producer with id {consumerOptions.ProducerId} not found");
-            }
+                // Set MID.
+                rtpParameters.Mid = $"{nextMidForConsumers++}";
 
-            var pipe = consumerOptions.Pipe.HasValue && consumerOptions.Pipe.Value;
-            // This may throw.
-            var rtpParameters = ORTC.Ortc.GetConsumerRtpParameters(producer.Data.ConsumableRtpParameters,
-                consumerOptions.RtpCapabilities, pipe);
-
-            if (!pipe)
-            {
-                if (consumerOptions.Mid != null)
+                // We use up to 8 bytes for MID (string).
+                if (nextMidForConsumers == 100000000)
                 {
-                    rtpParameters.Mid = consumerOptions.Mid;
-                }
-                else
-                {
-                    lock (nextMidForConsumersLock)
-                    {
-                        // Set MID.
-                        rtpParameters.Mid = nextMidForConsumers++.ToString();
+                    Logger?.LogError("ConsumeAsync() | Reaching max MID value {NextMidForConsumers}",
+                        nextMidForConsumers);
 
-                        // We use up to 8 bytes for MID (string).
-                        if (nextMidForConsumers == 100_000_000)
-                        {
-                            logger.LogDebug($"ConsumeAsync() | Reaching max MID value {nextMidForConsumers}");
-                            nextMidForConsumers = 0;
-                        }
-                    }
+                    nextMidForConsumers = 0;
                 }
             }
-
-            var reqData = new
-            {
-                ConsumerId = Guid.NewGuid().ToString(),
-                ProducerId = consumerOptions.ProducerId,
-                producer.Data.Kind,
-                RtpParameters = rtpParameters,
-                Type = pipe ? ProducerType.Pipe : producer.Data.Type,
-                ConsumableRtpEncodings = producer.Data.ConsumableRtpParameters.Encodings,
-                consumerOptions.Paused,
-                consumerOptions.PreferredLayers,
-                consumerOptions.IgnoreDtx,
-            };
-
-            var resData = await Channel.RequestAsync(MethodId.TRANSPORT_CONSUME, Internal.TransportId, reqData);
-            var responseData = resData!.Deserialize<TransportConsumeResponseData>();
-
-            var data = new ConsumerData
-            (
-                consumerOptions.ProducerId,
-                producer.Data.Kind,
-                rtpParameters,
-                (ConsumerType)(pipe
-                    ? ProducerType.Pipe
-                    : producer.Data.Type) // 注意：类型转换。ProducerType 的每一种值在 ConsumerType 都有对应且相同的值。
-            );
-
-            var consumer = new Consumer.Consumer(loggerFactory,
-                new ConsumerInternal(Internal.RouterId, Internal.TransportId, reqData.ConsumerId),
-                data,
-                Channel,
-                PayloadChannel,
-                AppData,
-                responseData.Paused,
-                responseData.ProducerPaused,
-                responseData.Score,
-                responseData.PreferredLayers);
-
-            consumer.On("@close", async (_, _) =>
-            {
-                await ConsumersLock.WaitAsync();
-                try
-                {
-                    Consumers.Remove(consumer.ConsumerId);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "@close");
-                }
-                finally
-                {
-                    ConsumersLock.Set();
-                }
-            });
-            consumer.On("@producerclose", async (_, _) =>
-            {
-                await ConsumersLock.WaitAsync();
-                try
-                {
-                    Consumers.Remove(consumer.ConsumerId);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "@producerclose");
-                }
-                finally
-                {
-                    ConsumersLock.Set();
-                }
-            });
-
-            await ConsumersLock.WaitAsync();
-            try
-            {
-                Consumers[consumer.ConsumerId] = consumer;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "ConsumeAsync()");
-            }
-            finally
-            {
-                ConsumersLock.Set();
-            }
-
-            // Emit observer event.
-            Observer.Emit("newconsumer", consumer);
-
-            return consumer;
         }
+
+        var reqData = new
+        {
+            ConsumerId = Guid.NewGuid().ToString(),
+            ProducerId = producerId,
+            producer.Kind,
+            RtpParameters = rtpParameters,
+            Type = (pipe ? ConsumerType.pipe : (ConsumerType)producer.Type).ToString(),
+            ConsumableRtpEncodings = producer.ConsumableRtpParameters.Encodings,
+            consumerOptions.Paused,
+            consumerOptions.PreferredLayers,
+            consumerOptions.IgnoreDtx,
+        };
+
+        var status = (await Channel.Request("transport.consume", Internal.TransportId, reqData) as dynamic)!;
+
+        var data = new ConsumerData
+        {
+            ProducerId = consumerOptions.ProducerId,
+            Kind = producer.Kind,
+            RtpParameters = rtpParameters,
+            Type = pipe
+                ? ConsumerType.pipe
+                : (ConsumerType)producer.Type // 注意：类型转换。ProducerType 的每一种值在 ConsumerType 都有对应且相同的值。
+        };
+
+        
+        var consumer = new Consumer.Consumer<TConsumerAppData>(
+            new ConsumerInternal
+            {
+                RouterId = Internal.RouterId,
+                TransportId = Internal.TransportId,
+                ConsumerId = reqData.ConsumerId
+            },
+            data,
+            Channel,
+            PayloadChannel,
+            appData,
+            // TODO : Naming
+            status.Paused,
+            status.ProducerPaused,
+            status.Score,
+            status.PreferredLayers);
+        
+        Consumers[consumer.Id] = consumer;
+        
+        consumer.On("@close", async _ =>
+        {
+            Consumers.Remove(consumer.Id);
+        });
+        consumer.On("@producerclose", async _ =>
+        {
+            Consumers.Remove(consumer.Id);
+        });
+
+        // Emit observer event.
+        await Observer.SafeEmit("newconsumer", consumer);
+
+        return consumer;
     }
 
     /// <summary>
     /// Create a DataProducer.
     /// </summary>
     /// <returns></returns>
-    public async Task<DataProducer.DataProducer> ProduceDataAsync(DataProducerOptions dataProducerOptions)
+    public async Task<DataProducer<TDataProducerAppData>> ProduceDataAsync<TDataProducerAppData>(
+        DataProducerOptions<TDataProducerAppData> dataProducerOptions)
     {
-        logger.LogDebug($"ProduceDataAsync() | Transport:{TransportId}");
+        Logger?.LogDebug("ProduceDataAsync() | Transport:{Id}", Id);
 
         if (!dataProducerOptions.Id.IsNullOrWhiteSpace() && DataProducers.ContainsKey(dataProducerOptions.Id!))
         {
@@ -846,7 +709,7 @@ public abstract class Transport : EventEmitter
 
                 if (dataProducerOptions.SctpStreamParameters != null)
                 {
-                    logger.LogWarning(
+                    Logger?.LogWarning(
                         $"ProduceDataAsync() | Transport:{TransportId} sctpStreamParameters are ignored when producing data on a DirectTransport");
                 }
             }
@@ -871,7 +734,7 @@ public abstract class Transport : EventEmitter
                 Label = responseData.Label!,
                 Protocol = responseData.Protocol!,
             };
-            var dataProducer = new DataProducer.DataProducer(loggerFactory,
+            var dataProducer = new DataProducer.DataProducer(Logger?Factory,
                 new DataProducerInternal(Internal.RouterId, Internal.TransportId, reqData.DataProducerId),
                 data,
                 Channel,
@@ -887,7 +750,7 @@ public abstract class Transport : EventEmitter
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "@close");
+                    Logger?.LogError(ex, "@close");
                 }
                 finally
                 {
@@ -904,7 +767,7 @@ public abstract class Transport : EventEmitter
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "ProduceDataAsync()");
+                Logger?.LogError(ex, "ProduceDataAsync()");
             }
             finally
             {
@@ -927,7 +790,7 @@ public abstract class Transport : EventEmitter
     /// <returns></returns>
     public async Task<DataConsumer.DataConsumer> ConsumeDataAsync(DataConsumerOptions dataConsumerOptions)
     {
-        logger.LogDebug($"ConsumeDataAsync() | Transport:{TransportId}");
+        Logger?.LogDebug($"ConsumeDataAsync() | Transport:{TransportId}");
 
         if (dataConsumerOptions.DataProducerId.IsNullOrWhiteSpace())
         {
@@ -952,7 +815,7 @@ public abstract class Transport : EventEmitter
             int sctpStreamId = -1;
 
             // If this is not a DirectTransport, use sctpStreamParameters from the
-            // DataProducer (if type 'sctp') unless they are given in method parameters.
+            // DataProducer (if type "sctp") unless they are given in method parameters.
             // TODO: (alby) 反模式
             if (GetType() != typeof(DirectTransport.DirectTransport))
             {
@@ -983,7 +846,7 @@ public abstract class Transport : EventEmitter
                     dataConsumerOptions.MaxRetransmits.HasValue
                    )
                 {
-                    logger.LogWarning(
+                    Logger?.LogWarning(
                         "ConsumeDataAsync() | Ordered, maxPacketLifeTime and maxRetransmits are ignored when consuming data on a DirectTransport");
                 }
             }
@@ -1002,7 +865,7 @@ public abstract class Transport : EventEmitter
                 await Channel.RequestAsync(MethodId.TRANSPORT_CONSUME_DATA, Internal.TransportId, reqData);
             var responseData = resData!.Deserialize<TransportDataConsumeResponseData>()!;
 
-            var dataConsumer = new DataConsumer.DataConsumer(loggerFactory,
+            var dataConsumer = new DataConsumer.DataConsumer(Logger?Factory,
                 new DataConsumerInternal(Internal.RouterId, Internal.TransportId, reqData.DataConsumerId),
                 responseData, // 直接使用返回值
                 Channel,
@@ -1025,7 +888,7 @@ public abstract class Transport : EventEmitter
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "@close");
+                    Logger?.LogError(ex, "@close");
                 }
                 finally
                 {
@@ -1049,7 +912,7 @@ public abstract class Transport : EventEmitter
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "@dataproducerclose");
+                    Logger?.LogError(ex, "@dataproducerclose");
                 }
                 finally
                 {
@@ -1064,7 +927,7 @@ public abstract class Transport : EventEmitter
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "ConsumeDataAsync()");
+                Logger?.LogError(ex, "ConsumeDataAsync()");
             }
             finally
             {
@@ -1079,13 +942,13 @@ public abstract class Transport : EventEmitter
     }
 
     /// <summary>
-    /// Enable 'trace' event.
+    /// Enable "trace" event.
     /// </summary>
     /// <param name="types"></param>
     /// <returns></returns>
     public async Task EnableTraceEventAsync(TransportTraceEventType[] types)
     {
-        logger.LogDebug($"EnableTraceEventAsync() | Transport:{TransportId}");
+        Logger?.LogDebug($"EnableTraceEventAsync() | Transport:{TransportId}");
 
         using (await CloseLock.ReadLockAsync())
         {
@@ -1097,7 +960,7 @@ public abstract class Transport : EventEmitter
             var reqData = new { Types = types };
             // Fire and forget
             Channel.RequestAsync(MethodId.TRANSPORT_ENABLE_TRACE_EVENT, Internal.TransportId, reqData)
-                .ContinueWithOnFaultedHandleLog(logger);
+                .ContinueWithOnFaultedHandleLog(Logger?);
         }
     }
 

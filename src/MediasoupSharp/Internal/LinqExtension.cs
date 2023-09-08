@@ -9,4 +9,6 @@ internal static class LinqExtension
             action(item);
         }
     }
+
+    public static bool IsNullOrEmpty<T>(this IEnumerable<T>? source) => source == null || !source.Any();
 }

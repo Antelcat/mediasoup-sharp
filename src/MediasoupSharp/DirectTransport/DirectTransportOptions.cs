@@ -1,6 +1,6 @@
 ﻿namespace MediasoupSharp.DirectTransport;
 
-public class DirectTransportOptions
+public class DirectTransportOptions<TDirectTransportAppData>
 {
     /// <summary>
     /// Maximum allowed size for direct messages sent from DataProducers.
@@ -11,5 +11,5 @@ public class DirectTransportOptions
     /// <summary>
     /// Custom application data.
     /// </summary>
-    public Dictionary<string, object>? AppData { get; set; }
+    public TDirectTransportAppData? AppData { get; set; }
 }

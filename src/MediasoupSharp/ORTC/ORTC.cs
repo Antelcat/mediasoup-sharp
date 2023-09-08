@@ -2,6 +2,8 @@
 using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using MediasoupSharp.RtpParameters;
+using MediasoupSharp.SctpParameters;
 
 namespace MediasoupSharp.ORTC;
 
@@ -175,7 +177,7 @@ public static class Ortc
     /// fields with default values.
     /// It throws if invalid.
     /// </summary>
-    public static void ValidateRtpParameters(RtpParameters parameters)
+    public static void ValidateRtpParameters(RtpParameters.RtpParameters parameters)
     {
         if (parameters == null)
         {
@@ -618,7 +620,7 @@ public static class Ortc
     ///
     /// It may throw if invalid or non supported RTP parameters are given.
     /// </summary>
-    public static RtpMapping GetProducerRtpParametersMapping(RtpParameters parameters, RtpCapabilities caps)
+    public static RtpMapping GetProducerRtpParametersMapping(RtpParameters.RtpParameters parameters, RtpCapabilities caps)
     {
         var rtpMapping = new RtpMapping
         {
@@ -700,9 +702,9 @@ public static class Ortc
     /// Generate RTP parameters to be internally used by Consumers given the RTP
     /// parameters in a Producer and the RTP capabilities in the Router.
     /// </summary>
-    public static RtpParameters GetConsumableRtpParameters(MediaKind kind, RtpParameters parameters, RtpCapabilities caps, RtpMapping rtpMapping)
+    public static RtpParameters.RtpParameters GetConsumableRtpParameters(MediaKind kind, RtpParameters.RtpParameters parameters, RtpCapabilities caps, RtpMapping rtpMapping)
     {
-        var consumableParams = new RtpParameters
+        var consumableParams = new RtpParameters.RtpParameters
         {
             Codecs = new List<RtpCodecParameters>(),
             HeaderExtensions = new List<RtpHeaderExtensionParameters>(),
@@ -839,9 +841,9 @@ public static class Ortc
     /// to reduce codecs, codecs' RTCP feedback and header extensions, and also enables
     /// or disabled RTX.
     /// </summary>
-    public static RtpParameters GetConsumerRtpParameters(RtpParameters consumableParams, RtpCapabilities caps, bool pipe)
+    public static RtpParameters.RtpParameters GetConsumerRtpParameters(RtpParameters.RtpParameters consumableParams, RtpCapabilities caps, bool pipe)
     {
-        var consumerParams = new RtpParameters
+        var consumerParams = new RtpParameters.RtpParameters
         {
             Codecs = new List<RtpCodecParameters>(),
             HeaderExtensions = new List<RtpHeaderExtensionParameters>(),

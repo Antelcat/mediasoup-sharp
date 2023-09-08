@@ -2,7 +2,7 @@
 
 namespace MediasoupSharp.ActiveSpeakerObserver;
 
-public record ActiveSpeakerObserverObserverEvents : RtpObserverObserverEvents
+internal record ActiveSpeakerObserverObserverEvents : RtpObserverObserverEvents
 {
     public List<ActiveSpeakerObserverDominantSpeaker> Dominantspeaker { get; set; }
 }

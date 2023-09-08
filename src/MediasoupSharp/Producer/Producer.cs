@@ -1,245 +1,207 @@
-﻿using MediasoupSharp.Channel;
-using MediasoupSharp.Exceptions;
-using MediasoupSharp.PayloadChannel;
+﻿using MediasoupSharp.RtpParameters;
+using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.Producer;
 
-public class Producer : EventEmitter
+internal class Producer<TProducerAppData> : Producer
 {
-    /// <summary>
-    /// Logger
-    /// </summary>
-    private readonly ILogger<Producer> logger;
+    public Producer(
+        ProducerInternal @internal,
+        ProducerData data,
+        Channel.Channel channel,
+        PayloadChannel.PayloadChannel payloadChannel,
+        TProducerAppData? appData,
+        bool paused)
+        : base(
+            @internal,
+            data,
+            channel,
+            payloadChannel,
+            appData,
+            paused)
+    {
+    }
 
-    /// <summary>
-    /// Whether the Producer is closed.
-    /// </summary>
-    public bool Closed { get; private set; }
+    public new TProducerAppData AppData
+    {
+        get => (TProducerAppData)base.AppData;
+        set => base.AppData = value!;
+    }
+}
 
-    private readonly AsyncReaderWriterLock closeLock = new();
-
-    /// <summary>
-    /// Paused flag.
-    /// </summary>
-    public bool Paused { get; private set; }
-
-    private readonly AsyncAutoResetEvent pauseLock = new();
+internal class Producer : EnhancedEventEmitter<ProducerEvents>
+{
 
     /// <summary>
     /// Internal data.
     /// </summary>
     private readonly ProducerInternal @internal;
 
-    private readonly bool isCheckConsumer = false;
-
-    private readonly Timer? checkConsumersTimer;
-
-#if DEBUG
-    private const int CheckConsumersTimeSeconds = 60 * 60 * 24;
-#else
-        private const int CheckConsumersTimeSeconds = 10;
-#endif
-
-    /// <summary>
-    /// Producer id.
-    /// </summary>
-    public string ProducerId => @internal.ProducerId;
-
     /// <summary>
     /// Producer data.
     /// </summary>
-    public ProducerData Data { get; set; }
+    private readonly ProducerData data;
 
     /// <summary>
     /// Channel instance.
     /// </summary>
-    private readonly IChannel channel;
+    private readonly Channel.Channel channel;
 
     /// <summary>
     /// Channel instance.
     /// </summary>
-    private readonly IPayloadChannel payloadChannel;
+    private readonly PayloadChannel.PayloadChannel payloadChannel;
+
+    /// <summary>
+    /// Whether the Producer is closed.
+    /// </summary>
+    public bool Closed { get; private set; }
 
     /// <summary>
     /// App custom data.
     /// </summary>
-    public Dictionary<string, object> AppData { get; }
+    public object AppData { get; set; }
 
     /// <summary>
-    /// [扩展]Consumers
+    /// Paused flag.
     /// </summary>
-    private readonly Dictionary<string, Consumer.Consumer> consumers = new();
-
-    /// <summary>
-    /// [扩展]Source.
-    /// </summary>
-    public string? Source { get; set; }
+    public bool Paused { get; private set; }
 
     /// <summary>
     /// Current score.
     /// </summary>
-    public ProducerScore[] Score = Array.Empty<ProducerScore>();
+    public List<ProducerScore> Score { get; private set; } = new();
 
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EventEmitter Observer { get; } = new EventEmitter();
+    public EnhancedEventEmitter<ProducerObserverEvents> Observer => observer ??= new();
 
-    /// <summary>
-    /// <para>Events:</para>
-    /// <para>@emits transportclose</para></para>
-    /// <para>@emits score - (score: ProducerScore[])</para>
-    /// <para>@emits videoorientationchange - (videoOrientation: ProducerVideoOrientation)</para>
-    /// <para>@emits trace - (trace: ProducerTraceEventData)</para>
-    /// <para>@emits @close</para>
-    /// <para>Observer events:</para>
-    /// <para>@emits close</para>
-    /// <para>@emits pause</para>
-    /// <para>@emits resume</para>
-    /// <para>@emits score - (score: ProducerScore[])</para>
-    /// <para>@emits videoorientationchange - (videoOrientation: ProducerVideoOrientation)</para>
-    /// <para>@emits trace - (trace: ProducerTraceEventData)</para>
-    /// </summary>
-    /// <param name="loggerFactory"></param>
-    /// <param name="internal"></param>
-    /// <param name="data"></param>
-    /// <param name="channel"></param>
-    /// <param name="appData"></param>
-    /// <param name="paused"></param>
-    public Producer(ILoggerFactory loggerFactory,
+    #region Extra
+    private EnhancedEventEmitter<ProducerObserverEvents>? observer;
+
+    public override ILoggerFactory LoggerFactory
+    {
+        init
+        {
+            observer = new EnhancedEventEmitter<ProducerObserverEvents>
+            {
+                LoggerFactory = value
+            };
+            base.LoggerFactory = value;
+        }
+    }
+
+    #endregion
+    
+    internal Producer(
         ProducerInternal @internal,
         ProducerData data,
-        IChannel channel,
-        IPayloadChannel payloadChannel,
-        Dictionary<string, object>? appData,
+        Channel.Channel channel,
+        PayloadChannel.PayloadChannel payloadChannel,
+        object? appData,
         bool paused
-    )
+    ) 
     {
-        logger = loggerFactory.CreateLogger<Producer>();
-
         this.@internal = @internal;
-        Data = data;
+        this.data = data;
         this.channel = channel;
         this.payloadChannel = payloadChannel;
-        AppData = appData ?? new Dictionary<string, object>();
+        AppData = appData ?? new object();
         Paused = paused;
-        pauseLock.Set();
-
-        if (isCheckConsumer)
-        {
-            checkConsumersTimer = new Timer(CheckConsumers, null, TimeSpan.FromSeconds(CheckConsumersTimeSeconds),
-                TimeSpan.FromMilliseconds(-1));
-        }
 
         HandleWorkerNotifications();
     }
 
     /// <summary>
+    /// Producer id.
+    /// </summary>
+    public string Id => @internal.ProducerId;
+
+    public MediaKind Kind => data.Kind;
+
+    public RtpParameters.RtpParameters RtpParameters => data.RtpParameters;
+
+    public ProducerType Type => data.Type;
+
+    internal RtpParameters.RtpParameters ConsumableRtpParameters => data.ConsumableRtpParameters;
+
+    internal Channel.Channel ChannelForTesting => channel;
+
+
+    /// <summary>
     /// Close the Producer.
     /// </summary>
-    public async Task CloseAsync()
-    {
-        logger.LogDebug($"CloseAsync() | Producer:{ProducerId}");
-
-        using (await closeLock.WriteLockAsync())
-        {
-            CloseInternal();
-        }
-    }
-
-    private void CloseInternal()
+    public void Close()
     {
         if (Closed)
         {
             return;
         }
 
+        Logger?.LogDebug("CloseAsync() | Producer:{Id}", Id);
+
         Closed = true;
 
-        checkConsumersTimer?.Dispose();
-
         // Remove notification subscriptions.
-        channel.MessageEvent -= OnChannelMessage;
-        //_payloadChannel.MessageEvent -= OnPayloadChannelMessage;
+        channel.RemoveAllListeners(@internal.ProducerId);
+        payloadChannel.RemoveAllListeners(@internal.ProducerId);
 
-        var reqData = new { ProducerId = @internal.ProducerId };
+        // TODO : Naming
+        var reqData = new { producerId = @internal.ProducerId };
 
         // Fire and forget
-        channel.RequestAsync(MethodId.TRANSPORT_CLOSE_PRODUCER, @internal.RouterId, reqData)
-            .ContinueWithOnFaultedHandleLog(logger);
+        channel.Request("transport.closeProducer", @internal.TransportId, reqData)
+            .ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
 
-        Emit("@close");
+        _ = Emit("@close");
 
         // Emit observer event.
-        Observer.Emit("close");
+        _ = Observer.SafeEmit("close");
     }
 
     /// <summary>
     /// Transport was closed.
     /// </summary>
-    public async Task TransportClosedAsync()
+    internal void TransportClosed()
     {
-        logger.LogDebug($"TransportClosedAsync() | Producer:{ProducerId}");
-
-        using (await closeLock.WriteLockAsync())
+        if (Closed)
         {
-            if (Closed)
-            {
-                return;
-            }
-
-            Closed = true;
-
-            if (checkConsumersTimer != null)
-            {
-                await checkConsumersTimer.DisposeAsync();
-            }
-
-            // Remove notification subscriptions.
-            channel.MessageEvent -= OnChannelMessage;
-            //_payloadChannel.MessageEvent -= OnPayloadChannelMessage;
-
-            Emit("transportclose");
-
-            // Emit observer event.
-            Observer.Emit("close");
+            return;
         }
+
+        Logger?.LogDebug("CloseAsync() | Producer:{Id}", Id);
+
+        Closed = true;
+
+        // Remove notification subscriptions.
+        channel.RemoveAllListeners(@internal.ProducerId);
+        payloadChannel.RemoveAllListeners(@internal.ProducerId);
+
+        _ = SafeEmit("transportclose");
+
+        // Emit observer event.
+        _ = Observer.SafeEmit("close");
     }
 
     /// <summary>
-    /// Dump DataProducer.
+    /// Dump Producer.
     /// </summary>
-    public async Task<string> DumpAsync()
+    public async Task<object> DumpAsync()
     {
-        logger.LogDebug($"DumpAsync() | Producer:{ProducerId}");
+        Logger?.LogDebug("DumpAsync() | Producer:{Id}", Id);
 
-        using (await closeLock.ReadLockAsync())
-        {
-            if (Closed)
-            {
-                throw new InvalidStateException("Producer closed");
-            }
-
-            return (await channel.RequestAsync(MethodId.PRODUCER_DUMP, @internal.ProducerId))!;
-        }
+        return (await channel.Request("producer.dump", @internal.ProducerId))!;
     }
 
     /// <summary>
     /// Get DataProducer stats.
     /// </summary>
-    public async Task<string> GetStatsAsync()
+    public async Task<List<ProducerStat>> GetStatsAsync()
     {
-        logger.LogDebug($"GetStatsAsync() | Producer:{ProducerId}");
+        Logger?.LogDebug("GetStatsAsync() | Producer:{Id}", Id);
 
-        using (await closeLock.ReadLockAsync())
-        {
-            if (Closed)
-            {
-                throw new InvalidStateException("Producer closed");
-            }
-
-            return (await channel.RequestAsync(MethodId.PRODUCER_GET_STATS, @internal.ProducerId))!;
-        }
+        return (await channel.Request("producer.getStats", @internal.ProducerId) as List<ProducerStat>)!;
     }
 
     /// <summary>
@@ -247,38 +209,18 @@ public class Producer : EventEmitter
     /// </summary>
     public async Task PauseAsync()
     {
-        logger.LogDebug($"PauseAsync() | Producer:{ProducerId}");
+        Logger?.LogDebug("PauseAsync() | Producer:{Id}", Id);
 
-        using (await closeLock.ReadLockAsync())
+        var wasPaused = Paused;
+
+        await channel.Request("producer.pause", @internal.ProducerId);
+
+        Paused = true;
+
+        // Emit observer event.
+        if (!wasPaused)
         {
-            if (Closed)
-            {
-                throw new InvalidStateException("Producer closed");
-            }
-
-            await pauseLock.WaitAsync();
-            try
-            {
-                var wasPaused = Paused;
-
-                await channel.RequestAsync(MethodId.PRODUCER_PAUSE, @internal.ProducerId);
-
-                Paused = true;
-
-                // Emit observer event.
-                if (!wasPaused)
-                {
-                    Observer.Emit("pause");
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "PauseAsync()");
-            }
-            finally
-            {
-                pauseLock.Set();
-            }
+            await Observer.SafeEmit("pause");
         }
     }
 
@@ -287,194 +229,98 @@ public class Producer : EventEmitter
     /// </summary>
     public async Task ResumeAsync()
     {
-        logger.LogDebug($"ResumeAsync() | Producer:{ProducerId}");
+        Logger?.LogDebug("ResumeAsync() | Producer:{Id}", Id);
 
-        using (await closeLock.ReadLockAsync())
+        var wasPaused = Paused;
+
+        await channel.Request("producer.resume", @internal.ProducerId);
+
+        Paused = false;
+
+        // Emit observer event.
+        if (wasPaused)
         {
-            if (Closed)
-            {
-                throw new InvalidStateException("Producer closed");
-            }
-
-            await pauseLock.WaitAsync();
-            try
-            {
-                var wasPaused = Paused;
-
-                await channel.RequestAsync(MethodId.PRODUCER_RESUME, @internal.ProducerId);
-
-                Paused = false;
-
-                // Emit observer event.
-                if (wasPaused)
-                {
-                    Observer.Emit("resume");
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "ResumeAsync()");
-            }
-            finally
-            {
-                pauseLock.Set();
-            }
+            await Observer.Emit("resume");
         }
     }
 
     /// <summary>
     /// Enable 'trace' event.
     /// </summary>
-    public async Task EnableTraceEventAsync(TraceEventType[] types)
+    public async Task EnableTraceEventAsync(ProducerTraceEventType[] types)
     {
-        logger.LogDebug($"EnableTraceEventAsync() | Producer:{ProducerId}");
+        Logger?.LogDebug("EnableTraceEventAsync() | Producer:{Id}", Id);
 
-        using (await closeLock.ReadLockAsync())
-        {
-            if (Closed)
-            {
-                throw new InvalidStateException("Producer closed");
-            }
+        // TODO : Naming
+        var reqData = new { types };
 
-            var reqData = new
-            {
-                Types = types ?? Array.Empty<TraceEventType>()
-            };
-
-            await channel.RequestAsync(MethodId.PRODUCER_ENABLE_TRACE_EVENT, @internal.ProducerId, reqData);
-        }
+        await channel.Request("producer.enableTraceEvent", @internal.ProducerId, reqData);
     }
 
     /// <summary>
     /// Send RTP packet (just valid for Producers created on a DirectTransport).
     /// </summary>
     /// <param name="rtpPacket"></param>
-    public async Task SendAsync(byte[] rtpPacket)
+    public void Send(byte[] rtpPacket)
     {
-        using (await closeLock.ReadLockAsync())
-        {
-            if (Closed)
-            {
-                throw new InvalidStateException("Producer closed");
-            }
-
-            await payloadChannel.NotifyAsync("producer.send", @internal.ProducerId, null, rtpPacket);
-        }
+        payloadChannel.Notify("producer.send", @internal.ProducerId, null, rtpPacket);
     }
 
-    public async Task AddConsumerAsync(Consumer.Consumer consumer)
-    {
-        using (await closeLock.ReadLockAsync())
-        {
-            if (Closed)
-            {
-                throw new InvalidStateException("Producer closed");
-            }
-
-            consumers[consumer.ConsumerId] = consumer;
-        }
-    }
-
-    public async Task RemoveConsumerAsync(string consumerId)
-    {
-        logger.LogDebug($"RemoveConsumer() | Producer:{ProducerId} ConsumerId:{consumerId}");
-
-        using (await closeLock.ReadLockAsync())
-        {
-            // 关闭后也允许移除
-            consumers.Remove(consumerId);
-        }
-    }
-
-    #region Event Handlers
 
     private void HandleWorkerNotifications()
     {
-        channel.MessageEvent += OnChannelMessage;
-    }
 
-    private void OnChannelMessage(string targetId, string @event, string? data)
-    {
-        if (targetId != ProducerId)
+        channel.On(@internal.ProducerId, async args =>
         {
-            return;
-        }
-
-        switch (@event)
-        {
-            case "score":
+            var @event = args![0] as string;
+            var data = args[1];
+            switch (@event)
             {
-                var score = data!.Deserialize<ProducerScore[]>();
-                Score = score;
+                case "score":
+                {
+                    var score = (data as List<ProducerScore>)!;
 
-                Emit("score", score);
+                    Score = score;
 
-                // Emit observer event.
-                Observer.Emit("score", score);
+                    await SafeEmit("score", score);
 
-                break;
+                    // Emit observer event.
+                    await Observer.SafeEmit("score", score);
+
+                    break;
+                }
+
+                case "videoorientationchange":
+                {
+                    var videoOrientation = (data as ProducerVideoOrientation)!;
+
+                    await SafeEmit("videoorientationchange", videoOrientation);
+
+                    // Emit observer event.
+                    await Observer.SafeEmit("videoorientationchange", videoOrientation);
+
+                    break;
+                }
+
+                case "trace":
+                {
+                    var trace = (data as ProducerTraceEventData)!;
+
+                    await SafeEmit("trace", trace);
+
+                    // Emit observer event.
+                    await Observer.SafeEmit("trace", trace);
+
+                    break;
+                }
+
+                default:
+                {
+                    Logger?.LogError("ignoring unknown event {E}", @event);
+                    break;
+                }
             }
-            case "videoorientationchange":
-            {
-                var videoOrientation = data!.Deserialize<ProducerVideoOrientation>();
-
-                Emit("videoorientationchange", videoOrientation);
-
-                // Emit observer event.
-                Observer.Emit("videoorientationchange", videoOrientation);
-
-                break;
-            }
-            case "trace":
-            {
-                var trace = data!.Deserialize<TransportTraceEventData>();
-
-                Emit("trace", trace);
-
-                // Emit observer event.
-                Observer.Emit("trace", trace);
-
-                break;
-            }
-            default:
-            {
-                logger.LogError($"OnChannelMessage() | Ignoring unknown event{@event}");
-                break;
-            }
-        }
+        });
+       
     }
-
-    #endregion Event Handlers
-
-    #region Private Methods
-
-#pragma warning disable VSTHRD100 // Avoid async void methods
-    private async void CheckConsumers(object? state)
-#pragma warning restore VSTHRD100 // Avoid async void methods
-    {
-        logger.LogDebug($"CheckConsumer() | Producer: {@internal.ProducerId} Consumers: {consumers.Count}");
-
-        // NOTE: 使用写锁
-        await using (await closeLock.WriteLockAsync())
-        {
-            if (Closed)
-            {
-                checkConsumersTimer?.Dispose();
-                return;
-            }
-
-            if (consumers.Count == 0)
-            {
-                CloseInternal();
-                checkConsumersTimer?.Dispose();
-            }
-            else
-            {
-                checkConsumersTimer?.Change(TimeSpan.FromSeconds(CheckConsumersTimeSeconds),
-                    TimeSpan.FromMilliseconds(-1));
-            }
-        }
-    }
-
-    #endregion Private Methods
 }

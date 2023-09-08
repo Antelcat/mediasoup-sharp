@@ -2,13 +2,12 @@
 
 using System.Text.Json.Serialization;
 
-namespace MediasoupSharp.Consumer;
+namespace MediasoupSharp.Producer;
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
-public enum ConsumerType
+public enum ProducerType
 {
     simple = 1,
     simulcast = 2,
-    svc = 3,
-    pipe
+    svc = 3
 }

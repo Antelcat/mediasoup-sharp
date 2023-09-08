@@ -1,6 +1,8 @@
-﻿namespace MediasoupSharp.Producer;
+﻿using MediasoupSharp.RtpParameters;
 
-public class ProducerOptions
+namespace MediasoupSharp.Producer;
+
+public class ProducerOptions<TProducerAppData>
 {
     /// <summary>
     /// Producer id (just for Router.pipeToRouter() method).
@@ -15,7 +17,7 @@ public class ProducerOptions
     /// <summary>
     /// RTP parameters defining what the endpoint is sending.
     /// </summary>
-    public RtpParameters RtpParameters { get; set; }
+    public RtpParameters.RtpParameters RtpParameters { get; set; }
 
     /// <summary>
     /// Whether the producer must start in paused mode. Default false.
@@ -31,5 +33,5 @@ public class ProducerOptions
     /// <summary>
     /// Custom application data.
     /// </summary>
-    public Dictionary<string, object>? AppData { get; set; }
+    public TProducerAppData? AppData { get; set; }
 }

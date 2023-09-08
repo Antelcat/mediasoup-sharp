@@ -1,3 +1,6 @@
 ﻿namespace MediasoupSharp.ActiveSpeakerObserver;
 
-public record ActiveSpeakerObserverDominantSpeaker(Producer.Producer Producer);
+internal record ActiveSpeakerObserverDominantSpeaker
+{
+    public Producer.Producer Producer { get; set; }
+}

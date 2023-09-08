@@ -7,5 +7,5 @@ public record ConsumerInternal : TransportInternal
     /// <summary>
     /// Consumer id.
     /// </summary>
-    public string ConsumerId { get; }
+    public string ConsumerId { get; set; }
 }

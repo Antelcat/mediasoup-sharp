@@ -3,22 +3,17 @@ using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.AudioLevelObserver;
 
-public class AudioLevelObserver<TAudioLevelObserverAppData>
+internal class AudioLevelObserver<TAudioLevelObserverAppData>
     : RtpObserver<TAudioLevelObserverAppData, AudioLevelObserverEvents>
 {
-    /// <summary>
-    /// Logger.
-    /// </summary>
-    private readonly ILogger logger;
 
-    public AudioLevelObserver(ILoggerFactory loggerFactory,
+    public AudioLevelObserver(
         AudioLevelObserverConstructorOptions<TAudioLevelObserverAppData> args
-    ) : base(loggerFactory, args)
+    ) : base(args)
     {
-        logger = loggerFactory.CreateLogger(GetType());
     }
 
-    public IEnhancedEventEmitter<AudioLevelObserverObserverEvents> Observer =>
+    internal IEnhancedEventEmitter<AudioLevelObserverObserverEvents> Observer =>
         base.Observer as IEnhancedEventEmitter<AudioLevelObserverObserverEvents>;
 
     private void HandleWorkerNotifications()
@@ -42,26 +37,26 @@ public class AudioLevelObserver<TAudioLevelObserverAppData>
 
                     if (volumes.Any())
                     {
-                        _ = Emit(nameof(volumes), volumes);
+                        await Emit(nameof(volumes), volumes);
 
                         // Emit observer event.
-                        _ = Observer.SafeEmit(nameof(volumes), volumes);
+                        await Observer.SafeEmit(nameof(volumes), volumes);
                     }
 
                     break;
                 }
                 case "silence":
                 {
-                    _ = SafeEmit("silence");
+                    await SafeEmit("silence");
 
                     // Emit observer event.
-                    _ = Observer.SafeEmit("silence");
+                    await Observer.SafeEmit("silence");
 
                     break;
                 }
                 default:
                 {
-                    logger.LogError("OnChannelMessage() | Ignoring unknown event '{Event}' ", @event);
+                    Logger?.LogError("OnChannelMessage() | Ignoring unknown event '{Event}' ", @event);
                     break;
                 }
             }

@@ -539,7 +539,7 @@ public sealed class Router : EventEmitter, IEquatable<Router>
             var producer = (Producer.Producer)obj!;
             using (await producersLock.WriteLockAsync())
             {
-                producers[producer.ProducerId] = producer;
+                producers[producer.Id] = producer;
             }
         });
         transport.On("@producerclose", async (_, obj) =>
@@ -547,7 +547,7 @@ public sealed class Router : EventEmitter, IEquatable<Router>
             var producer = (Producer.Producer)obj!;
             using (await producersLock.WriteLockAsync())
             {
-                producers.Remove(producer.ProducerId);
+                producers.Remove(producer.Id);
             }
         });
         transport.On("@newdataproducer", async (_, obj) =>
@@ -749,7 +749,7 @@ public sealed class Router : EventEmitter, IEquatable<Router>
 
                     pipeProducer = await remotePipeTransport.ProduceAsync(new ProducerOptions
                     {
-                        Id = producer.ProducerId,
+                        Id = producer.Id,
                         Kind = pipeConsumer.Data.Kind,
                         RtpParameters = pipeConsumer.Data.RtpParameters,
                         Paused = pipeConsumer.ProducerPaused,
@@ -771,9 +771,9 @@ public sealed class Router : EventEmitter, IEquatable<Router>
                     }
 
                     // Pipe events from the pipe Consumer to the pipe Producer.
-                    pipeConsumer.observer.On("close", async (_, _) => await pipeProducer.CloseAsync());
-                    pipeConsumer.observer.On("pause", async (_, _) => await pipeProducer.PauseAsync());
-                    pipeConsumer.observer.On("resume", async (_, _) => await pipeProducer.ResumeAsync());
+                    pipeConsumer.Observer.On("close", async (_, _) => await pipeProducer.CloseAsync());
+                    pipeConsumer.Observer.On("pause", async (_, _) => await pipeProducer.PauseAsync());
+                    pipeConsumer.Observer.On("resume", async (_, _) => await pipeProducer.ResumeAsync());
 
                     // Pipe events from the pipe Producer to the pipe Consumer.
                     pipeProducer.Observer.On("close", async (_, _) => await pipeConsumer.CloseAsync());

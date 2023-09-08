@@ -8,5 +8,4 @@ public record TransportInternal : RouterInternal
     /// TransportId id.
     /// </summary>
     public string TransportId { get; set; }
-   
 }
