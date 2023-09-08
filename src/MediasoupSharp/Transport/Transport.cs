@@ -1,8 +1,10 @@
 ﻿using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
 using MediasoupSharp.Channel;
 using MediasoupSharp.Consumer;
 using MediasoupSharp.DataConsumer;
 using MediasoupSharp.DataProducer;
+using MediasoupSharp.DirectTransport;
 using MediasoupSharp.Exceptions;
 using MediasoupSharp.Producer;
 using MediasoupSharp.RtpParameters;
@@ -16,7 +18,6 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     where TEvents : TransportEvents
     where TObserverEvents : TransportObserverEvents
 {
-
     /// <summary>
     /// Internal data.
     /// </summary>
@@ -106,10 +107,11 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     /// Observer instance.
     /// </summary>
     public EnhancedEventEmitter<TObserverEvents> Observer => observer ??= new();
-    
+
     #region Extra
 
     private EnhancedEventEmitter<TObserverEvents>? observer;
+
     public override ILoggerFactory LoggerFactory
     {
         init
@@ -123,9 +125,10 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     }
 
     #endregion
+
     protected Transport(
         TransportConstructorOptions<TTransportAppData> arg
-    ) 
+    )
     {
         Internal = arg.Internal;
         data = arg.Data;
@@ -534,7 +537,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     /// </summary>
     /// <param name="consumerOptions"></param>
     /// <returns></returns>
-    public virtual async Task<Consumer.Consumer<TConsumerAppData>> ConsumeAsync<TConsumerAppData>(
+    public virtual async Task<Consumer<TConsumerAppData>> ConsumeAsync<TConsumerAppData>(
         ConsumerOptions<TConsumerAppData> consumerOptions)
     {
         var producerId = consumerOptions.ProducerId;
@@ -560,13 +563,13 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
         }
 
         // This may throw.
-        ORTC.Ortc.ValidateRtpCapabilities(consumerOptions.RtpCapabilities);
+        ORTC.Ortc.ValidateRtpCapabilities(rtpCapabilities);
 
-        var producer = GetProducerById(consumerOptions.ProducerId);
+        var producer = GetProducerById(producerId);
 
         if (producer == null)
         {
-            throw new NullReferenceException($"Producer with id {consumerOptions.ProducerId} not found");
+            throw new NullReferenceException($"Producer with id {producerId} not found");
         }
 
         // If enableRtx is not given, set it to true if video and false if audio.
@@ -576,9 +579,11 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
         // This may throw.
         var rtpParameters = ORTC.Ortc.GetConsumerRtpParameters(
             producer.ConsumableRtpParameters,
-            consumerOptions.RtpCapabilities,
-            pipe);
+            rtpCapabilities,
+            pipe,
+            enableRtx);
 
+        // Set MID.
         if (!pipe)
         {
             if (mid != null)
@@ -601,59 +606,51 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
             }
         }
 
+        // TODO : Naming
         var reqData = new
         {
-            ConsumerId = Guid.NewGuid().ToString(),
-            ProducerId = producerId,
-            producer.Kind,
-            RtpParameters = rtpParameters,
-            Type = (pipe ? ConsumerType.pipe : (ConsumerType)producer.Type).ToString(),
-            ConsumableRtpEncodings = producer.ConsumableRtpParameters.Encodings,
-            consumerOptions.Paused,
-            consumerOptions.PreferredLayers,
-            consumerOptions.IgnoreDtx,
+            consumerId = Guid.NewGuid().ToString(),
+            producerId,
+            kind = producer.Kind,
+            rtpParameters,
+            type = (pipe ? ConsumerType.pipe : (ConsumerType)producer.Type).ToString(),
+            consumableRtpEncodings = producer.ConsumableRtpParameters.Encodings,
+            paused,
+            preferredLayers,
+            ignoreDtx,
         };
 
         var status = (await Channel.Request("transport.consume", Internal.TransportId, reqData) as dynamic)!;
 
+        // TODO : Naming
         var data = new ConsumerData
         {
             ProducerId = consumerOptions.ProducerId,
             Kind = producer.Kind,
             RtpParameters = rtpParameters,
-            Type = pipe
-                ? ConsumerType.pipe
-                : (ConsumerType)producer.Type // 注意：类型转换。ProducerType 的每一种值在 ConsumerType 都有对应且相同的值。
+            Type = pipe ? ConsumerType.pipe : (ConsumerType)producer.Type
         };
 
-        
-        var consumer = new Consumer.Consumer<TConsumerAppData>(
+
+        var consumer = new Consumer<TConsumerAppData>(
             new ConsumerInternal
             {
                 RouterId = Internal.RouterId,
                 TransportId = Internal.TransportId,
-                ConsumerId = reqData.ConsumerId
+                ConsumerId = reqData.consumerId
             },
             data,
             Channel,
             PayloadChannel,
             appData,
-            // TODO : Naming
             status.Paused,
             status.ProducerPaused,
             status.Score,
             status.PreferredLayers);
-        
+
         Consumers[consumer.Id] = consumer;
-        
-        consumer.On("@close", async _ =>
-        {
-            Consumers.Remove(consumer.Id);
-        });
-        consumer.On("@producerclose", async _ =>
-        {
-            Consumers.Remove(consumer.Id);
-        });
+        consumer.On("@close", async _ => { Consumers.Remove(consumer.Id); });
+        consumer.On("@producerclose", async _ => { Consumers.Remove(consumer.Id); });
 
         // Emit observer event.
         await Observer.SafeEmit("newconsumer", consumer);
@@ -666,279 +663,216 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     /// </summary>
     /// <returns></returns>
     public async Task<DataProducer<TDataProducerAppData>> ProduceDataAsync<TDataProducerAppData>(
-        DataProducerOptions<TDataProducerAppData> dataProducerOptions)
+        DataProducerOptions<TDataProducerAppData> options)
     {
+        var id = options.Id;
+        var sctpStreamParameters = options.SctpStreamParameters;
+        var label = options.Label ?? "";
+        var protocol = options.Protocol ?? "";
+        var appData = options.AppData;
         Logger?.LogDebug("ProduceDataAsync() | Transport:{Id}", Id);
 
-        if (!dataProducerOptions.Id.IsNullOrWhiteSpace() && DataProducers.ContainsKey(dataProducerOptions.Id!))
+        if (!id.IsNullOrEmpty() && DataProducers.ContainsKey(id!))
         {
-            throw new Exception($"A DataProducer with same id {dataProducerOptions.Id} already exists");
+            throw new TypeError($"A DataProducer with same id {id} already exists");
         }
 
-        if (dataProducerOptions.Label.IsNullOrWhiteSpace())
+        DataProducerType type;
+
+        // If this is not a DirectTransport, sctpStreamParameters are required.
+        // TODO: (alby) 反模式
+        if (this is not IDirectTransport)
         {
-            dataProducerOptions.Label = string.Empty;
+            type = DataProducerType.sctp;
+
+            // This may throw.
+            ORTC.Ortc.ValidateSctpStreamParameters(sctpStreamParameters!);
+        }
+        // If this is a DirectTransport, sctpStreamParameters must not be given.
+        else
+        {
+            type = DataProducerType.direct;
+
+            if (sctpStreamParameters != null)
+            {
+                Logger?.LogWarning(
+                    "ProduceDataAsync() | Transport:{Id} sctpStreamParameters are ignored when producing data on a DirectTransport",
+                    Id);
+            }
         }
 
-        if (dataProducerOptions.Protocol.IsNullOrWhiteSpace())
+        var reqData = new
         {
-            dataProducerOptions.Protocol = string.Empty;
-        }
+            DataProducerId = options.Id.IsNullOrEmpty()
+                ? Guid.NewGuid().ToString()
+                : options.Id,
+            Type = type.ToString(),
+            sctpStreamParameters,
+            Label = label,
+            Protocol = protocol
+        };
 
-        await using (await CloseLock.ReadLockAsync())
+        var data =
+            (await Channel.Request("transport.produceData", Internal.TransportId, reqData) as dynamic)!;
+
+        var dataProducer = new DataProducer<TDataProducerAppData>(
+            new DataProducerInternal
+            {
+                RouterId = Internal.RouterId,
+                TransportId = Internal.TransportId,
+                DataProducerId = reqData.DataProducerId!
+            },
+            data,
+            Channel,
+            PayloadChannel,
+            appData);
+
+        DataProducers[dataProducer.Id] = dataProducer;
+        dataProducer.On("@close", async _ =>
         {
-            if (Closed)
-            {
-                throw new InvalidStateException("Transport closed");
-            }
+            DataProducers.Remove(dataProducer.Id);
+            await Emit("@dataproducerclose", dataProducer);
+        });
 
-            DataProducerType type;
-            // If this is not a DirectTransport, sctpStreamParameters are required.
-            // TODO: (alby) 反模式
-            if (GetType() != typeof(DirectTransport.DirectTransport))
-            {
-                type = DataProducerType.Sctp;
+        await Emit("@newdataproducer", dataProducer);
 
-                // This may throw.
-                ORTC.Ortc.ValidateSctpStreamParameters(dataProducerOptions.SctpStreamParameters!);
-            }
-            // If this is a DirectTransport, sctpStreamParameters must not be given.
-            else
-            {
-                type = DataProducerType.Direct;
+        // Emit observer event.
+        await Observer.SafeEmit("newdataproducer", dataProducer);
 
-                if (dataProducerOptions.SctpStreamParameters != null)
-                {
-                    Logger?.LogWarning(
-                        $"ProduceDataAsync() | Transport:{TransportId} sctpStreamParameters are ignored when producing data on a DirectTransport");
-                }
-            }
-
-            var reqData = new
-            {
-                DataProducerId = dataProducerOptions.Id.IsNullOrWhiteSpace()
-                    ? Guid.NewGuid().ToString()
-                    : dataProducerOptions.Id,
-                Type = type.GetDescription<EnumMemberAttribute>(x => x.Value!),
-                dataProducerOptions.SctpStreamParameters,
-                Label = dataProducerOptions.Label!,
-                Protocol = dataProducerOptions.Protocol!
-            };
-
-            var resData =
-                await Channel.RequestAsync(MethodId.TRANSPORT_PRODUCE_DATA, Internal.TransportId, reqData);
-            var responseData = resData!.Deserialize<TransportDataProduceResponseData>()!;
-            var data = new DataProducerData
-            {
-                SctpStreamParameters = responseData.SctpStreamParameters,
-                Label = responseData.Label!,
-                Protocol = responseData.Protocol!,
-            };
-            var dataProducer = new DataProducer.DataProducer(Logger?Factory,
-                new DataProducerInternal(Internal.RouterId, Internal.TransportId, reqData.DataProducerId),
-                data,
-                Channel,
-                PayloadChannel,
-                AppData);
-
-            dataProducer.On("@close", async (_, _) =>
-            {
-                await DataProducersLock.WaitAsync();
-                try
-                {
-                    DataProducers.Remove(dataProducer.DataProducerId);
-                }
-                catch (Exception ex)
-                {
-                    Logger?.LogError(ex, "@close");
-                }
-                finally
-                {
-                    DataProducersLock.Set();
-                }
-
-                Emit("@dataproducerclose", dataProducer);
-            });
-
-            await DataProducersLock.WaitAsync();
-            try
-            {
-                DataProducers[dataProducer.DataProducerId] = dataProducer;
-            }
-            catch (Exception ex)
-            {
-                Logger?.LogError(ex, "ProduceDataAsync()");
-            }
-            finally
-            {
-                DataProducersLock.Set();
-            }
-
-            Emit("@newdataproducer", dataProducer);
-
-            // Emit observer event.
-            Observer.Emit("newdataproducer", dataProducer);
-
-            return dataProducer;
-        }
+        return dataProducer;
     }
 
     /// <summary>
     /// Create a DataConsumer.
     /// </summary>
-    /// <param name="dataConsumerOptions"></param>
+    /// <param name="options"></param>
     /// <returns></returns>
-    public async Task<DataConsumer.DataConsumer> ConsumeDataAsync(DataConsumerOptions dataConsumerOptions)
+    public async Task<DataConsumer.DataConsumer> ConsumeDataAsync<TConsumerAppData>(
+        DataConsumerOptions<TConsumerAppData> options)
     {
-        Logger?.LogDebug($"ConsumeDataAsync() | Transport:{TransportId}");
+        var dataProducerId = options.DataProducerId;
+        var ordered = options.Ordered;
+        var maxPacketLifeTime = options.MaxPacketLifeTime;
+        var maxRetransmits = options.MaxRetransmits;
+        var appData = options.AppData;
 
-        if (dataConsumerOptions.DataProducerId.IsNullOrWhiteSpace())
+        Logger?.LogDebug("ConsumeDataAsync() | Transport:{Id}", Id);
+
+        if (dataProducerId.IsNullOrEmpty())
         {
-            throw new Exception("Missing dataProducerId");
+            throw new Exception("missing dataProducerId");
         }
 
-        var dataProducer = await GetDataProducerById(dataConsumerOptions.DataProducerId);
+        var dataProducer = GetDataProducerById(options.DataProducerId);
         if (dataProducer == null)
         {
-            throw new Exception($"DataProducer with id {dataConsumerOptions.DataProducerId} not found");
+            throw new Exception($"DataProducer with id {options.DataProducerId} not found");
         }
 
-        await using (await CloseLock.ReadLockAsync())
+        DataProducerType type;
+        SctpStreamParameters? sctpStreamParameters = null;
+        var sctpStreamId = 0;
+
+        // If this is not a DirectTransport, use sctpStreamParameters from the
+        // DataProducer (if type "sctp") unless they are given in method parameters.
+        // TODO: (alby) 反模式
+        if (this is not IDirectTransport)
         {
-            if (Closed)
+            type = DataProducerType.sctp;
+
+            sctpStreamParameters = dataProducer.SctpStreamParameters!.DeepClone();
+
+            // This may throw.
+            if (ordered.HasValue)
             {
-                throw new InvalidStateException("Transport closed");
+                sctpStreamParameters.Ordered = ordered;
             }
 
-            DataProducerType type;
-            SctpStreamParameters? sctpStreamParameters = null;
-            int sctpStreamId = -1;
-
-            // If this is not a DirectTransport, use sctpStreamParameters from the
-            // DataProducer (if type "sctp") unless they are given in method parameters.
-            // TODO: (alby) 反模式
-            if (GetType() != typeof(DirectTransport.DirectTransport))
+            if (maxPacketLifeTime.HasValue)
             {
-                type = DataProducerType.Sctp;
-
-                sctpStreamParameters = dataProducer.data.SctpStreamParameters!.DeepClone();
-                // This may throw.
-                lock (sctpStreamIdsLock)
-                {
-                    sctpStreamId = GetNextSctpStreamId();
-
-                    if (sctpStreamIds == null || sctpStreamId > sctpStreamIds.Length - 1)
-                    {
-                        throw new IndexOutOfRangeException(nameof(sctpStreamIds));
-                    }
-
-                    sctpStreamIds[sctpStreamId] = 1;
-                    sctpStreamParameters.StreamId = sctpStreamId;
-                }
-            }
-            // If this is a DirectTransport, sctpStreamParameters must not be used.
-            else
-            {
-                type = DataProducerType.Direct;
-
-                if (dataConsumerOptions.Ordered.HasValue ||
-                    dataConsumerOptions.MaxPacketLifeTime.HasValue ||
-                    dataConsumerOptions.MaxRetransmits.HasValue
-                   )
-                {
-                    Logger?.LogWarning(
-                        "ConsumeDataAsync() | Ordered, maxPacketLifeTime and maxRetransmits are ignored when consuming data on a DirectTransport");
-                }
+                sctpStreamParameters.MaxPacketLifeTime = maxPacketLifeTime;
             }
 
-            var reqData = new
+            if (maxRetransmits.HasValue)
             {
-                DataConsumerId = Guid.NewGuid().ToString(),
-                DataProducerId = dataConsumerOptions.DataProducerId,
-                Type = type.GetDescription<EnumMemberAttribute>(x => x.Value!),
-                SctpStreamParameters = sctpStreamParameters,
-                Label = dataProducer.data.Label,
-                Protocol = dataProducer.data.Protocol,
-            };
-
-            var resData =
-                await Channel.RequestAsync(MethodId.TRANSPORT_CONSUME_DATA, Internal.TransportId, reqData);
-            var responseData = resData!.Deserialize<TransportDataConsumeResponseData>()!;
-
-            var dataConsumer = new DataConsumer.DataConsumer(Logger?Factory,
-                new DataConsumerInternal(Internal.RouterId, Internal.TransportId, reqData.DataConsumerId),
-                responseData, // 直接使用返回值
-                Channel,
-                PayloadChannel,
-                AppData);
-
-            dataConsumer.On("@close", async (_, _) =>
-            {
-                await DataConsumersLock.WaitAsync();
-                try
-                {
-                    DataConsumers.Remove(dataConsumer.DataConsumerId);
-                    lock (sctpStreamIdsLock)
-                    {
-                        if (sctpStreamIds != null && sctpStreamId >= 0)
-                        {
-                            sctpStreamIds[sctpStreamId] = 0;
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger?.LogError(ex, "@close");
-                }
-                finally
-                {
-                    DataConsumersLock.Set();
-                }
-            });
-
-            dataConsumer.On("@dataproducerclose", async (_, _) =>
-            {
-                await DataConsumersLock.WaitAsync();
-                try
-                {
-                    DataConsumers.Remove(dataConsumer.DataConsumerId);
-                    lock (sctpStreamIdsLock)
-                    {
-                        if (sctpStreamIds != null && sctpStreamId >= 0)
-                        {
-                            sctpStreamIds[sctpStreamId] = 0;
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger?.LogError(ex, "@dataproducerclose");
-                }
-                finally
-                {
-                    DataConsumersLock.Set();
-                }
-            });
-
-            await DataConsumersLock.WaitAsync();
-            try
-            {
-                DataConsumers[dataConsumer.DataConsumerId] = dataConsumer;
-            }
-            catch (Exception ex)
-            {
-                Logger?.LogError(ex, "ConsumeDataAsync()");
-            }
-            finally
-            {
-                DataConsumersLock.Set();
+                sctpStreamParameters.MaxRetransmits = maxRetransmits;
             }
 
-            // Emit observer event.
-            Observer.Emit("newdataconsumer", dataConsumer);
+            sctpStreamId = GetNextSctpStreamId();
 
-            return dataConsumer;
+            sctpStreamIds![sctpStreamId] = 1;
+            sctpStreamParameters.StreamId = sctpStreamId;
+
         }
+        // If this is a DirectTransport, sctpStreamParameters must not be used.
+        else
+        {
+            type = DataProducerType.direct;
+
+            if (options.Ordered.HasValue ||
+                options.MaxPacketLifeTime.HasValue ||
+                options.MaxRetransmits.HasValue
+               )
+            {
+                Logger?.LogWarning(
+                    "ConsumeDataAsync() | Ordered, maxPacketLifeTime and maxRetransmits are ignored when consuming data on a DirectTransport");
+            }
+        }
+
+        var label = dataProducer.Label;
+        var protocol = dataProducer.Protocol;
+
+        var reqData = new
+        {
+            DataConsumerId = Guid.NewGuid().ToString(),
+            options.DataProducerId,
+            Type = type.ToString(),
+            SctpStreamParameters = sctpStreamParameters,
+            Label = label,
+            Protocol = protocol,
+        };
+
+        var data =
+            (await Channel.Request("transport.consumeData", Internal.TransportId, reqData) as dynamic)!;
+
+
+        var dataConsumer = new DataConsumer.DataConsumer(
+            new DataConsumerInternal
+            {
+                RouterId = Internal.RouterId,
+                TransportId = Internal.TransportId,
+                DataConsumerId = reqData.DataConsumerId
+            },
+            data, // 直接使用返回值
+            Channel,
+            PayloadChannel,
+            appData);
+
+        DataConsumers[dataConsumer.Id] = dataConsumer;
+
+        dataConsumer.On("@close", async _ =>
+        {
+            DataConsumers.Remove(dataConsumer.Id);
+
+            if (sctpStreamIds != null)
+            {
+                sctpStreamIds[sctpStreamId] = 0;
+            }
+        });
+
+        dataConsumer.On("@dataproducerclose", async _ =>
+        {
+            DataConsumers.Remove(dataConsumer.Id);
+            if (sctpStreamIds != null)
+            {
+                sctpStreamIds[sctpStreamId] = 0;
+            }
+        });
+
+        // Emit observer event.
+        await Observer.SafeEmit("newdataconsumer", dataConsumer);
+
+        return dataConsumer;
     }
 
     /// <summary>
@@ -946,54 +880,41 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     /// </summary>
     /// <param name="types"></param>
     /// <returns></returns>
-    public async Task EnableTraceEventAsync(TransportTraceEventType[] types)
+    public async Task EnableTraceEventAsync(List<TransportTraceEventType> types)
     {
-        Logger?.LogDebug($"EnableTraceEventAsync() | Transport:{TransportId}");
+        Logger?.LogDebug("EnableTraceEventAsync() | Transport:{Id}", Id);
 
-        using (await CloseLock.ReadLockAsync())
-        {
-            if (Closed)
-            {
-                throw new InvalidStateException("Transport closed");
-            }
-
-            var reqData = new { Types = types };
-            // Fire and forget
-            Channel.RequestAsync(MethodId.TRANSPORT_ENABLE_TRACE_EVENT, Internal.TransportId, reqData)
-                .ContinueWithOnFaultedHandleLog(Logger?);
-        }
+        var reqData = new { types };
+        // Fire and forget
+        await Channel.Request(
+            "transport.enableTraceEvent", Internal.TransportId, reqData);
     }
 
-    #region Private Methods
 
     private int GetNextSctpStreamId()
     {
-        if (BaseData.SctpParameters == null)
+        if (data.SctpParameters == null)
         {
-            throw new Exception("Missing data.sctpParameters.MIS");
+            throw new TypeError("Missing data.sctpParameters.MIS");
         }
 
-        if (sctpStreamIds == null)
-        {
-            throw new Exception(nameof(sctpStreamIds));
-        }
-
-        var numStreams = BaseData.SctpParameters.MIS;
+        var numStreams = data.SctpParameters.MIS;
 
         if (sctpStreamIds.IsNullOrEmpty())
         {
-            sctpStreamIds = new int[numStreams];
+            sctpStreamIds = new byte[numStreams];
         }
 
         int sctpStreamId;
 
-        for (var idx = 0; idx < sctpStreamIds.Length; ++idx)
+        for (var idx = 0; idx < sctpStreamIds!.Length; ++idx)
         {
             sctpStreamId = (nextSctpStreamId + idx) % sctpStreamIds.Length;
 
             if (sctpStreamIds[sctpStreamId] == 0)
             {
                 nextSctpStreamId = sctpStreamId + 1;
+
                 return sctpStreamId;
             }
         }
@@ -1001,5 +922,4 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
         throw new Exception("No sctpStreamId available");
     }
 
-    #endregion Private Methods
 }

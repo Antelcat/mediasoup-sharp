@@ -1,4 +1,6 @@
-﻿using System.Text.Json;
+﻿using System.Runtime.Serialization.Formatters.Binary;
+using System.Text.Json;
+using System.Xml.Serialization;
 
 namespace MediasoupSharp.Internal;
 
@@ -16,4 +18,18 @@ internal static class SerializeExtension
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
+
+    public static T DeepClone<T>(this T target)
+    {
+        object? retval;
+        using var ms = new MemoryStream();
+        {
+            var xml = new XmlSerializer(typeof(T));
+            xml.Serialize(ms, target);
+            ms.Seek(0, SeekOrigin.Begin);
+            retval = xml.Deserialize(ms);
+            ms.Close();
+        }
+        return (T)retval!;
+    }
 }

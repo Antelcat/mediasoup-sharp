@@ -3,14 +3,14 @@ using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.DataProducer;
 
-internal class DataProducer : DataProducer<object>
+internal class DataProducer<TDataProducerAppData> : DataProducer
 {
     public DataProducer(
         DataProducerInternal @internal,
         DataProducerData data,
         Channel.Channel channel,
         PayloadChannel.PayloadChannel payloadChannel,
-        object? appData)
+        TDataProducerAppData? appData)
         : base(
             @internal,
             data,
@@ -19,8 +19,14 @@ internal class DataProducer : DataProducer<object>
             appData)
     {
     }
+
+    public new TDataProducerAppData AppData
+    {
+        get => (TDataProducerAppData)base.AppData;
+        set => base.AppData = value!;
+    }
 }
-internal class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataProducerEvents>
+internal class DataProducer : EnhancedEventEmitter<DataProducerEvents>
 {
     /// <summary>
     /// Internal data.
@@ -50,7 +56,7 @@ internal class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataPro
     /// <summary>
     /// App custom data.
     /// </summary>
-    public TDataProducerAppData AppData { get; set; }
+    public object AppData { get; set; }
 
     /// <summary>
     /// Observer instance.
@@ -87,14 +93,14 @@ internal class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataPro
         DataProducerData data,
         Channel.Channel channel,
         PayloadChannel.PayloadChannel payloadChannel,
-        TDataProducerAppData? appData
+        object? appData
     )
     {
         this.@internal = @internal;
         this.data = data;
         this.channel = channel;
         this.payloadChannel = payloadChannel;
-        AppData = appData ?? default!;
+        AppData = appData ?? new();
 
         HandleWorkerNotifications();
     }
@@ -115,7 +121,6 @@ internal class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataPro
     /// </summary>
     public void Close()
     {
-
         if (Closed)
         {
             return;

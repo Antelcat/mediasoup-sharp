@@ -1,5 +1,6 @@
 ﻿namespace MediasoupSharp.SctpParameters;
 
+[Serializable]
 public record SctpStreamParameters
 {
     /// <summary>

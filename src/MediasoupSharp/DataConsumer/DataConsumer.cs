@@ -8,13 +8,12 @@ namespace MediasoupSharp.DataConsumer;
 internal class DataConsumer<TDataConsumerAppData> : DataConsumer
 {
     public DataConsumer(
-        ILoggerFactory loggerFactory,
         DataConsumerInternal @internal,
         DataConsumerData data,
         Channel.Channel channel,
         PayloadChannel.PayloadChannel payloadChannel,
         TDataConsumerAppData? appData)
-        : base(loggerFactory,
+        : base(
             @internal,
             data,
             channel,
@@ -31,12 +30,6 @@ internal class DataConsumer<TDataConsumerAppData> : DataConsumer
 
 internal class DataConsumer : EnhancedEventEmitter<DataConsumerEvents>
 {
-    /// <summary>
-    /// Logger.
-    /// </summary>
-    private readonly ILogger logger;
-
-
     /// <summary>
     /// Internal data.
     /// </summary>
@@ -97,13 +90,12 @@ internal class DataConsumer : EnhancedEventEmitter<DataConsumerEvents>
     /// <summary>
     /// 
     /// </summary>
-    /// <param name="loggerFactory"></param>
     /// <param name="internal"></param>
     /// <param name="data"></param>
     /// <param name="channel"></param>
     /// <param name="payloadChannel"></param>
     /// <param name="appData"></param>
-    public DataConsumer(ILoggerFactory loggerFactory,
+    public DataConsumer(
         DataConsumerInternal @internal,
         DataConsumerData data,
         Channel.Channel channel,
@@ -111,8 +103,6 @@ internal class DataConsumer : EnhancedEventEmitter<DataConsumerEvents>
         object? appData
     ) 
     {
-        logger = loggerFactory.CreateLogger(GetType());
-
         this.@internal = @internal;
         this.data = data;
         this.channel = channel;
@@ -144,7 +134,7 @@ internal class DataConsumer : EnhancedEventEmitter<DataConsumerEvents>
             return;
         }
 
-        logger.LogDebug("CloseAsync() | DataConsumer:{DataConsumerId}", DataConsumerId);
+        Logger?.LogDebug("CloseAsync() | DataConsumer:{DataConsumerId}", DataConsumerId);
 
         Closed = true;
 
@@ -175,7 +165,7 @@ internal class DataConsumer : EnhancedEventEmitter<DataConsumerEvents>
             return;
         }
 
-        logger.LogDebug("TransportClosedAsync() | DataConsumer:{DataConsumerId}", DataConsumerId);
+        Logger?.LogDebug("TransportClosedAsync() | DataConsumer:{DataConsumerId}", DataConsumerId);
 
         Closed = true;
 
@@ -194,7 +184,7 @@ internal class DataConsumer : EnhancedEventEmitter<DataConsumerEvents>
     /// </summary>
     public async Task<object> DumpAsync()
     {
-        logger.LogDebug("DumpAsync() | DataConsumer:{DataConsumerId}", DataConsumerId);
+        Logger?.LogDebug("DumpAsync() | DataConsumer:{DataConsumerId}", DataConsumerId);
 
         return (await channel.Request("dataConsumer.dump", @internal.DataConsumerId))!;
     }
@@ -204,7 +194,7 @@ internal class DataConsumer : EnhancedEventEmitter<DataConsumerEvents>
     /// </summary>
     public async Task<List<DataConsumerStat>> GetStatsAsync()
     {
-        logger.LogDebug("GetStatsAsync() | DataConsumer:{DataConsumerId}", DataConsumerId);
+        Logger?.LogDebug("GetStatsAsync() | DataConsumer:{DataConsumerId}", DataConsumerId);
 
         return (await channel.Request("dataConsumer.getStats", @internal.DataConsumerId) as List<DataConsumerStat>)!;
     }
@@ -216,7 +206,7 @@ internal class DataConsumer : EnhancedEventEmitter<DataConsumerEvents>
     /// <exception cref="InvalidStateException"></exception>
     public async Task SetBufferedAmountLowThresholdAsync(uint threshold)
     {
-        logger.LogDebug("SetBufferedAmountLowThreshold() | Threshold:{Threshold}", threshold);
+        Logger?.LogDebug("SetBufferedAmountLowThreshold() | Threshold:{Threshold}", threshold);
 
         // TODO : Naming
         var reqData = new { threshold };
@@ -231,7 +221,7 @@ internal class DataConsumer : EnhancedEventEmitter<DataConsumerEvents>
             throw new TypeError("message must be a string or a Buffer");
         }
 
-        logger.LogDebug("SendAsync() | DataConsumer:{DataConsumerId}", DataConsumerId);
+        Logger?.LogDebug("SendAsync() | DataConsumer:{DataConsumerId}", DataConsumerId);
 
         /*
          * +-------------------------------+----------+
@@ -274,7 +264,7 @@ internal class DataConsumer : EnhancedEventEmitter<DataConsumerEvents>
     /// <returns></returns>
     public async Task<string> GetBufferedAmountAsync()
     {
-        logger.LogDebug("GetBufferedAmountAsync()");
+        Logger?.LogDebug("GetBufferedAmountAsync()");
 
         var ret = (await channel.Request("dataConsumer.getBufferedAmount", @internal.DataConsumerId))! as dynamic;
         return ret.bufferedAmount;
@@ -327,7 +317,7 @@ internal class DataConsumer : EnhancedEventEmitter<DataConsumerEvents>
 
                 default:
                 {
-                    logger.LogError("ignoring unknown event {E} in channel listener", @event);
+                    Logger?.LogError("ignoring unknown event {E} in channel listener", @event);
                     break;
                 }
             }
@@ -357,7 +347,7 @@ internal class DataConsumer : EnhancedEventEmitter<DataConsumerEvents>
 
                 default:
                 {
-                    logger.LogError("ignoring unknown event {E} in payload channel listener", @event);
+                    Logger?.LogError("ignoring unknown event {E} in payload channel listener", @event);
                     break;
                 }
             }

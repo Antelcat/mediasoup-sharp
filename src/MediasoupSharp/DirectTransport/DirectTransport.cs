@@ -1,14 +1,18 @@
 ﻿using MediasoupSharp.Consumer;
 using MediasoupSharp.Exceptions;
 using MediasoupSharp.Producer;
-
+using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.DirectTransport;
 
-internal class DirectTransport<TDirectTransportAppData> 
-    : Transport.Transport<TDirectTransportAppData,DirectTransportEvents,DirectTransportObserverEvents>
+internal interface IDirectTransport
 {
-    
+}
+
+internal class DirectTransport<TDirectTransportAppData>
+    : Transport.Transport<TDirectTransportAppData, DirectTransportEvents, DirectTransportObserverEvents>,
+        IDirectTransport
+{
     private readonly DirectTransportData data;
 
     /// <summary>
@@ -57,7 +61,7 @@ internal class DirectTransport<TDirectTransportAppData>
     /// <returns></returns>
     public override Task ConnectAsync(object parameters)
     {
-        Logger?.LogDebug($"ConnectAsync() | DiectTransport:{TransportId}");
+        Logger?.LogDebug("ConnectAsync() | DiectTransport:{Id}", Id);
         return Task.CompletedTask;
     }
 
