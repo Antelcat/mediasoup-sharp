@@ -1,12 +1,7 @@
-﻿namespace MediasoupSharp.Router
-{
-    public class RouterInternal
-    {
-        public string RouterId { get; }
+﻿namespace MediasoupSharp.Router;
 
-        public RouterInternal(string routerId)
-        {
-            RouterId = routerId;
-        }
-    }
+public record RouterInternal
+{
+    public string RouterId { get; }
+  
 }

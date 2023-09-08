@@ -1,25 +1,28 @@
-﻿namespace MediasoupSharp.DataConsumer
+﻿using MediasoupSharp.SctpParameters;
+
+namespace MediasoupSharp.DataConsumer;
+
+public class DataConsumerData
 {
-    public class DataConsumerData
-	{
-        /// <summary>
-        /// Associated DataProducer id.
-        /// </summary>
-        public string DataProducerId { get; init; }
+    /// <summary>
+    /// Associated DataProducer id.
+    /// </summary>
+    public string DataProducerId { get; set; } = string.Empty;
 
-        /// <summary>
-        /// SCTP stream parameters.
-        /// </summary>
-        public SctpStreamParameters? SctpStreamParameters { get; init; }
+    public DataConsumerType Type { get; set; }
+    
+    /// <summary>
+    /// SCTP stream parameters.
+    /// </summary>
+    public SctpStreamParameters? SctpStreamParameters { get; set; }
 
-        /// <summary>
-        /// DataChannel label.
-        /// </summary>
-        public string Label { get; init; }
+    /// <summary>
+    /// DataChannel label.
+    /// </summary>
+    public string Label { get; set; }
 
-        /// <summary>
-        /// DataChannel protocol.
-        /// </summary>
-        public string Protocol { get; init; }
-    }
+    /// <summary>
+    /// DataChannel protocol.
+    /// </summary>
+    public string Protocol { get; set; }
 }

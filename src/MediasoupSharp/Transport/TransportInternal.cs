@@ -1,17 +1,12 @@
 ﻿using MediasoupSharp.Router;
 
-namespace MediasoupSharp.Transport
-{
-    public class TransportInternal : RouterInternal
-    {
-        /// <summary>
-        /// Trannsport id.
-        /// </summary>
-        public string TransportId { get; }
+namespace MediasoupSharp.Transport;
 
-        public TransportInternal(string routerId, string transportId) : base(routerId)
-        {
-            TransportId = transportId;
-        }
-    }
+public record TransportInternal : RouterInternal
+{
+    /// <summary>
+    /// TransportId id.
+    /// </summary>
+    public string TransportId { get; set; }
+   
 }

@@ -1,17 +1,16 @@
 ﻿using MediasoupSharp.Transport;
 
-namespace MediasoupSharp.PlainTransport
+namespace MediasoupSharp.PlainTransport;
+
+public class PlainTransportData : TransportBaseData
 {
-    public class PlainTransportData : TransportBaseData
-	{
-        public bool? RtcpMux { get; set; }
+    public bool? RtcpMux { get; set; }
 
-        public bool? Comedia { get; set; }
+    public bool? Comedia { get; set; }
 
-        public TransportTuple Tuple { get; set; }
+    public TransportTuple Tuple { get; set; }
 
-        public TransportTuple? RtcpTuple { get; set; }
+    public TransportTuple? RtcpTuple { get; set; }
 
-        public SrtpParameters? SrtpParameters { get; set; }
-    }
+    public SrtpParameters? SrtpParameters { get; set; }
 }

@@ -1,15 +1,14 @@
-﻿namespace MediasoupSharp.Settings
+﻿namespace MediasoupSharp.Settings;
+
+public class MediasoupStartupSettings
 {
-    public class MediasoupStartupSettings
-    {
-        public string MediasoupVersion { get; set; }
+    public string MediasoupVersion { get; set; }
 
-        public bool WorkerInProcess { get; set; }
+    public bool WorkerInProcess { get; set; }
 
-        public string WorkerPath { get; set; }
+    public string WorkerPath { get; set; }
 
-        public int? NumberOfWorkers { get; set; }
+    public int? NumberOfWorkers { get; set; }
 
-        public bool UseWebRtcServer { get; set; }
-    }
+    public bool UseWebRtcServer { get; set; }
 }

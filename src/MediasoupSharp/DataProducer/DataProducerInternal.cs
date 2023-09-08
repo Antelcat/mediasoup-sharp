@@ -1,17 +1,12 @@
 ﻿using MediasoupSharp.Transport;
 
-namespace MediasoupSharp.DataProducer
-{
-    public class DataProducerInternal : TransportInternal
-    {
-        /// <summary>
-        /// DataProducer id.
-        /// </summary>
-        public string DataProducerId { get; }
+namespace MediasoupSharp.DataProducer;
 
-        public DataProducerInternal(string routerId, string transportId, string dataProducerId) : base(routerId, transportId)
-        {
-            DataProducerId = dataProducerId;
-        }
-    }
+public record DataProducerInternal : TransportInternal
+{
+    /// <summary>
+    /// DataProducer id.
+    /// </summary>
+    public string DataProducerId { get; set; }
+ 
 }

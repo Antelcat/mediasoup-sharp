@@ -1,7 +1,6 @@
-﻿namespace MediasoupSharp.Settings
+﻿namespace MediasoupSharp.Settings;
+
+public class RouterSettings
 {
-    public class RouterSettings
-    {
-        public RtpCodecCapability[] RtpCodecCapabilities { get; set; }
-    }
+    public RtpCodecCapability[] RtpCodecCapabilities { get; set; }
 }

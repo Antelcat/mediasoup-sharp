@@ -1,9 +1,8 @@
 ﻿using MediasoupSharp.Consumer;
 
-namespace MediasoupSharp.PipeTransport
-{
-    public class PipeConsumerOptions : ConsumerOptionsBase
-    {
+namespace MediasoupSharp.PipeTransport;
 
-    }
+public class PipeConsumerOptions : ConsumerOptionsBase
+{
+
 }

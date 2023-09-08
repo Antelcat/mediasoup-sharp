@@ -1,8 +1,6 @@
-﻿namespace MediasoupSharp.Router
-{
-	public class RouterData
-	{
-		public RtpCapabilities RtpCapabilities { get; set; }
-	}
-}
+﻿namespace MediasoupSharp.Router;
 
+public class RouterData
+{
+	public RtpCapabilities RtpCapabilities { get; set; }
+}

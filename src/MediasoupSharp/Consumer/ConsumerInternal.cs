@@ -1,18 +1,11 @@
 ﻿using MediasoupSharp.Transport;
 
-namespace MediasoupSharp.Consumer
+namespace MediasoupSharp.Consumer;
+
+public record ConsumerInternal : TransportInternal
 {
-    public class ConsumerInternal : TransportInternal
-    {
-        /// <summary>
-        /// Consumer id.
-        /// </summary>
-        public string ConsumerId { get; }
-
-        public ConsumerInternal(string routerId, string transportId, string consumerId) : base(routerId, transportId)
-        {
-            ConsumerId = consumerId;
-        }
-    }
+    /// <summary>
+    /// Consumer id.
+    /// </summary>
+    public string ConsumerId { get; }
 }
-

@@ -1,7 +1,6 @@
-﻿namespace MediasoupSharp.Settings
+﻿namespace MediasoupSharp.Settings;
+
+public class WebRtcServerSettings
 {
-    public class WebRtcServerSettings
-    {
-        public WebRtcServerListenInfo[] ListenInfos { get; set; }
-    }
+    public WebRtcServerListenInfo[] ListenInfos { get; set; }
 }

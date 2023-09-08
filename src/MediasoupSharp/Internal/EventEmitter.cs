@@ -1,6 +1,8 @@
 ﻿namespace MediasoupSharp.Internal;
 
-public interface IEventEmitter
+internal delegate Task EventHandler(params object[]? args);
+
+internal interface IEventEmitter
 {
     IDisposable On(string name, Func<object[]?, Task> handler);
     IDisposable AddEventListener(string name, Func<object[]?, Task> handler);
@@ -10,10 +12,9 @@ public interface IEventEmitter
 
     void RemoveAllListeners(string name);
     Task Emit(string name, params object[]? data);
-
 }
 
-public class EventEmitter
+internal class EventEmitter
 {
     private class EventListener : IDisposable
     {
@@ -32,38 +33,38 @@ public class EventEmitter
         }
     }
 
-    private readonly Dictionary<string, Tuple<List<Func<object[]?, Task>>, ReaderWriterLockSlim>> namedHandlers = new();
+    private readonly Dictionary<string, ValueTuple<EventHandler?, ReaderWriterLockSlim>> namedHandlers = new();
     private readonly ReaderWriterLockSlim readerWriterLock = new();
 
-    private Tuple<List<Func<object[]?, Task>>, ReaderWriterLockSlim> CreateHandlers(string name)
+    private ValueTuple<EventHandler?, ReaderWriterLockSlim> CreateHandlers(string name)
     {
         if (namedHandlers.TryGetValue(name, out var handlers)) return handlers;
         readerWriterLock.EnterWriteLock();
         if (namedHandlers.TryGetValue(name, out handlers)) return handlers;
-        handlers = new Tuple<List<Func<object[]?, Task>>, ReaderWriterLockSlim>(
-            new List<Func<object[]?, Task>>(),
+        handlers = new ValueTuple<EventHandler?, ReaderWriterLockSlim>(
+            null,
             new ReaderWriterLockSlim());
         namedHandlers.Add(name, handlers);
         readerWriterLock.ExitWriteLock();
         return handlers;
     }
 
-    public IDisposable On(string name, Func<object[]?, Task> handler)
+    public IDisposable On(string name, EventHandler handler)
     {
         var tuple = CreateHandlers(name);
-        tuple.Item1.Add(handler);
-        return new EventListener(() => tuple.Item1.Remove(handler));
+        tuple.Item1 += handler;
+        return new EventListener(() => tuple.Item1 -= handler);
     }
 
-    public IDisposable AddEventListener(string name, Func<object[]?, Task> handler) => On(name, handler);
+    public IDisposable AddEventListener(string name, EventHandler handler) => On(name, handler);
 
-    public void Off(string name, Func<object[]?, Task> handler)
+    public void Off(string name, EventHandler handler)
     {
         if (!namedHandlers.TryGetValue(name, out var tuple)) return;
-        tuple.Item1.Remove(handler);
+        tuple.Item1 -= handler;
     }
 
-    public void RemoveListener(string name, Func<object[]?, Task> handler) => Off(name, handler);
+    public void RemoveListener(string name, EventHandler handler) => Off(name, handler);
 
     public void RemoveAllListeners(string name)
     {
@@ -77,15 +78,11 @@ public class EventEmitter
     {
         if (!namedHandlers.TryGetValue(name, out var handlers)) return;
         handlers.Item2.EnterReadLock();
-        foreach (var handler in handlers.Item1)
-        {
-            await handler(data);
-        }
-
+        await handlers.Item1!.Invoke(data);
         handlers.Item2.EnterReadLock();
     }
 
     protected int ListenerCount(string name) => namedHandlers.TryGetValue(name, out var list)
-        ? list.Item1.Count
+        ? list.Item1!.GetInvocationList().Length
         : 0;
 }

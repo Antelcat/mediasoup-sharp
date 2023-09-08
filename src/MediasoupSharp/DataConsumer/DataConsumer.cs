@@ -1,405 +1,339 @@
 ﻿using System.Text;
 using System.Text.Json;
+using LibuvSharp;
 using MediasoupSharp.Channel;
 using MediasoupSharp.Exceptions;
 using MediasoupSharp.PayloadChannel;
+using MediasoupSharp.SctpParameters;
+using Microsoft.Extensions.Logging;
 
-namespace MediasoupSharp.DataConsumer
+namespace MediasoupSharp.DataConsumer;
+
+public class DataConsumer<TDataConsumerAppData> : EnhancedEventEmitter<DataConsumerEvents>
 {
-    public class DataConsumer : EventEmitter
+    /// <summary>
+    /// Logger.
+    /// </summary>
+    private readonly ILogger logger;
+
+
+    /// <summary>
+    /// Internal data.
+    /// </summary>
+    private readonly DataConsumerInternal @internal;
+
+    /// <summary>
+    /// DataConsumer id.
+    /// </summary>
+    public string DataConsumerId => @internal.DataConsumerId;
+
+    /// <summary>
+    /// DataChannel data.
+    /// </summary>
+    private readonly DataConsumerData data;
+
+    /// <summary>
+    /// Channel instance.
+    /// </summary>
+    private readonly Channel.Channel channel;
+
+    /// <summary>
+    /// PayloadChannel instance.
+    /// </summary>
+    private readonly PayloadChannel.PayloadChannel payloadChannel;
+
+    /// <summary>
+    /// Whether the DataConsumer is closed.
+    /// </summary>
+    public bool Closed { get; private set; }
+
+    /// <summary>
+    /// App custom data.
+    /// </summary>
+    public TDataConsumerAppData AppData { get; set; }
+
+    /// <summary>
+    /// Observer instance.
+    /// </summary>
+    public EnhancedEventEmitter<DataConsumerObserverEvents> Observer { get; }
+
+    /// <summary>
+    /// <para>Events:</para>
+    /// <para>@emits transportclose</para>
+    /// <para>@emits dataproducerclose</para>
+    /// <para>@emits message - (message: Buffer, ppid: number)</para>
+    /// <para>@emits sctpsendbufferfull</para>
+    /// <para>@emits bufferedamountlow - (bufferedAmount: number)</para>
+    /// <para>@emits @close</para>
+    /// <para>@emits @dataproducerclose</para>
+    /// <para>Observer events:</para>
+    /// <para>@emits close</para>
+    /// </summary>
+    /// <param name="loggerFactory"></param>
+    /// <param name="internal"></param>
+    /// <param name="data"></param>
+    /// <param name="channel"></param>
+    /// <param name="payloadChannel"></param>
+    /// <param name="appData"></param>
+    public DataConsumer(ILoggerFactory loggerFactory,
+        DataConsumerInternal @internal,
+        DataConsumerData data,
+        Channel.Channel channel,
+        PayloadChannel.PayloadChannel payloadChannel,
+        TDataConsumerAppData? appData
+    ) : base(loggerFactory.CreateLogger("DataConsumer"))
     {
-        /// <summary>
-        /// Logger.
-        /// </summary>
-        private readonly ILogger<DataConsumer> logger;
+        logger = loggerFactory.CreateLogger(GetType());
 
-        /// <summary>
-        /// Whether the DataConsumer is closed.
-        /// </summary>
-        private bool closed;
-        private readonly AsyncReaderWriterLock closeLock = new();
+        this.@internal = @internal;
+        this.data = data;
+        this.channel = channel;
+        this.payloadChannel = payloadChannel;
+        AppData = appData ?? default!;
+        Observer = new EnhancedEventEmitter<DataConsumerObserverEvents>(logger);
 
-        /// <summary>
-        /// Internal data.
-        /// </summary>
-        private readonly DataConsumerInternal @internal;
+        HandleWorkerNotifications();
+    }
 
-        /// <summary>
-        /// DataConsumer id.
-        /// </summary>
-        public string DataConsumerId => @internal.DataConsumerId;
+    public string Id => @internal.DataConsumerId;
 
-        /// <summary>
-        /// DataChannel data.
-        /// </summary>
-        public DataConsumerData Data { get; set; }
+    public string DataProducerId => data.DataProducerId;
 
-        /// <summary>
-        /// Channel instance.
-        /// </summary>
-        private readonly IChannel channel;
+    public DataConsumerType Type => data.Type;
 
-        /// <summary>
-        /// PayloadChannel instance.
-        /// </summary>
-        private readonly IPayloadChannel payloadChannel;
+    public SctpStreamParameters? SctpStreamParameters => data.SctpStreamParameters;
 
-        /// <summary>
-        /// App custom data.
-        /// </summary>
-        public Dictionary<string, object> AppData { get; }
+    public string Label => data.Label;
 
-        /// <summary>
-        /// Observer instance.
-        /// </summary>
-        public EventEmitter Observer { get; } = new EventEmitter();
+    public string Protocol => data.Protocol;
 
-        /// <summary>
-        /// <para>Events:</para>
-        /// <para>@emits transportclose</para>
-        /// <para>@emits dataproducerclose</para>
-        /// <para>@emits message - (message: Buffer, ppid: number)</para>
-        /// <para>@emits sctpsendbufferfull</para>
-        /// <para>@emits bufferedamountlow - (bufferedAmount: number)</para>
-        /// <para>@emits @close</para>
-        /// <para>@emits @dataproducerclose</para>
-        /// <para>Observer events:</para>
-        /// <para>@emits close</para>
-        /// </summary>
-        /// <param name="loggerFactory"></param>
-        /// <param name="internal"></param>
-        /// <param name="data"></param>
-        /// <param name="channel"></param>
-        /// <param name="payloadChannel"></param>
-        /// <param name="appData"></param>
-        public DataConsumer(ILoggerFactory loggerFactory,
-            DataConsumerInternal @internal,
-            DataConsumerData data,
-            IChannel channel,
-            IPayloadChannel payloadChannel,
-            Dictionary<string, object>? appData
-            )
+    /// <summary>
+    /// Close the DataConsumer.
+    /// </summary>
+    public void Close()
+    {
+        if (Closed)
         {
-            logger = loggerFactory.CreateLogger<DataConsumer>();
-
-            this.@internal = @internal;
-            Data = data;
-            this.channel = channel;
-            this.payloadChannel = payloadChannel;
-            AppData = appData ?? new Dictionary<string, object>();
-
-            HandleWorkerNotifications();
+            return;
         }
 
-        /// <summary>
-        /// Close the DataConsumer.
-        /// </summary>
-        public async Task CloseAsync()
+        logger.LogDebug("CloseAsync() | DataConsumer:{DataConsumerId}", DataConsumerId);
+
+        Closed = true;
+
+        // Remove notification subscriptions.
+        channel.RemoveAllListeners(@internal.DataConsumerId);
+        payloadChannel.RemoveAllListeners(@internal.DataConsumerId);
+
+        // TODO : Naming
+        var reqData = new { dataConsumerId = @internal.DataConsumerId };
+
+        // Fire and forget
+        channel.Request("transport.closeDataConsumer", @internal.TransportId, reqData)
+            .ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
+
+        _ = Emit("@close");
+
+        // Emit observer event.
+        _ = Observer.SafeEmit("close");
+    }
+
+    /// <summary>
+    /// Transport was closed.
+    /// </summary>
+    public void TransportClosed()
+    {
+        if (Closed)
         {
-            logger.LogDebug($"CloseAsync() | DataConsumer:{DataConsumerId}");
-
-            using (await closeLock.WriteLockAsync())
-            {
-                if (closed)
-                {
-                    return;
-                }
-
-                closed = true;
-
-                // Remove notification subscriptions.
-                channel.MessageEvent -= OnChannelMessage;
-                payloadChannel.MessageEvent -= OnPayloadChannelMessage;
-
-                var reqData = new { DataConsumerId = @internal.DataConsumerId };
-
-                // Fire and forget
-                channel.RequestAsync(MethodId.TRANSPORT_CLOSE_DATA_CONSUMER, @internal.TransportId, reqData).ContinueWithOnFaultedHandleLog(logger);
-
-                Emit("@close");
-
-                // Emit observer event.
-                Observer.Emit("close");
-            }
+            return;
         }
 
-        /// <summary>
-        /// Transport was closed.
-        /// </summary>
-        public async Task TransportClosedAsync()
+        logger.LogDebug("TransportClosedAsync() | DataConsumer:{DataConsumerId}", DataConsumerId);
+
+        Closed = true;
+
+        // Remove notification subscriptions.
+        channel.RemoveAllListeners(@internal.DataConsumerId);
+        payloadChannel.RemoveAllListeners(@internal.DataConsumerId);
+
+        _ = SafeEmit("transportclose");
+
+        // Emit observer event.
+        _ = Observer.SafeEmit("close");
+    }
+
+    /// <summary>
+    /// Dump DataConsumer.
+    /// </summary>
+    public async Task<object> DumpAsync()
+    {
+        logger.LogDebug("DumpAsync() | DataConsumer:{DataConsumerId}", DataConsumerId);
+
+        return (await channel.Request("dataConsumer.dump", @internal.DataConsumerId))!;
+    }
+
+    /// <summary>
+    /// Get DataConsumer stats. Return: DataConsumerStat[]
+    /// </summary>
+    public async Task<List<DataConsumerStat>> GetStatsAsync()
+    {
+        logger.LogDebug("GetStatsAsync() | DataConsumer:{DataConsumerId}", DataConsumerId);
+
+        return (await channel.Request("dataConsumer.getStats", @internal.DataConsumerId) as List<DataConsumerStat>)!;
+    }
+
+    /// <summary>
+    /// Set buffered amount low threshold.
+    /// </summary>
+    /// <param name="threshold"></param>
+    /// <exception cref="InvalidStateException"></exception>
+    public async Task SetBufferedAmountLowThresholdAsync(uint threshold)
+    {
+        logger.LogDebug("SetBufferedAmountLowThreshold() | Threshold:{Threshold}", threshold);
+
+        // TODO : Naming
+        var reqData = new { threshold };
+
+        await channel.Request("dataConsumer.setBufferedAmountLowThreshold", @internal.DataConsumerId, reqData);
+    }
+
+    public async Task SendAsync(object message, int? ppid)
+    {
+        if (message is not (string or byte[]))
         {
-            logger.LogDebug($"TransportClosedAsync() | DataConsumer:{DataConsumerId}");
-
-            using (await closeLock.WriteLockAsync())
-            {
-                if (closed)
-                {
-                    return;
-                }
-
-                closed = true;
-
-                // Remove notification subscriptions.
-                channel.MessageEvent -= OnChannelMessage;
-                payloadChannel.MessageEvent -= OnPayloadChannelMessage;
-
-                Emit("transportclose");
-
-                // Emit observer event.
-                Observer.Emit("close");
-            }
+            throw new TypeError("message must be a string or a Buffer");
         }
 
-        /// <summary>
-        /// Dump DataConsumer.
-        /// </summary>
-        public async Task<string> DumpAsync()
+        logger.LogDebug("SendAsync() | DataConsumer:{DataConsumerId}", DataConsumerId);
+
+        /*
+         * +-------------------------------+----------+
+         * | Value                         | SCTP     |
+         * |                               | PPID     |
+         * +-------------------------------+----------+
+         * | WebRTC String                 | 51       |
+         * | WebRTC Binary Partial         | 52       |
+         * | (Deprecated)                  |          |
+         * | WebRTC Binary                 | 53       |
+         * | WebRTC String Partial         | 54       |
+         * | (Deprecated)                  |          |
+         * | WebRTC String Empty           | 56       |
+         * | WebRTC Binary Empty           | 57       |
+         * +-------------------------------+----------+
+         */
+
+        ppid ??= message is string str
+            ? str.Length > 0 ? 51 : 56
+            : ((byte[])message).Length > 0
+                ? 53
+                : 57;
+        
+        // Ensure we honor PPIDs.
+        message = ppid switch
         {
-            logger.LogDebug($"DumpAsync() | DataConsumer:{DataConsumerId}");
+            56 => " ",
+            57 => new byte[1],
+            _ => message
+        };
 
-            using (await closeLock.ReadLockAsync())
-            {
-                if(closed)
-                {
-                    throw new InvalidStateException("DataConsumer closed");
-                }
+        var requestData = ppid.Value.ToString();
 
-                return (await channel.RequestAsync(MethodId.DATA_CONSUMER_DUMP, @internal.DataConsumerId))!;
-            }
-        }
+        await payloadChannel.Request("dataConsumer.send", @internal.DataConsumerId, requestData, message);
+    }
+    
+    /// <summary>
+    /// Get buffered amount size.
+    /// </summary>
+    /// <returns></returns>
+    public async Task<string> GetBufferedAmountAsync()
+    {
+        logger.LogDebug("GetBufferedAmountAsync()");
 
-        /// <summary>
-        /// Get DataConsumer stats. Return: DataConsumerStat[]
-        /// </summary>
-        public async Task<string> GetStatsAsync()
+        var ret = (await channel.Request("dataConsumer.getBufferedAmount", @internal.DataConsumerId))! as dynamic;
+        return ret.bufferedAmount;
+    }
+
+
+    private void HandleWorkerNotifications()
+    {
+        channel.On(@internal.DataConsumerId, async args =>
         {
-            logger.LogDebug($"GetStatsAsync() | DataConsumer:{DataConsumerId}");
-
-            using (await closeLock.ReadLockAsync())
-            {
-                if (closed)
-                {
-                    throw new InvalidStateException("DataConsumer closed");
-                }
-
-                return (await channel.RequestAsync(MethodId.DATA_CONSUMER_GET_STATS, @internal.DataConsumerId))!;
-            }
-        }
-
-        /// <summary>
-        /// Set buffered amount low threshold.
-        /// </summary>
-        /// <param name=""></param>
-        /// <param name=""></param>
-        /// <returns></returns>
-        public async Task SetBufferedAmountLowThresholdAsync(uint threshold)
-        {
-            logger.LogDebug($"SetBufferedAmountLowThreshold() | Threshold:{threshold}");
-
-            using (await closeLock.ReadLockAsync())
-            {
-                if (closed)
-                {
-                    throw new InvalidStateException("DataConsumer closed");
-                }
-
-                var reqData = new { Threshold = threshold };
-                await channel.RequestAsync(MethodId.DATA_CONSUMER_SET_BUFFERED_AMOUNT_LOW_THRESHOLD, @internal.DataConsumerId, reqData);
-            }
-        }
-
-        /// <summary>
-        /// Send data (just valid for DataProducers created on a DirectTransport).
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="ppid"></param>
-        /// <returns></returns>
-        public async Task SendAsync(string message, int? ppid)
-        {
-            logger.LogDebug($"SendAsync() | DataConsumer:{DataConsumerId}");
-
-            /*
-             * +-------------------------------+----------+
-             * | Value                         | SCTP     |
-             * |                               | PPID     |
-             * +-------------------------------+----------+
-             * | WebRTC String                 | 51       |
-             * | WebRTC Binary Partial         | 52       |
-             * | (Deprecated)                  |          |
-             * | WebRTC Binary                 | 53       |
-             * | WebRTC String Partial         | 54       |
-             * | (Deprecated)                  |          |
-             * | WebRTC String Empty           | 56       |
-             * | WebRTC Binary Empty           | 57       |
-             * +-------------------------------+----------+
-             */
-
-            if (ppid == null)
-            {
-                ppid = !message.IsNullOrEmpty() ? 51 : 56;
-            }
-
-            // Ensure we honor PPIDs.
-            if (ppid == 56)
-            {
-                message = " ";
-            }
-
-            var requestData = ppid.Value.ToString();
-
-            using (await closeLock.ReadLockAsync())
-            {
-                if (closed)
-                {
-                    throw new InvalidStateException("DataConsumer closed");
-                }
-
-                await payloadChannel.NotifyAsync("dataConsumer.send", @internal.DataConsumerId, requestData, Encoding.UTF8.GetBytes(message));
-            }
-        }
-
-        /// <summary>
-        /// Send data (just valid for DataProducers created on a DirectTransport).
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="ppid"></param>
-        /// <returns></returns>
-        public async Task SendAsync(byte[] message, int? ppid)
-        {
-            logger.LogDebug($"SendAsync() | DataConsumer:{DataConsumerId}");
-
-            if (ppid == null)
-            {
-                ppid = !message.IsNullOrEmpty() ? 53 : 57;
-            }
-
-            // Ensure we honor PPIDs.
-            if (ppid == 57)
-            {
-                message = new byte[1];
-            }
-
-            var requestData = ppid.Value.ToString();
-
-            using (await closeLock.ReadLockAsync())
-            {
-                if (closed)
-                {
-                    throw new InvalidStateException("DataConsumer closed");
-                }
-
-                await payloadChannel.NotifyAsync("dataConsumer.send", @internal.DataConsumerId, requestData, message);
-            }
-        }
-
-        public async Task<string> GetBufferedAmountAsync()
-        {
-            logger.LogDebug("GetBufferedAmountAsync()");
-
-            using (await closeLock.ReadLockAsync())
-            {
-                if (closed)
-                {
-                    throw new InvalidStateException("DataConsumer closed");
-                }
-
-                // 返回的是 JSON 格式，取其 bufferedAmount 属性。
-                return (await channel.RequestAsync(MethodId.DATA_CONSUMER_GET_BUFFERED_AMOUNT, @internal.DataConsumerId))!;
-            }
-        }
-
-        #region Event Handlers
-
-        private void HandleWorkerNotifications()
-        {
-            channel.MessageEvent += OnChannelMessage;
-            payloadChannel.MessageEvent += OnPayloadChannelMessage;
-        }
-
-#pragma warning disable VSTHRD100 // Avoid async void methods
-        private async void OnChannelMessage(string targetId, string @event, string? data)
-#pragma warning restore VSTHRD100 // Avoid async void methods
-        {
-            if (targetId != DataConsumerId)
-            {
-                return;
-            }
-
+            var @event = args![0] as string;
+            var data = args[1] as dynamic;
             switch (@event)
             {
                 case "dataproducerclose":
+                {
+                    if (Closed)
                     {
-                        using (await closeLock.WriteLockAsync())
-                        {
-                            if (closed)
-                            {
-                                break;
-                            }
-
-                            closed = true;
-
-                            // Remove notification subscriptions.
-                            channel.MessageEvent -= OnChannelMessage;
-                            payloadChannel.MessageEvent -= OnPayloadChannelMessage;
-
-                            Emit("@dataproducerclose");
-                            Emit("dataproducerclose");
-
-                            // Emit observer event.
-                            Observer.Emit("close");
-                        }
                         break;
                     }
+
+                    Closed = true;
+
+                    // Remove notification subscriptions.
+                    channel.RemoveAllListeners(@internal.DataConsumerId);
+                    payloadChannel.RemoveAllListeners(@internal.DataConsumerId);
+
+                    _ = Emit("@dataproducerclose");
+                    _ = SafeEmit("dataproducerclose");
+
+                    // Emit observer event.
+                    _ = Observer.SafeEmit("close");
+
+                    break;
+                }
+
                 case "sctpsendbufferfull":
-                    {
-                        Emit("sctpsendbufferfull");
+                {
+                    _ = SafeEmit("sctpsendbufferfull");
 
-                        break;
-                    }
-                case "bufferedamount":
-                    {
-                        var bufferedAmount = int.Parse(data!);
+                    break;
+                }
 
-                        Emit("bufferedamountlow", bufferedAmount);
+                case "bufferedamountlow":
+                {
+                    _ = SafeEmit("bufferedamountlow", data.bufferedAmount);
 
-                        break;
-                    }
+                    break;
+                }
+
                 default:
-                    {
-                        logger.LogError($"OnChannelMessage() | Ignoring unknown event \"{@event}\" in channel listener");
-                        break;
-                    }
+                {
+                    logger.LogError("ignoring unknown event {E} in channel listener", @event);
+                    break;
+                }
             }
-        }
+        });
 
-        private void OnPayloadChannelMessage(string targetId, string @event, string? data, ArraySegment<byte> payload)
+        payloadChannel.On(@internal.DataConsumerId, async args =>
         {
-            if (targetId != DataConsumerId)
-            {
-                return;
-            }
-
+            var @event = args![0] as string;
+            var data = args[1] as dynamic;
+            var payload = args[2] as byte[];
             switch (@event)
             {
                 case "message":
+                {
+                    if (Closed)
                     {
-                        var dataJsonDocument = JsonDocument.Parse(data!);
-                        var ppid = dataJsonDocument.RootElement.GetProperty("ppid").GetInt32();
-                        var message = payload;
-
-                        // Emit 暂不支持超过两个参数
-                        Emit("message", new NotifyMessage { Message = message, Ppid = ppid });
-
                         break;
                     }
+
+                    var ppid = (int)data.ppid;
+                    var message = payload!;
+
+                    _ = SafeEmit("message", message, ppid);
+
+                    break;
+                }
+
                 default:
-                    {
-                        logger.LogError($"OnPayloadChannelMessage() | Ignoring unknown event \"{@event}\" in payload channel listener");
-                        break;
-                    }
+                {
+                    logger.LogError("ignoring unknown event {E} in payload channel listener", @event);
+                    break;
+                }
             }
-        }
-
-        #endregion Event Handlers
+        });
     }
 }

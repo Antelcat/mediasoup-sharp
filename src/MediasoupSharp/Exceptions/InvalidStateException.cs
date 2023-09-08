@@ -1,13 +1,12 @@
-﻿namespace MediasoupSharp.Exceptions
-{
-    public class InvalidStateException : Exception
-    {
-        public InvalidStateException(string message) : base(message)
-        {
-        }
+﻿namespace MediasoupSharp.Exceptions;
 
-        public InvalidStateException(string message, Exception innerException) : base(message, innerException)
-        {
-        }
+public class InvalidStateException : Exception
+{
+    public InvalidStateException(string message) : base(message)
+    {
+    }
+
+    public InvalidStateException(string message, Exception innerException) : base(message, innerException)
+    {
     }
 }

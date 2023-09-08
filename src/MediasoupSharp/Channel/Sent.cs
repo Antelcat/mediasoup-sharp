@@ -1,14 +1,13 @@
-﻿namespace MediasoupSharp.Channel
+﻿namespace MediasoupSharp.Channel;
+
+public class Sent
 {
-    public class Sent
-    {
-        public int Id { get; set; }
+    public int Id { get; set; }
         
-        public string Method { get; set; }
-        public Action<object?> Resolve { get; set; }
+    public string Method { get; set; }
+    public Action<object?> Resolve { get; set; }
 
-        public Action<Exception> Reject { get; set; }
+    public Action<Exception> Reject { get; set; }
 
-        public Action Close { get; set; }
-    }
+    public Action Close { get; set; }
 }

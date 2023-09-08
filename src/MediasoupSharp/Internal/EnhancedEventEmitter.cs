@@ -2,23 +2,25 @@
 
 namespace MediasoupSharp.Internal;
 
-public interface IEnhancedEventEmitter
+internal interface IEnhancedEventEmitter
 {
     Task<bool> SafeEmit(string name, params object[]? args);
 }
 
-public interface IEnhancedEventEmitter<out TEvent> : IEnhancedEventEmitter { }
+internal interface IEnhancedEventEmitter<out TEvent> : IEnhancedEventEmitter
+{
+}
 
-public class EnhancedEventEmitter : EventEmitter , IEnhancedEventEmitter
+internal class EnhancedEventEmitter : EventEmitter, IEnhancedEventEmitter
 {
     private readonly ILogger logger;
 
-    public EnhancedEventEmitter(ILogger logger)
+    internal EnhancedEventEmitter(ILogger logger)
     {
         this.logger = logger;
     }
-    
-    public async Task<bool> SafeEmit(string name,params object[]? args)
+
+    public async Task<bool> SafeEmit(string name, params object[]? args)
     {
         var numListeners = ListenerCount(name);
         try
@@ -34,7 +36,9 @@ public class EnhancedEventEmitter : EventEmitter , IEnhancedEventEmitter
     }
 }
 
-public class EnhancedEventEmitter<TEvent> : EnhancedEventEmitter, IEnhancedEventEmitter<TEvent>
+internal class EnhancedEventEmitter<TEvent> : EnhancedEventEmitter, IEnhancedEventEmitter<TEvent>
 {
-    public EnhancedEventEmitter(ILogger logger) : base(logger) { }
+    internal EnhancedEventEmitter(ILogger logger) : base(logger)
+    {
+    }
 }

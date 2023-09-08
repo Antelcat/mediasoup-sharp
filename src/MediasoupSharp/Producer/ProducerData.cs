@@ -1,26 +1,24 @@
-﻿namespace MediasoupSharp.Producer
+﻿namespace MediasoupSharp.Producer;
+
+public class ProducerData
 {
-    public class ProducerData
-	{
-        /// <summary>
-        /// Media kind.
-        /// </summary>
-        public MediaKind Kind { get; init; }
+    /// <summary>
+    /// Media kind.
+    /// </summary>
+    public MediaKind Kind { get; init; }
 
-        /// <summary>
-        /// RTP parameters.
-        /// </summary>
-        public RtpParameters RtpParameters { get; init; }
+    /// <summary>
+    /// RTP parameters.
+    /// </summary>
+    public RtpParameters RtpParameters { get; init; }
 
-        /// <summary>
-        /// Producer type.
-        /// </summary>
-        public ProducerType Type { get; init; }
+    /// <summary>
+    /// Producer type.
+    /// </summary>
+    public ProducerType Type { get; init; }
 
-        /// <summary>
-        /// Consumable RTP parameters.
-        /// </summary>
-        public RtpParameters ConsumableRtpParameters { get; init; }
-    }
+    /// <summary>
+    /// Consumable RTP parameters.
+    /// </summary>
+    public RtpParameters ConsumableRtpParameters { get; init; }
 }
-
