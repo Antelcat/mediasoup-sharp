@@ -147,7 +147,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     /// <summary>
     /// Close the Transport.
     /// </summary>
-    public void Close()
+    protected virtual void Close()
     {
         if (Closed)
         {
@@ -217,7 +217,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     /// <summary>
     /// Router was closed.
     /// </summary>
-    public virtual void RouterClosed()
+    internal virtual void RouterClosed()
     {
         if (Closed)
         {
@@ -282,7 +282,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     /// associated WebRtcServer is closed).
     /// @private
     /// </summary>
-    private void ListenServerClosed()
+    internal virtual void ListenServerClosed()
     {
         if (Closed)
         {
@@ -359,7 +359,11 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     /// <summary>
     /// Get Transport stats.
     /// </summary>
-    public abstract Task<List<object>> GetStatsAsync();
+    public virtual Task<List<object>> GetStatsAsync()
+    {
+        // Should not happen.
+        throw new Exception("method not implemented in the subclass");
+    }
 
     /// <summary>
     /// Provide the Transport remote parameters.

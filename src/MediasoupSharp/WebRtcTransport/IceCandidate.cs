@@ -10,5 +10,8 @@ public record IceCandidate
     public TransportProtocol Protocol { get; set; }
     public int Port { get; set; }
     public string Type { get; set; } = "host";
-    public string TcpType { get; set; } = "passive";
+    /// <summary>
+    /// "passive" | null
+    /// </summary>
+    public string? TcpType { get; set; }
 }
