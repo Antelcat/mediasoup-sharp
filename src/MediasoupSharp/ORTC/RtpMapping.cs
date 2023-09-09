@@ -16,11 +16,11 @@ public class RtpMappingCodec
 
 public class RtpMappingEncoding
 {
-    public uint? Ssrc { get; set; }
+    public int? Ssrc { get; set; }
 
     public string? Rid { get; set; }
 
     public string? ScalabilityMode { get; set; }
 
-    public uint MappedSsrc { get; set; }
+    public int MappedSsrc { get; set; }
 }

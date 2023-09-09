@@ -1,19 +1,19 @@
-﻿using System.Text;
+﻿using System.ComponentModel;
+using System.Text;
 using System.Text.Json;
-using MediasoupSharp.Channel;
+using LibuvSharp;
+using MediasoupSharp.Exceptions;
 using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.PayloadChannel;
 
-public class PayloadChannel : EnhancedEventEmitter
+internal class PayloadChannel : EnhancedEventEmitter
 {
-    #region Constants
+    // Binary Length for a 4194304 bytes payload.
+    const int MESSAGE_MAX_LEN = 4194308;
+    const int PAYLOAD_MAX_LEN = 4194304;
 
-    private const int RecvBufferMaxLen = PayloadMaxLen * 2;
-
-    #endregion Constants
-
-    #region Protected Fields
+    private bool closed = false;
 
     /// <summary>
     /// Unix Socket instance for sending messages to the worker process.
@@ -25,357 +25,348 @@ public class PayloadChannel : EnhancedEventEmitter
     /// </summary>
     private readonly UVStream consumerSocket;
 
-    #endregion Protected Fields
+    // Next id for messages sent to the worker process.
+    private int nextId = 0;
 
-    #region Private Fields
+    private readonly Dictionary<int, Sent> sents = new();
 
     /// <summary>
     /// Buffer for reading messages from the worker.
     /// </summary>
-    private readonly byte[] recvBuffer;
-    private int recvBufferCount;
+    private byte[] recvBuffer = Array.Empty<byte>();
 
-    #endregion
+    private OngoingNotification? ongoingNotification;
 
-    #region Events
-
-    public override event Action<string, string, string?, ArraySegment<byte>>? MessageEvent;
-
-    #endregion Events
-
-    public PayloadChannel(ILogger<PayloadChannel> logger, UVStream producerSocket, UVStream consumerSocket, int processId) : base(logger, processId)
+    public PayloadChannel(UVStream producerSocket, UVStream consumerSocket) : base()
     {
         this.producerSocket = producerSocket;
         this.consumerSocket = consumerSocket;
 
-        recvBuffer = new byte[RecvBufferMaxLen];
-        recvBufferCount = 0;
-
-        this.consumerSocket.Data += ConsumerSocketOnData;
-        this.consumerSocket.Closed += ConsumerSocketOnClosed;
-        this.consumerSocket.Error += ConsumerSocketOnError;
-        this.producerSocket.Closed += ProducerSocketOnClosed;
-        this.producerSocket.Error += ProducerSocketOnError;
-    }
-
-    public Task<object> Request(string method,
-    string handlerId,
-    string data,
-    object payload)
-    {
-        return null;
-    }
-
-    public override void Cleanup()
-    {
-        base.Cleanup();
-
-        // Remove event listeners but leave a fake 'error' hander to avoid
-        // propagation.
-        consumerSocket.Closed -= ConsumerSocketOnClosed;
-        consumerSocket.Error -= ConsumerSocketOnError;
-
-        producerSocket.Closed -= ProducerSocketOnClosed;
-        producerSocket.Error -= ProducerSocketOnError;
-
-        // Destroy the socket after a while to allow pending incoming messages.
-        // 在 Node.js 实现中，延迟了 200 ms。
-        try
+        // Read PayloadChannel notifications from the worker.
+        consumerSocketOnData = bytes =>
         {
-            producerSocket.Close();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, $"CloseAsync() | Worker[{WorkerId}]");
-        }
+            recvBuffer = (recvBuffer.Length == 0 ? bytes : recvBuffer.Concat(bytes)).ToArray();
 
-        try
-        {
-            consumerSocket.Close();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, $"CloseAsync() | Worker[{WorkerId}]");
-        }
-    }
-
-    protected override void SendNotification(RequestMessage notification)
-    {
-        var messageString = $"n:{notification.Event}:{notification.HandlerId}:{notification.Data ?? "undefined"}";
-        var messageBytes = Encoding.UTF8.GetBytes(messageString);
-        var payloadBytes = notification.Payload!;
-
-        Loop.Default.Sync(() =>
-        {
-            try
+            if (recvBuffer.Length > PAYLOAD_MAX_LEN)
             {
-                var messageBytesLengthBytes = BitConverter.GetBytes(messageBytes.Length);
+                Logger?.LogError("receiving buffer is full, discarding all data in it");
 
-                // This may throw if closed or remote side ended.
-                producerSocket.Write(messageBytesLengthBytes, ex =>
-                {
-                    if (ex != null)
-                    {
-                        Logger.LogError(ex, $"_producerSocket.Write() | Worker[{WorkerId}] Error");
-                    }
-                });
-                producerSocket.Write(messageBytes, ex =>
-                {
-                    if (ex != null)
-                    {
-                        Logger.LogError(ex, $"_producerSocket.Write() | Worker[{WorkerId}] Error");
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, $"NotifyAsync() | Worker[{WorkerId}] Sending notification failed");
+                // Reset the buffer and exit.
+                recvBuffer = Array.Empty<byte>();
                 return;
             }
 
-            try
+            var msgStart = 0;
+
+            while (true) // eslint-disable-line no-constant-condition
             {
-                var payloadBytesLengthBytes = BitConverter.GetBytes(payloadBytes.Length);
+                var readLen = recvBuffer.Length - msgStart;
 
-                // This may throw if closed or remote side ended.
-                producerSocket.Write(payloadBytesLengthBytes, ex =>
-                {
-                    if (ex != null)
-                    {
-                        Logger.LogError(ex, $"_producerSocket.Write() | Worker[{WorkerId}] Error");
-                    }
-                });
-                producerSocket.Write(payloadBytes, ex =>
-                {
-                    if (ex != null)
-                    {
-                        Logger.LogError(ex, $"_producerSocket.Write() | Worker[{WorkerId}] Error");
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                Logger.LogWarning(ex, $"NotifyAsync() | Worker[{WorkerId}] Sending notification failed");
-                return;
-            }
-        });
-    }
-
-    protected override void SendRequestMessage(RequestMessage requestMessage, Sent sent)
-    {
-        var requestMessageJson = $"r:{requestMessage.Id}:{requestMessage.Method}:{requestMessage.HandlerId}:{requestMessage.Data ?? "undefined"}";
-        var requestMessageBytes = Encoding.UTF8.GetBytes(requestMessageJson);
-
-        if (requestMessageBytes.Length > MessageMaxLen)
-        {
-            throw new Exception("PayloadChannel message too big");
-        }
-        else if (requestMessage.Payload != null && requestMessage.Payload.Length > PayloadMaxLen)
-        {
-            throw new Exception("PayloadChannel payload too big");
-        }
-
-        Loop.Default.Sync(() =>
-        {
-            try
-            {
-                var requestMessageBytesLengthBytes = BitConverter.GetBytes(requestMessageBytes.Length);
-
-                // This may throw if closed or remote side ended.
-                producerSocket.Write(requestMessageBytesLengthBytes, ex =>
-                {
-                    if (ex != null)
-                    {
-                        Logger.LogError(ex, $"_producerSocket.Write() | Worker[{WorkerId}] Error");
-                        sent.Reject(ex);
-                    }
-                });
-                // This may throw if closed or remote side ended.
-                producerSocket.Write(requestMessageBytes, ex =>
-                {
-                    if (ex != null)
-                    {
-                        Logger.LogError(ex, $"_producerSocket.Write() | Worker[{WorkerId}] Error");
-                        sent.Reject(ex);
-                    }
-                });
-
-                if (requestMessage.Payload != null)
-                {
-                    var payloadLengthBytes = BitConverter.GetBytes(requestMessage.Payload.Length);
-
-                    // This may throw if closed or remote side ended.
-                    producerSocket.Write(payloadLengthBytes, ex =>
-                    {
-                        if (ex != null)
-                        {
-                            Logger.LogError(ex, $"_producerSocket.Write() | Worker[{WorkerId}] Error");
-                            sent.Reject(ex);
-                        }
-                    });
-
-                    // This may throw if closed or remote side ended.
-                    producerSocket.Write(requestMessage.Payload, ex =>
-                    {
-                        if (ex != null)
-                        {
-                            Logger.LogError(ex, $"_producerSocket.Write() | Worker[{WorkerId}] Error");
-                            sent.Reject(ex);
-                        }
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, $"_producerSocket.Write() | Worker[{WorkerId}] Error");
-                sent.Reject(ex);
-            }
-        });
-    }
-
-    #region Event handles
-
-    private void ConsumerSocketOnData(ArraySegment<byte> data)
-    {
-        try
-        {
-            var readCount = 0;
-            while (readCount < recvBufferCount - sizeof(int) - 1)
-            {
-                var msgLen = BitConverter.ToInt32(recvBuffer, readCount);
-                readCount += sizeof(int);
-                if (readCount >= recvBufferCount)
+                if (readLen < 4)
                 {
                     // Incomplete data.
                     break;
                 }
 
-                var payload = new byte[msgLen];
-                Array.Copy(recvBuffer, readCount, payload, 0, msgLen);
-                readCount += msgLen;
+                var msgLen = BitConverter.ToInt32(recvBuffer, msgStart);
 
-                ThreadPool.QueueUserWorkItem(_ =>
+                if (readLen < 4 + msgLen)
                 {
-                    Process(payload);
-                });
+                    // Incomplete data.
+                    break;
+                }
+
+                var payload = recvBuffer[new Range(msgStart + 4, msgStart + 4 + msgLen)];
+
+                msgStart += 4 + msgLen;
+
+                ProcessData(payload);
             }
 
-            var remainingLength = recvBufferCount - readCount;
-            if (remainingLength == 0)
+            if (msgStart != 0)
             {
-                recvBufferCount = 0;
+                recvBuffer = recvBuffer[new Range(msgStart, recvBuffer.Length - 1)];
             }
-            else
-            {
-                var temp = new byte[remainingLength];
-                Array.Copy(recvBuffer, readCount, temp, 0, remainingLength);
-                Array.Copy(temp, 0, recvBuffer, 0, remainingLength);
-            }
-        }
-        catch (Exception ex)
+        };
+
+        consumerSocketOnClosed = () =>
+            Logger?.LogDebug("Consumer PayloadChannel ended by the worker process");
+
+        consumerSocketOnError = error =>
+            Logger?.LogError("Consumer PayloadChannel error: {Error}", error);
+
+        producerSocketOnClosed = () =>
+            Logger?.LogDebug("Producer PayloadChannel ended by the worker process");
+
+        producerSocketOnError = error =>
+            Logger?.LogError("Producer PayloadChannel error: {Error}", error);
+
+        this.consumerSocket.Data   += consumerSocketOnData;
+        this.consumerSocket.Closed += consumerSocketOnClosed;
+        this.consumerSocket.Error  += consumerSocketOnError;
+        
+        this.producerSocket.Closed += producerSocketOnClosed;
+        this.producerSocket.Error  += producerSocketOnError;
+    }
+
+    public void Close()
+    {
+        if (closed)
         {
-            Logger.LogError(ex, $"ConsumerSocketOnData() | Worker[{WorkerId}] Invalid data received from the worker process.");
             return;
         }
-    }
 
-    private void ConsumerSocketOnClosed()
-    {
-        Logger.LogDebug($"ConsumerSocketOnClosed() | Worker[{WorkerId}] Consumer Channel ended by the worker process");
-    }
+        Logger?.LogDebug("close()");
 
-    private void ConsumerSocketOnError(Exception? exception)
-    {
-        Logger.LogDebug(exception, $"ConsumerSocketOnError() | Worker[{WorkerId}] Consumer Channel error");
-    }
+        closed = true;
 
-    private void ProducerSocketOnClosed()
-    {
-        Logger.LogDebug($"ProducerSocketOnClosed() | Worker[{WorkerId}] Producer Channel ended by the worker process");
-    }
+        // Remove event listeners but leave a fake "error" hander to avoid
+        consumerSocket.Data   -= consumerSocketOnData;
+        consumerSocket.Closed -= consumerSocketOnClosed;
+        consumerSocket.Error  -= consumerSocketOnError;
 
-    private void ProducerSocketOnError(Exception? exception)
-    {
-        Logger.LogDebug(exception, $"ProducerSocketOnError() | Worker[{WorkerId}] Producer Channel error");
-    }
+        producerSocket.Closed -= producerSocketOnClosed;
+        producerSocket.Error  -= producerSocketOnError;
 
-    #endregion Event handles
-
-    #region Process Methods
-
-    public override void Process(string message, byte[] payload)
-    {
-        throw new NotImplementedException();
-    }
-
-    private void Process(byte[] payload)
-    {
-        if (OngoingNotification == null)
+        // Destroy the socket after a while to allow pending incoming messages.
+        Task.Delay(200).ContinueWith(_ =>
         {
-            var message = Encoding.UTF8.GetString(payload, 0, payload.Length);
-            var jsonDocument = JsonDocument.Parse(message);
-            var msg = jsonDocument.RootElement;
-            var id = msg.GetJsonElementOrNull("id")?.GetUInt32OrNull();
-            var accepted = msg.GetJsonElementOrNull("accepted")?.GetBoolOrNull();
-            // targetId 可能是 Number 或 String。不能使用 GetString()，否则可能报错：Cannot get the value of a token type 'Number' as a string"
-            var targetId = msg.GetJsonElementOrNull("targetId")?.ToString();
-            var @event = msg.GetJsonElementOrNull("event")?.GetString();
-            var error = msg.GetJsonElementOrNull("error")?.GetString();
-            var reason = msg.GetJsonElementOrNull("reason")?.GetString();
-            var data = msg.GetJsonElementOrNull("data")?.GetString();
-
-            // If a response, retrieve its associated request.
-            if (id.HasValue && id.Value >= 0)
+            try
             {
-                if (!Sents.TryGetValue(id.Value, out var sent))
+                producerSocket.Close();
+            }
+            catch (Exception error)
+            {
+                //
+            }
+
+            try
+            {
+                consumerSocket.Close();
+            }
+            catch (Exception error)
+            {
+                //
+            }
+        });
+    }
+
+    /// <summary>
+    /// </summary>
+    /// <param name="event"></param>
+    /// <param name="handlerId"></param>
+    /// <param name="data"></param>
+    /// <param name="payload"><see cref="string"/>/<see cref="byte"/>[]</param>
+    public void Notify(string @event,
+        string handlerId,
+        string? data,
+        object payload)
+    {
+        Logger?.LogDebug("notify() [event:{E}]", @event);
+
+        if (closed)
+        {
+            throw new InvalidAsynchronousStateException("PayloadChannel closed");
+        }
+
+        var notification = $"n:{@event}:{handlerId}:{data ?? "undefined"}";
+
+        byte[] bytes = null!;
+
+        if (notification.Length > MESSAGE_MAX_LEN)
+        {
+            throw new Exception("PayloadChannel notification too big");
+        }
+        else if (payload is string str
+                     ? (bytes = Encoding.UTF8.GetBytes(str)).Length > MESSAGE_MAX_LEN
+                     : payload is byte[] b && (bytes = b).Length > MESSAGE_MAX_LEN)
+        {
+            throw new Exception("PayloadChannel payload too big");
+        }
+
+        try
+        {
+            // This may throw if closed or remote side ended.
+            producerSocket.Write(BitConverter.GetBytes(Encoding.UTF8.GetBytes(notification).Length));
+            producerSocket.Write(notification);
+        }
+        catch (Exception error)
+        {
+            Logger?.LogWarning("notify() | sending notification failed: {E}", error);
+
+            return;
+        }
+
+        try
+        {
+            // This may throw if closed or remote side ended.
+            producerSocket.Write(BitConverter.GetBytes(bytes.Length));
+            producerSocket.Write(bytes);
+        }
+        catch (Exception error)
+        {
+            Logger?.LogWarning("notify() | sending payload failed: {E}", error);
+        }
+    }
+
+    public Task<object?> Request(string method,
+        string handlerId,
+        string data,
+        object payload)
+    {
+        if (nextId < int.MaxValue /*4294967295*/)
+            ++nextId;
+        else
+            nextId = 1;
+        var id = nextId;
+
+        Logger?.LogDebug("request() [{Method}, {Id}]", method, id);
+
+        if (closed)
+        {
+            throw new InvalidStateException("PayloadChannel closed");
+        }
+
+        var request      = $"r:{id}:{method}:{handlerId}:{data.Serialize()}";
+        var requestBytes = Encoding.UTF8.GetBytes(request);
+        var payloadBytes = (payload as byte[])!;
+        if (requestBytes.Length > MESSAGE_MAX_LEN)
+        {
+            throw new Exception("Channel request too big");
+        }
+        else if (payloadBytes.Length > MESSAGE_MAX_LEN)
+        {
+            throw new Exception("PayloadChannel payload too big");
+        }
+
+        // This may throw if closed or remote side ended.
+        producerSocket.Write(BitConverter.GetBytes(requestBytes.Length));
+        producerSocket.Write(request);
+        producerSocket.Write(BitConverter.GetBytes(payloadBytes.Length));
+        producerSocket.Write(payloadBytes);
+
+        var ret = new TaskCompletionSource<object?>();
+        Sent sent = new()
+        {
+            Id     = id,
+            Method = method,
+            Resolve = data2 =>
+            {
+                if (!sents.Remove(id))
                 {
-                    Logger.LogError($"ProcessData() | Worker[{WorkerId}] Received response does not match any sent request [id:{id}]");
                     return;
                 }
 
-                if (accepted.HasValue && accepted.Value)
+                ret.SetResult(data2);
+            },
+            Reject = error =>
+            {
+                if (!sents.Remove(id))
                 {
-                    Logger.LogDebug($"ProcessData() | Worker[{WorkerId}] Request succeed [method:{sent.RequestMessage.Method}, id:{sent.RequestMessage.Id}]");
-
-                    sent.Resolve(data);
+                    return;
                 }
-                else if (!error.IsNullOrWhiteSpace())
+
+                ret.SetException(error);
+            },
+            Close = () => { ret.SetException(new InvalidStateException("PayloadChannel closed")); }
+        };
+
+        // Add sent stuff to the map.
+        sents[id] = sent;
+
+        return ret.Task;
+    }
+
+    private readonly Action<ArraySegment<byte>> consumerSocketOnData;
+
+    private readonly Action consumerSocketOnClosed;
+
+    private readonly Action<Exception?> consumerSocketOnError;
+
+    private readonly Action producerSocketOnClosed;
+
+    private readonly Action<Exception?> producerSocketOnError;
+
+
+    private void ProcessData(byte[] data)
+    {
+        if (ongoingNotification == null)
+        {
+            var jsonDocument = JsonDocument.Parse(Encoding.UTF8.GetString(data));
+            var msg          = jsonDocument.RootElement;
+            // If a response, retrieve its associated request.
+            if (msg.TryGetProperty("id",out var idEle))
+            {
+                var id = idEle.GetInt32();
+                
+                if (!sents.TryGetValue(id, out var sent))
                 {
-                    // 在 Node.js 实现中，error 的值可能是 "Error" 或 "TypeError"。
-                    Logger.LogWarning($"ProcessData() | Worker[{WorkerId}] Request failed [method:{sent.RequestMessage.Method}, id:{sent.RequestMessage.Id}]: {reason}");
+                    Logger?.LogError("ProcessData() | Received response does not match any sent request [id:{Id}]", id);
+                    return;
+                }
+
+                if (msg.TryGetProperty("accepted", out _))
+                {
+                    Logger?.LogDebug("ProcessData() | Request succeed [method:{ValueMethod}, id:{ValueId}]", sent.Method, sent.Id);
+
+                    sent.Resolve(msg.GetProperty("data").GetString());
+                }
+                else if (msg.TryGetProperty("error", out var errEle))
+                {
+                    var reason = msg.GetProperty("reason").GetString();
+                    Logger?.LogWarning("ProcessData() | Request failed [method:{ValueMethod}, id:{ValueId}]: {S}",
+                        sent.Method, sent.Id, reason);
 
                     sent.Reject(new Exception(reason));
+                    
+                    switch (errEle.GetString())
+                    {
+                        case nameof(TypeError):
+                            sent.Reject(new TypeError(reason));
+                            break;
+
+                        default:
+                            sent.Reject(new Exception(reason));
+                            break;
+                    }
                 }
                 else
                 {
-                    Logger.LogError($"ProcessData() | Worker[{WorkerId}] Received response is not accepted nor rejected [method:{sent.RequestMessage.Method}, id:{sent.RequestMessage.Id}]");
+                    Logger?.LogError(
+                        "ProcessData() | Received response is not accepted nor rejected [method:{ValueMethod}, id:{ValueId}]",
+                        sent.Method, sent.Id);
                 }
             }
             // If a notification emit it to the corresponding entity.
-            else if (!targetId.IsNullOrWhiteSpace() && !@event.IsNullOrWhiteSpace())
+            else if (msg.TryGetProperty("targetId",out var targetIdEle) 
+                     && !@msg.TryGetProperty("event",out var eventEle))
             {
-                OngoingNotification = new OngoingNotification
+                ongoingNotification = new OngoingNotification
                 {
-                    TargetId = targetId!,
-                    Event = @event!,
-                    Data = data,
+                    TargetId = targetIdEle.TryGetInt32(out var targetId)
+                        ? targetId.ToString()
+                        : targetIdEle.GetString()!,
+                    Event = eventEle.GetString()!,
+                    Data  = msg.GetProperty("data").GetString(),
                 };
             }
             else
             {
-                Logger.LogError($"ProcessData() | Worker[{WorkerId}] Received data is not a notification nor a response");
-                return;
+                Logger?.LogError(
+                    "ProcessData() | Received data is not a notification nor a response");
             }
         }
         else
         {
             // Emit the corresponding event.
-            MessageEvent?.Invoke(OngoingNotification.TargetId, OngoingNotification.Event, OngoingNotification.Data, new ArraySegment<byte>(payload));
+            _ = Emit(
+                ongoingNotification.TargetId,
+                ongoingNotification.Event,
+                ongoingNotification.Data!,
+                data);
 
             // Unset ongoing notification.
-            OngoingNotification = null;
+            ongoingNotification = null;
         }
     }
-
-    #endregion Private Methods
 }

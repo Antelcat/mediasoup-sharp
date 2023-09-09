@@ -1,11 +1,15 @@
-﻿namespace MediasoupSharp.PipeTransport;
+﻿using MediasoupSharp.SctpParameters;
+using MediasoupSharp.Transport;
 
-public class PipeTransportOptions
+namespace MediasoupSharp.PipeTransport;
+
+public class PipeTransportOptions<TPipeTransportAppData>
 {
     /// <summary>
     /// Listening IP address.
+    /// <see cref="TransportListenIp"/> or <see cref="string"/>
     /// </summary>
-    public TransportListenIp ListenIp { get; set; }
+    public object ListenIp { get; set; }
 
     /// <summary>
     /// Fixed port to listen on instead of selecting automatically from Worker's port
@@ -52,5 +56,5 @@ public class PipeTransportOptions
     /// <summary>
     /// Custom application data.
     /// </summary>
-    public Dictionary<string, object>? AppData { get; set; }
+    public TPipeTransportAppData? AppData { get; set; }
 }

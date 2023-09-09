@@ -269,7 +269,6 @@ internal class Producer : EnhancedEventEmitter<ProducerEvents>
 
     private void HandleWorkerNotifications()
     {
-
         channel.On(@internal.ProducerId, async args =>
         {
             var @event = args![0] as string;

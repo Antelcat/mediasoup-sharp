@@ -1,4 +1,6 @@
-﻿using System.Runtime.Serialization.Formatters.Binary;
+﻿using System.Dynamic;
+using System.Runtime.CompilerServices;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text.Json;
 using System.Xml.Serialization;
 
@@ -31,5 +33,16 @@ internal static class SerializeExtension
             ms.Close();
         }
         return (T)retval!;
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ExpandoObject CopyToExpandoObject(this IDictionary<string,object?> dictionary)
+    {
+        var ret = new ExpandoObject();
+        foreach (var (key,value) in dictionary)
+        {
+            ret.TryAdd(key, value);
+        }
+        return ret;
     }
 }

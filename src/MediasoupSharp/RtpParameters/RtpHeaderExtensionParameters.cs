@@ -20,5 +20,5 @@ public record RtpHeaderExtensionParameters
     /// <summary>
     /// Configuration parameters for the header extension.
     /// </summary>
-    public object? Parameters { get; set; }
+    public dynamic? Parameters { get; set; }
 }

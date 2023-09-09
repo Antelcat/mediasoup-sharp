@@ -1,11 +1,9 @@
 ﻿using System.Runtime.Serialization;
-using System.Runtime.Serialization.Formatters.Binary;
-using MediasoupSharp.Channel;
 using MediasoupSharp.Consumer;
 using MediasoupSharp.DataConsumer;
 using MediasoupSharp.DataProducer;
 using MediasoupSharp.DirectTransport;
-using MediasoupSharp.Exceptions;
+using MediasoupSharp.PipeTransport;
 using MediasoupSharp.Producer;
 using MediasoupSharp.RtpParameters;
 using MediasoupSharp.SctpParameters;
@@ -377,7 +375,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     /// </summary>
     /// <param name="bitrate"></param>
     /// <returns></returns>
-    public async Task SetMaxIncomingBitrateAsync(int bitrate)
+    public virtual async Task SetMaxIncomingBitrateAsync(int bitrate)
     {
         Logger?.LogDebug("SetMaxIncomingBitrateAsync() | Transport:{Id} Bitrate:{Bitrate}", Id, bitrate);
 
@@ -392,7 +390,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     /// </summary>
     /// <param name="bitrate"></param>
     /// <returns></returns>
-    public async Task SetMaxOutgoingBitrateAsync(int bitrate)
+    public virtual async Task SetMaxOutgoingBitrateAsync(int bitrate)
     {
         Logger?.LogDebug("setMaxOutgoingBitrate() | Transport:{Id} Bitrate:{Bitrate}", Id, bitrate);
 
@@ -406,7 +404,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     /// Set minimum outgoing bitrate for sending media.
     /// </summary>
     /// <param name="bitrate"></param>
-    public async Task SetMinOutgoingBitrate(int bitrate)
+    public virtual async Task SetMinOutgoingBitrate(int bitrate)
     {
         Logger?.LogDebug("setMinOutgoingBitrate() {Bitrate}", bitrate);
 
@@ -456,7 +454,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
         // Don"t do this in PipeTransports since there we must keep CNAME value in
         // each Producer.
         // TODO: (alby) 反模式
-        if (this is PipeTransport.PipeTransport)
+        if (this is IPipeTransport)
         {
             // If CNAME is given and we don"t have yet a CNAME for Producers in this
             // Transport, take it.
@@ -487,7 +485,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
 
         // This may throw.
         var consumableRtpParameters = ORTC.Ortc.GetConsumableRtpParameters(
-            kind, rtpParameters, routerRtpCapabilities, rtpMapping);
+            kind.ToString(), rtpParameters, routerRtpCapabilities, rtpMapping);
 
         var reqData = new
         {
@@ -585,7 +583,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
             producer.ConsumableRtpParameters,
             rtpCapabilities,
             pipe,
-            enableRtx);
+            enableRtx.Value);
 
         // Set MID.
         if (!pipe)

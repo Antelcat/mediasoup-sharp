@@ -1,6 +1,7 @@
 ﻿using MediasoupSharp.Consumer;
 using MediasoupSharp.Exceptions;
 using MediasoupSharp.Producer;
+using MediasoupSharp.Transport;
 using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.DirectTransport;
@@ -32,26 +33,34 @@ internal class DirectTransport<TDirectTransportAppData>
     /// Close the DirectTransport.
     /// </summary>
     /// <returns></returns>
-    public void Close()
+    protected override void Close()
     {
         if (Closed)
         {
             return;
         }
+
+        base.Close();
     }
 
     /// <summary>
     /// Router was closed.
     /// </summary>
-    protected override Task OnRouterClosedAsync()
+    internal override void RouterClosed()
     {
-        // Do nothing
-        return Task.CompletedTask;
+        if (Closed)
+        {
+            return;
+        }
+        
+        base.RouterClosed();
     }
 
-    public override Task<List<object>> GetStatsAsync()
+    public new async Task<List<DirectTransportStat>> GetStatsAsync()
     {
-        throw new NotImplementedException();
+        Logger?.LogDebug("getStats()");
+
+        return (await Channel.Request("transport.getStats", Internal.TransportId) as List<DirectTransportStat>)!;
     }
 
     /// <summary>
@@ -72,8 +81,8 @@ internal class DirectTransport<TDirectTransportAppData>
     /// <returns></returns>
     public override Task<string> SetMaxIncomingBitrateAsync(int bitrate)
     {
-        Logger?.LogError("SetMaxIncomingBitrateAsync() | DiectTransport:{Id} Bitrate:{Bitrate}", Id, bitrate);
-        throw new NotImplementedException("SetMaxIncomingBitrateAsync() not implemented in DirectTransport");
+        throw new NotSupportedException(
+            "SetMaxIncomingBitrateAsync() not implemented in DirectTransport");
     }
 
     /// <summary>
@@ -83,104 +92,84 @@ internal class DirectTransport<TDirectTransportAppData>
     /// <returns></returns>
     public override Task<string> SetMaxOutgoingBitrateAsync(int bitrate)
     {
-        Logger?.LogError($"SetMaxOutgoingBitrateAsync() | DiectTransport:{TransportId} Bitrate:{bitrate}");
-        throw new NotImplementedException("SetMaxOutgoingBitrateAsync is not implemented in DirectTransport");
+        throw new NotSupportedException(
+            "SetMaxOutgoingBitrateAsync() is not implemented in DirectTransport");
     }
 
     /// <summary>
-    /// Create a Producer.
+    /// 
     /// </summary>
-    public override Task<Producer.Producer> ProduceAsync(ProducerOptions producerOptions)
-    {
-        Logger?.LogError($"ProduceAsync() | DiectTransport:{TransportId}");
-        throw new NotImplementedException("ProduceAsync() is not implemented in DirectTransport");
-    }
-
-    /// <summary>
-    /// Create a Consumer.
-    /// </summary>
-    /// <param name="consumerOptions"></param>
+    /// <param name="bitrate"></param>
     /// <returns></returns>
-    public override Task<Consumer.Consumer> ConsumeAsync(ConsumerOptions consumerOptions)
+    public override Task SetMinOutgoingBitrate(int bitrate)
     {
-        Logger?.LogError($"ConsumeAsync() | DiectTransport:{TransportId}");
-        throw new NotImplementedException("ConsumeAsync() not implemented in DirectTransport");
+        throw new NotSupportedException(
+            "setMinOutgoingBitrate() not implemented in DirectTransport");
     }
 
-    public async Task SendRtcpAsync(byte[] rtcpPacket)
+    public void SendRtcp(byte[] rtcpPacket)
     {
-        await using (await CloseLock.ReadLockAsync())
-        {
-            if (Closed)
-            {
-                throw new InvalidStateException("Transport closed");
-            }
-
-            await PayloadChannel.NotifyAsync("transport.sendRtcp", Internal.TransportId, null, rtcpPacket);
-        }
+        PayloadChannel.Notify(
+            "transport.sendRtcp", Internal.TransportId, null, rtcpPacket);
     }
-
-    #region Event Handlers
 
     private void HandleWorkerNotifications()
     {
-        Channel.MessageEvent += OnChannelMessage;
-        PayloadChannel.MessageEvent += OnPayloadChannelMessage;
+        Channel.On(Internal.TransportId, async args =>
+        {
+            var @event = args![0] as string;
+            var data   = args[1] as dynamic;
+            switch (@event)
+            {
+                case "trace":
+                {
+                    var trace = (data as TransportTraceEventData)!;
+
+                    await SafeEmit("trace", trace);
+
+                    // Emit observer event.
+                    await Observer.SafeEmit("trace", trace);
+
+                    break;
+                }
+
+                default:
+                {
+                    Logger?.LogError("ignoring unknown event {E}", @event);
+
+                    break;
+                }
+            }
+        });
+
+        PayloadChannel.On(
+            Internal.TransportId, async args =>
+            {
+                var @event  = args![0] as string;
+                var data    = args[1] as dynamic;
+                var payload = args[2] as byte[];
+                switch (@event)
+                {
+                    case "rtcp":
+                    {
+                        if (Closed)
+                        {
+                            break;
+                        }
+
+                        var packet = payload!;
+
+                        await SafeEmit("rtcp", packet);
+
+                        break;
+                    }
+
+                    default:
+                    {
+                        Logger?.LogError("ignoring unknown event {E}", @event);
+                        break;
+                    }
+                }
+            });
     }
-
-    private void OnChannelMessage(string targetId, string @event, string? data)
-    {
-        if (targetId != Internal.TransportId)
-        {
-            return;
-        }
-
-        switch (@event)
-        {
-            case "trace":
-            {
-                var trace = data!.Deserialize<TransportTraceEventData>()!;
-
-                Emit("trace", trace);
-
-                // Emit observer event.
-                Observer.Emit("trace", trace);
-
-                break;
-            }
-
-            default:
-            {
-                Logger?.LogError(
-                    $"OnChannelMessage() | DiectTransport:{TransportId} Ignoring unknown event{@event}");
-                break;
-            }
-        }
-    }
-
-    private void OnPayloadChannelMessage(string targetId, string @event, string? data, ArraySegment<byte> payload)
-    {
-        if (targetId != Internal.TransportId)
-        {
-            return;
-        }
-
-        switch (@event)
-        {
-            case "rtcp":
-            {
-                _ = Emit("rtcp", payload);
-
-                break;
-            }
-
-            default:
-            {
-                Logger?.LogError($"Ignoring unknown event \"{@event}\"");
-                break;
-            }
-        }
-    }
-
-    #endregion Event Handlers
 }

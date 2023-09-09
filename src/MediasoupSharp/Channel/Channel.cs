@@ -34,7 +34,6 @@ internal class Channel : EnhancedEventEmitter
     /// </summary>
     private byte[] recvBuffer = Array.Empty<byte>();
 
-
     public Channel(UVStream producerSocket, UVStream consumerSocket, int pid)
     {
         this.producerSocket = producerSocket;
@@ -76,8 +75,7 @@ internal class Channel : EnhancedEventEmitter
                     {
                         // 123 = '{' (a Channel JSON message).
                         case 123:
-                            ProcessMessage(
-                                JsonSerializer.Deserialize<ExpandoObject>(Encoding.UTF8.GetString(payload))!);
+                            ProcessMessage(JsonDocument.Parse(Encoding.UTF8.GetString(payload)).RootElement);
                             break;
 
                         // 68 = 'D' (a debug log).
@@ -126,8 +124,8 @@ internal class Channel : EnhancedEventEmitter
             Logger?.LogDebug("ConsumerSocketOnClosed() |  Consumer Channel ended by the worker process");
         consumerSocketOnError = exception =>
             Logger?.LogDebug(exception, $"ConsumerSocketOnError() |  Consumer Channel error");
-        producerSocketOnClosed = () => Logger?.LogDebug(
-            $"ProducerSocketOnClosed() |  Producer Channel ended by the worker process");
+        producerSocketOnClosed = () => 
+            Logger?.LogDebug("ProducerSocketOnClosed() |  Producer Channel ended by the worker process");
         producerSocketOnError = exception =>
             Logger?.LogDebug(exception, $"ProducerSocketOnError() |  Producer Channel error");
 
@@ -249,12 +247,12 @@ internal class Channel : EnhancedEventEmitter
         return ret.Task;
     }
 
-    private void ProcessMessage(dynamic msg)
+    private void ProcessMessage(JsonElement msg)
     {
         // If a response, retrieve its associated request.
-        try
+        if (msg.TryGetProperty("id", out var idEle))
         {
-            int id = msg.id;
+            var id = idEle.GetInt32();
             if (!sents.TryGetValue(id, out var sent))
             {
                 Logger?.LogError(
@@ -262,21 +260,21 @@ internal class Channel : EnhancedEventEmitter
                 return;
             }
 
-            if (msg.accepted)
+            if (msg.TryGetProperty("accepted", out _))
             {
                 Logger?.LogDebug(
                     "request succeeded {Method},{Id}", sent.Method, sent.Id);
 
-                sent.Resolve(msg.data);
+                sent.Resolve(msg.GetProperty("data").GetString());
             }
-            else if (msg.error)
+            else if (msg.TryGetProperty("error", out var errEle))
             {
-                string reason = msg.reason;
+                string reason = msg.GetProperty("reason").GetString()!;
                 Logger?.LogWarning(
                     "request failed [{Method}, {Id}]: {%s}",
                     sent.Method, sent.Id, reason);
 
-                switch ((string)msg.error)
+                switch (errEle.GetString())
                 {
                     case nameof(TypeError):
                         sent.Reject(new TypeError(reason));
@@ -294,25 +292,28 @@ internal class Channel : EnhancedEventEmitter
                     sent.Method, sent.Id);
             }
         }
-        catch (Exception e)
+
+        // If a notification emit it to the corresponding entity.
+        if (msg.TryGetProperty("targetId",out var targetIdEle) 
+            && !msg.TryGetProperty("event",out var eventEle))
         {
-            // If a notification emit it to the corresponding entity.
-            if (msg.targetId && msg.Event)
-            {
-                // Due to how Promises work, it may happen that we receive a response
-                // from the worker followed by a notification from the worker. If we
-                // emit the notification immediately it may reach its target **before**
-                // the response, destroying the ordered delivery. So we must wait a bit
-                // here.
-                // See https://github.com/versatica/mediasoup/issues/510
-                Task.Run(() => this.Emit(msg.targetId.ToString(), msg.Event, msg.data));
-            }
-            // Otherwise unexpected message.
-            else
-            {
-                Logger?.LogError(
-                    "received message is not a response nor a notification");
-            }
+            // Due to how Promises work, it may happen that we receive a response
+            // from the worker followed by a notification from the worker. If we
+            // emit the notification immediately it may reach its target **before**
+            // the response, destroying the ordered delivery. So we must wait a bit
+            // here.
+            // See https://github.com/versatica/mediasoup/issues/510
+            Task.Run(() =>
+                Emit(targetIdEle.GetString()!,
+                    eventEle.GetString()!,
+                    msg.GetProperty("data").GetString()!));
+        }
+        // Otherwise unexpected message.
+        else
+        {
+            Logger?.LogError(
+                "received message is not a response nor a notification");
         }
     }
+
 }

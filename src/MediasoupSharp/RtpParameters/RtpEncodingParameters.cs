@@ -23,7 +23,8 @@ public record RtpEncodingParameters
     /// the RTX SSRC.
     /// { Ssrc : int }
     /// </summary>
-    public dynamic? Rtx { get; set; }
+    public RTX? Rtx { get; set; }
+    public record RTX(int Ssrc);
 
     /// <summary>
     /// It indicates whether discontinuous RTP transmission will be used. Useful

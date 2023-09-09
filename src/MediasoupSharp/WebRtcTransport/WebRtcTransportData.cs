@@ -26,7 +26,7 @@ public interface IWebRtcTransportData
     SctpState? SctpState { get; set; }
 }
 
-public class WebRtcTransportData : IWebRtcTransportData
+public record WebRtcTransportData : IWebRtcTransportData
 {
     public string IceRole { get; set; } = "controlled";
 

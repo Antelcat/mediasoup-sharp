@@ -15,7 +15,8 @@ public interface IPlainTransportData
     SctpParameters.SctpParameters? SctpParameters { get; set; }
 
     SctpState? SctpState { get; set; }
-    SrtpParameters? SrtpParameters { get; set; }
+
+    SrtpParameters.SrtpParameters? SrtpParameters { get; set; }
 }
 
 public class PlainTransportData : IPlainTransportData
@@ -31,5 +32,5 @@ public class PlainTransportData : IPlainTransportData
     public SctpParameters.SctpParameters? SctpParameters { get; set; }
     
     public SctpState? SctpState { get; set; }
-    public SrtpParameters? SrtpParameters { get; set; }
+    public SrtpParameters.SrtpParameters? SrtpParameters { get; set; }
 }

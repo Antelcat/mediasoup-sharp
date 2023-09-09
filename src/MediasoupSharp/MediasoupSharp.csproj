@@ -14,7 +14,11 @@
 
     <ItemGroup>
       <ProjectReference Include="..\..\libuv-sharp\src\LibuvSharp\LibuvSharp.csproj" />
+
+
     </ItemGroup>
+
+
 
 
 

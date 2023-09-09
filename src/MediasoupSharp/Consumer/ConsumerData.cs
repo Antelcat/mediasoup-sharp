@@ -2,7 +2,7 @@
 
 namespace MediasoupSharp.Consumer;
 
-public class ConsumerData
+public record ConsumerData
 {
     /// <summary>
     /// Associated Producer id.

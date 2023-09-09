@@ -684,15 +684,15 @@ public sealed class Router : EventEmitter, IEquatable<Router>
 
                         await Task.WhenAll(localPipeTransport.ConnectAsync(new PipeTransportConnectParameters
                             {
-                                Ip = remotePipeTransport.Data.Tuple.LocalIp,
-                                Port = remotePipeTransport.Data.Tuple.LocalPort,
-                                SrtpParameters = remotePipeTransport.Data.SrtpParameters,
+                                Ip = remotePipeTransport.data.Tuple.LocalIp,
+                                Port = remotePipeTransport.data.Tuple.LocalPort,
+                                SrtpParameters = remotePipeTransport.data.SrtpParameters,
                             }),
                             remotePipeTransport.ConnectAsync(new PipeTransportConnectParameters
                             {
-                                Ip = localPipeTransport.Data.Tuple.LocalIp,
-                                Port = localPipeTransport.Data.Tuple.LocalPort,
-                                SrtpParameters = localPipeTransport.Data.SrtpParameters,
+                                Ip = localPipeTransport.data.Tuple.LocalIp,
+                                Port = localPipeTransport.data.Tuple.LocalPort,
+                                SrtpParameters = localPipeTransport.data.SrtpParameters,
                             })
                         );
 

@@ -12,18 +12,18 @@ public interface IPipeTransportData
 
     bool Rtx { get; set; }
 
-    SrtpParameters? SrtpParameters { get; set; }
+    SrtpParameters.SrtpParameters? SrtpParameters { get; set; }
 }
 
-public class PipeTransportData : IPipeTransportData
+public record PipeTransportData : IPipeTransportData
 {
     public TransportTuple Tuple { get; set; }
 
     public SctpParameters.SctpParameters? SctpParameters { get; set; }
-    
+
     public SctpState? SctpState { get; set; }
 
     public bool Rtx { get; set; }
 
-    public SrtpParameters? SrtpParameters { get; set; }
+    public SrtpParameters.SrtpParameters? SrtpParameters { get; set; }
 }

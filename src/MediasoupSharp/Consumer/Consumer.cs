@@ -13,8 +13,8 @@ internal class Consumer<TConsumerAppData> : Consumer
 		TConsumerAppData? appData,
 		bool paused,
 		bool producerPaused,
-		ConsumerScore? score,
-		ConsumerLayers? preferredLayers)
+		ConsumerScore? score = null,
+		ConsumerLayers? preferredLayers = null)
 		: base(
 			@internal,
 			data,
@@ -122,8 +122,8 @@ internal class Consumer : EnhancedEventEmitter<ConsumerEvents>
         object? appData,
         bool paused,
         bool producerPaused,
-        ConsumerScore? score,
-        ConsumerLayers? preferredLayers
+        ConsumerScore? score = null,
+        ConsumerLayers? preferredLayers = null
     ) 
     {
         this.@internal = @internal;

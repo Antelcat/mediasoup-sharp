@@ -33,8 +33,8 @@ internal class EventEmitter
         }
     }
 
-    private readonly Dictionary<string, ValueTuple<EventHandler?, ReaderWriterLockSlim>> namedHandlers = new();
-    private readonly ReaderWriterLockSlim readerWriterLock = new();
+    private readonly Dictionary<string, ValueTuple<EventHandler?, ReaderWriterLockSlim>> namedHandlers    = new();
+    private readonly ReaderWriterLockSlim                                                readerWriterLock = new();
 
     private ValueTuple<EventHandler?, ReaderWriterLockSlim> CreateHandlers(string name)
     {
