@@ -1,4 +1,6 @@
-﻿namespace MediasoupSharp.Router;
+﻿using MediasoupSharp.RtpParameters;
+
+namespace MediasoupSharp.Router;
 
 public class RouterData
 {

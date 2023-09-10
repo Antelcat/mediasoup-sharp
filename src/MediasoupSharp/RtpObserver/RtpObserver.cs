@@ -2,8 +2,13 @@
 
 namespace MediasoupSharp.RtpObserver;
 
+public interface IRtpObserver
+{
+    void RouterClosed();
+}
+
 internal abstract class RtpObserver<TRtpObserverAppData, TEvents> 
-    : EnhancedEventEmitter<TEvents> 
+    : EnhancedEventEmitter<TEvents> , IRtpObserver 
     where TEvents : RtpObserverEvents
 {
     /// <summary>

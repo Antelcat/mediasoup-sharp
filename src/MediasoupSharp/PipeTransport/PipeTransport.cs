@@ -1,14 +1,17 @@
-﻿using System.Runtime.InteropServices;
-using MediasoupSharp.Channel;
-using MediasoupSharp.Consumer;
-using MediasoupSharp.Exceptions;
-using MediasoupSharp.PayloadChannel;
+﻿using MediasoupSharp.Consumer;
 using MediasoupSharp.Transport;
 using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.PipeTransport;
 
 public interface IPipeTransport{}
+
+internal class PipeTransport : PipeTransport<IDictionary<string,object?>>
+{
+    public PipeTransport(PipeTransportConstructorOptions<IDictionary<string, object?>> options) : base(options)
+    {
+    }
+}
 
 internal class PipeTransport<TPipeTransportAppData> 
     : Transport<TPipeTransportAppData, PipeTransportEvents, PipeTransportObserverEvents> , IPipeTransport
@@ -56,7 +59,7 @@ internal class PipeTransport<TPipeTransportAppData>
     /// <summary>
     /// Router was closed.
     /// </summary>
-    internal override void RouterClosed()
+    public override void RouterClosed()
     {
         if (Closed)
         {

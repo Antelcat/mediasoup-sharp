@@ -3,7 +3,7 @@ using MediasoupSharp.Exceptions;
 
 namespace MediasoupSharp.WebRtcServer;
 
-public class WebRtcServer : EventEmitter
+public class WebRtcServer<TWebRtcServerAppData> : EnhancedEventEmitter<WebRtcServerEvents>
 {
     /// <summary>
     /// Logger.
@@ -164,21 +164,18 @@ public class WebRtcServer : EventEmitter
         }
     }
 
-    public async Task HandleWebRtcTransportAsync(WebRtcTransport.WebRtcTransport webRtcTransport)
+    internal void HandleWebRtcTransport<TWebRtcTransportAppData>(WebRtcTransport.WebRtcTransport<TWebRtcTransportAppData> webRtcTransport)
     {
-        using (await webRtcTransportsLock.WriteLockAsync())
-        {
-            webRtcTransports[webRtcTransport.TransportId] = webRtcTransport;
-        }
+        webRtcTransports[webRtcTransport.Id] = webRtcTransport;
 
         // Emit observer event.
         Observer.Emit("webrtctransporthandled", webRtcTransport);
 
-        webRtcTransport.On("@close", async (_, _) =>
+        webRtcTransport.On("@close", async args =>
         {
             using (await webRtcTransportsLock.WriteLockAsync())
             {
-                webRtcTransports.Remove(webRtcTransport.TransportId);
+                webRtcTransports.Remove(webRtcTransport.Id);
             }
 
             // Emit observer event.

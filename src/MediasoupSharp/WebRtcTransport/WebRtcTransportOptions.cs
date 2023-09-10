@@ -12,8 +12,9 @@ public class WebRtcTransportOptions<TWebRtcTransportAppData> : WebRtcTransportOp
     /// <summary>
     /// Listening IP address or addresses in order of preference (first one is the
     /// preferred one).
+    ///  (<see cref="TransportListenIp"/> | <see cref="string"/>)
     /// </summary>
-    public TransportListenIp[]? ListenIps { get; set; }
+    public List<object>? ListenIps { get; set; }
 
     /// <summary>
     /// Fixed port to listen on instead of selecting automatically from Worker's port

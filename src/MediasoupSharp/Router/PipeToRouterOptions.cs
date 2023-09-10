@@ -1,4 +1,7 @@
-﻿namespace MediasoupSharp.Router;
+﻿using MediasoupSharp.SctpParameters;
+using MediasoupSharp.Transport;
+
+namespace MediasoupSharp.Router;
 
 public class PipeToRouterOptions
 {
@@ -15,12 +18,13 @@ public class PipeToRouterOptions
     /// <summary>
     /// Target Router instance.
     /// </summary>
-    public Router Router { get; set; }
+    internal Router Router { get; set; }
 
     /// <summary>
     /// IP used in the PipeTransport pair. Default '127.0.0.1'.
+    /// <see cref="TransportListenIp"/> or <see cref="string"/>
     /// </summary>
-    public TransportListenIp? ListenIp { get; set; } = new TransportListenIp { Ip = "127.0.0.1", AnnouncedIp = null };
+    public TransportListenIp? ListenIp { get; set; } = new () { Ip = "127.0.0.1", AnnouncedIp = null };
 
     /// <summary>
     /// Create a SCTP association. Default true.

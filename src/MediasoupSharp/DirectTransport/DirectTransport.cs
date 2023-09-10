@@ -46,7 +46,7 @@ internal class DirectTransport<TDirectTransportAppData>
     /// <summary>
     /// Router was closed.
     /// </summary>
-    internal override void RouterClosed()
+    public override void RouterClosed()
     {
         if (Closed)
         {

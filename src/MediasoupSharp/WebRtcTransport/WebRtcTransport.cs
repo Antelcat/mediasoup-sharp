@@ -5,11 +5,12 @@ using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.WebRtcTransport;
 
+public interface IWebRtcTransport{}
+
 internal class WebRtcTransport<TWebRtcTransportAppData> 
-    : Transport.Transport<TWebRtcTransportAppData, WebRtcTransportEvents, WebRtcTransportObserverEvents>
+    : Transport<TWebRtcTransportAppData, WebRtcTransportEvents, WebRtcTransportObserverEvents>
 {
     readonly WebRtcTransportData data;
-
     
     public WebRtcTransport(
         WebRtcTransportConstructorOptions<TWebRtcTransportAppData> options) 

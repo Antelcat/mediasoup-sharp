@@ -10,7 +10,8 @@ public record ConsumerEvents
     public Tuple<ConsumerLayers?> Layerschange { get; set; }
     public Tuple<ConsumerTraceEventData> Trace { get; set; }
     public Tuple<byte[]> Rtp { get; set; }
-    private List<object> @close { get; set; } = new();
-    private List<object> @producerclose { get; set; } = new();
+    
+    private List<object> close = new();
+    private List<object> producerclose = new();
 
 }

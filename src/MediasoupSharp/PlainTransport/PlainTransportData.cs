@@ -19,7 +19,7 @@ public interface IPlainTransportData
     SrtpParameters.SrtpParameters? SrtpParameters { get; set; }
 }
 
-public class PlainTransportData : IPlainTransportData
+public record PlainTransportData : IPlainTransportData
 {
     public bool? RtcpMux { get; set; }
 

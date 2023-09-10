@@ -11,8 +11,13 @@ using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.Transport;
 
+public interface ITransport
+{
+    void RouterClosed();
+}
+
 internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
-    : EnhancedEventEmitter<TEvents>
+    : EnhancedEventEmitter<TEvents> , ITransport
     where TEvents : TransportEvents
     where TObserverEvents : TransportObserverEvents
 {
@@ -215,7 +220,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     /// <summary>
     /// Router was closed.
     /// </summary>
-    internal virtual void RouterClosed()
+    public virtual void RouterClosed()
     {
         if (Closed)
         {

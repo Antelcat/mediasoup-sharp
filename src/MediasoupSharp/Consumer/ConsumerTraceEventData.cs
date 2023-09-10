@@ -17,7 +17,7 @@ public record ConsumerTraceEventData
     /// <example>in</example>
     /// <example>out</example>
     /// </summary>
-    public string Direction { get; set; } = "in";
+    public string Direction { get; set; } 
 
     /// <summary>
     /// Per type information.

@@ -1,11 +1,16 @@
-﻿namespace MediasoupSharp.PlainTransport;
+﻿using MediasoupSharp.SctpParameters;
+using MediasoupSharp.SrtpParameters;
+using MediasoupSharp.Transport;
 
-public class PlainTransportOptions
+namespace MediasoupSharp.PlainTransport;
+
+public record PlainTransportOptions<TPlainTransportAppData>
 {
     /// <summary>
     /// Listening IP address.
+    /// <see cref="TransportListenIp"/> or <see cref="string"/>
     /// </summary>
-    public TransportListenIp ListenIp { get; set; }
+    public object ListenIp { get; set; }
 
     /// <summary>
     /// Fixed port to listen on instead of selecting automatically from Worker's port
@@ -58,10 +63,10 @@ public class PlainTransportOptions
     /// The SRTP crypto suite to be used if enableSrtp is set. Default
     /// 'AES_CM_128_HMAC_SHA1_80'.
     /// </summary>
-    public SrtpCryptoSuite? SrtpCryptoSuite { get; set; } = Mediasoup.SrtpCryptoSuite.AES_CM_128_HMAC_SHA1_80;
+    public SrtpCryptoSuite? SrtpCryptoSuite { get; set; } = SrtpParameters.SrtpCryptoSuite.AES_CM_128_HMAC_SHA1_80;
 
     /// <summary>
     /// Custom application data.
     /// </summary>
-    public Dictionary<string, object>? AppData { get; set; }
+    public TPlainTransportAppData? AppData { get; set; }
 }

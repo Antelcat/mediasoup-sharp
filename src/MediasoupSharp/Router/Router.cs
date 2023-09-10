@@ -6,456 +6,517 @@ using MediasoupSharp.DataConsumer;
 using MediasoupSharp.DataProducer;
 using MediasoupSharp.DirectTransport;
 using MediasoupSharp.Exceptions;
-using MediasoupSharp.PayloadChannel;
 using MediasoupSharp.PipeTransport;
 using MediasoupSharp.PlainTransport;
 using MediasoupSharp.Producer;
 using MediasoupSharp.RtpObserver;
+using MediasoupSharp.RtpParameters;
+using MediasoupSharp.SrtpParameters;
 using MediasoupSharp.Transport;
 using MediasoupSharp.WebRtcTransport;
+using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.Router;
 
-public sealed class Router : EventEmitter, IEquatable<Router>
+internal class Router<TRouterAppData> : Router
 {
-    /// <summary>
-    /// Logger factory for create logger.
-    /// </summary>
-    private readonly ILoggerFactory loggerFactory;
+    internal Router(
+        RouterInternal @internal,
+        RouterData data,
+        Channel.Channel channel,
+        PayloadChannel.PayloadChannel payloadChannel,
+        RouterInternal? appData = null)
+        : base(
+            @internal,
+            data,
+            channel,
+            payloadChannel,
+            appData)
+    {
+    }
 
-    /// <summary>
-    /// Logger.
-    /// </summary>
-    private readonly ILogger<Router> logger;
+    public new TRouterAppData AppData
+    {
+        get => (TRouterAppData)base.AppData;
+        set => base.AppData = value!;
+    }
+}
 
-    /// <summary>
-    /// Whether the Router is closed.
-    /// </summary>
-    private bool closed;
-
-    /// <summary>
-    /// Close locker.
-    /// </summary>
-    private readonly AsyncReaderWriterLock closeLock = new();
-
-    #region Internal data.
-
+internal class Router : EnhancedEventEmitter<RouterEvents>
+{
     private readonly RouterInternal @internal;
 
-    public string RouterId => @internal.RouterId;
-
-    #endregion Internal data.
-
-    #region Router data.
-
-    public RouterData Data { get; }
-
-    #endregion Router data.
+    private readonly RouterData data;
 
     /// <summary>
     /// Channel instance.
     /// </summary>
-    private readonly IChannel channel;
+    private readonly Channel.Channel channel;
 
     /// <summary>
     /// PayloadChannel instance.
     /// </summary>
-    private readonly IPayloadChannel payloadChannel;
+    private readonly PayloadChannel.PayloadChannel payloadChannel;
+
+    /// <summary>
+    /// Whether the Router is closed.
+    /// </summary>
+    public bool Closed { get; private set; }
+
+    // Custom app data.
+    public object AppData { get; set; }
 
     /// <summary>
     /// Transports map.
     /// </summary>
-    private readonly Dictionary<string, Transport.Transport> transports = new();
-    private readonly AsyncReaderWriterLock transportsLock = new();
+    private readonly Dictionary<string, ITransport> transports = new();
 
     /// <summary>
     /// Producers map.
     /// </summary>
     private readonly Dictionary<string, Producer.Producer> producers = new();
-    private readonly AsyncReaderWriterLock producersLock = new();
 
     /// <summary>
     /// RtpObservers map.
     /// </summary>
-    private readonly Dictionary<string, RtpObserver.RtpObserver> rtpObservers = new();
-    private readonly AsyncReaderWriterLock rtpObserversLock = new();
+    private readonly Dictionary<string, IRtpObserver> rtpObservers = new();
 
     /// <summary>
     /// DataProducers map.
     /// </summary>
     private readonly Dictionary<string, DataProducer.DataProducer> dataProducers = new();
-    private readonly AsyncReaderWriterLock dataProducersLock = new();
 
     /// <summary>
-    /// Router to PipeTransport map.
+    /// Map of PipeTransport pair Promises indexed by the id of the Router in
+    /// which pipeToRouter() was called.
     /// </summary>
-    private readonly Dictionary<Router, PipeTransport.PipeTransport[]> mapRouterPipeTransports = new();
-    private readonly AsyncReaderWriterLock mapRouterPipeTransportsLock = new();
-
-    /// <summary>
-    /// App custom data.
-    /// </summary>
-    public Dictionary<string, object> AppData { get; }
+    private readonly Dictionary<string, Task<PipeTransportPair>> mapRouterPairPipeTransportPairPromise = new();
 
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EventEmitter Observer { get; } = new EventEmitter();
+    public EnhancedEventEmitter<RouterObserverEvents> Observer => observer ??= new();
 
-    /// <summary>
-    /// <para>Events:</para>
-    /// <para>@emits workerclose</para>
-    /// <para>@emits @close</para>
-    /// <para>Observer events:</para>
-    /// <para>@emits close</para>
-    /// <para>@emits newtransport - (transport: Transport)</para>
-    /// <para>@emits newrtpobserver - (rtpObserver: RtpObserver)</para>
-    /// </summary>
-    /// <param name="logger"></param>
-    /// <param name="@internal"></param>
-    /// <param name="rtpCapabilities"></param>
-    /// <param name="channel"></param>
-    /// <param name="payloadChannel"></param>
-    /// <param name="appData"></param>
-    public Router(ILoggerFactory loggerFactory,
+    private EnhancedEventEmitter<RouterObserverEvents>? observer;
+
+    public override ILoggerFactory LoggerFactory
+    {
+        init
+        {
+            observer = new EnhancedEventEmitter<RouterObserverEvents>
+            {
+                LoggerFactory = value
+            };
+            base.LoggerFactory = value;
+        }
+    }
+
+    internal Router(
         RouterInternal @internal,
         RouterData data,
-        IChannel channel,
-        IPayloadChannel payloadChannel,
-        Dictionary<string, object>? appData
+        Channel.Channel channel,
+        PayloadChannel.PayloadChannel payloadChannel,
+        object? appData = null
     )
     {
-        this.loggerFactory = loggerFactory;
-        logger = loggerFactory.CreateLogger<Router>();
-
-        this.@internal = @internal;
-        Data = data;
-        this.channel = channel;
+        this.@internal      = @internal;
+        this.data           = data;
+        this.channel        = channel;
         this.payloadChannel = payloadChannel;
-        AppData = appData ?? new Dictionary<string, object>();
+        AppData             = appData ?? new();
     }
+
+    public string Id => @internal.RouterId;
+
+    public RtpCapabilities RtpCapabilities => data.RtpCapabilities;
+
+    public Dictionary<string, ITransport> TransportsForTesting => transports;
+
 
     /// <summary>
     /// Close the Router.
     /// </summary>
-    public async Task CloseAsync()
+    public void Close()
     {
-        logger.LogDebug($"CloseAsync() | Router:{RouterId}");
-
-        using (await closeLock.WriteLockAsync())
+        if (Closed)
         {
-            if (closed)
-            {
-                return;
-            }
+            return;
+        }
 
-            closed = true;
+        Logger?.LogDebug("CloseAsync() | Router:{Id}", Id);
 
-            // Fire and forget
-            var reqData = @internal;
-            channel.RequestAsync(MethodId.WORKER_CLOSE_ROUTER, null, reqData).ContinueWithOnFaultedHandleLog(logger);
+        Closed = true;
 
-            await CloseInternalAsync();
+        var reqData = new { routerId = @internal.RouterId };
 
-            Emit("@close");
+        channel.Request("worker.closeRouter", null, reqData)
+            .ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
 
-            // Emit observer event.
-            Observer.Emit("close");
-        };
+        // Close every Transport.
+        foreach (var transport in transports.Values)
+        {
+            transport.RouterClosed();
+        }
+
+        transports.Clear();
+
+        // Clear the Producers map.
+        producers.Clear();
+
+        // Close every RtpObserver.
+        foreach (var rtpObserver in rtpObservers.Values)
+        {
+            rtpObserver.RouterClosed();
+        }
+
+        rtpObservers.Clear();
+
+        // Clear the DataProducers map.
+        dataProducers.Clear();
+
+        _ = Emit("@close");
+
+        // Emit observer event.
+        _ = Observer.SafeEmit("close");
     }
 
     /// <summary>
     /// Worker was closed.
     /// </summary>
-    public async Task WorkerClosedAsync()
+    private void WorkerClosed()
     {
-        logger.LogDebug($"WorkerClosedAsync() | Router:{RouterId}");
-
-        using (await closeLock.WriteLockAsync())
+        if (Closed)
         {
-            if (closed)
-            {
-                return;
-            }
-
-            closed = true;
-
-            await CloseInternalAsync();
-
-            Emit("workerclose");
-
-            // Emit observer event.
-            Observer.Emit("close");
-        }
-    }
-
-    private async Task CloseInternalAsync()
-    {
-        await using (await transportsLock.WriteLockAsync())
-        {
-            // Close every Transport.
-            foreach (var transport in transports.Values)
-            {
-                await transport.RouterClosedAsync();
-            }
-
-            transports.Clear();
+            return;
         }
 
-        await using (await producersLock.WriteLockAsync())
+        Logger?.LogDebug("WorkerClosedAsync() | Router:{Id}", Id);
+
+        Closed = true;
+
+        // Close every Transport.
+        foreach (var transport in transports.Values)
         {
-            // Clear the Producers map.
-            producers.Clear();
+            transport.RouterClosed();
         }
 
-        await using (await rtpObserversLock.WriteLockAsync())
+        transports.Clear();
+
+        // Clear the Producers map.
+        producers.Clear();
+
+        // Close every RtpObserver.
+        foreach (var rtpObserver in rtpObservers.Values)
         {
-            // Close every RtpObserver.
-            foreach (var rtpObserver in rtpObservers.Values)
-            {
-                await rtpObserver.RouterClosedAsync();
-            }
-            rtpObservers.Clear();
+            rtpObserver.RouterClosed();
         }
 
-        await using (await dataProducersLock.WriteLockAsync())
-        {
-            // Clear the DataProducers map.
-            dataProducers.Clear();
-        }
+        rtpObservers.Clear();
 
-        await using (await mapRouterPipeTransportsLock.WriteLockAsync())
-        {
-            // Clear map of Router/PipeTransports.
-            mapRouterPipeTransports.Clear();
-        }
+        // Clear the DataProducers map.
+        dataProducers.Clear();
+
+        _ = SafeEmit("workerclose");
+
+        // Emit observer event.
+        _ = Observer.SafeEmit("close");
     }
 
     /// <summary>
     /// Dump Router.
     /// </summary>
-    public async Task<string> DumpAsync()
+    public async Task<object> DumpAsync()
     {
-        logger.LogDebug($"DumpAsync() | Router:{RouterId}");
+        Logger?.LogDebug("DumpAsync() | Router:{Id}", Id);
 
-        using (await closeLock.ReadLockAsync())
-        {
-            if (closed)
-            {
-                throw new InvalidStateException("Router closed");
-            }
-
-            return (await channel.RequestAsync(MethodId.ROUTER_DUMP, @internal.RouterId))!;
-        }
+        return (await channel.Request("router.dump", @internal.RouterId))!;
     }
 
     /// <summary>
     /// Create a WebRtcTransport.
     /// </summary>
-    public async Task<WebRtcTransport.WebRtcTransport> CreateWebRtcTransportAsync(WebRtcTransportOptions webRtcTransportOptions)
+    public async Task<WebRtcTransport<TWebRtcTransportAppData>> CreateWebRtcTransportAsync<TWebRtcTransportAppData>(
+        WebRtcTransportOptions<TWebRtcTransportAppData> webRtcTransportOptions)
     {
-        logger.LogDebug("CreateWebRtcTransportAsync()");
+        var webRtcServer                    = webRtcTransportOptions.WebRtcServer;
+        var port                            = webRtcTransportOptions.Port;
+        var enableUdp                       = webRtcTransportOptions.EnableUdp ?? true;
+        var enableTcp                       = webRtcTransportOptions.EnableTcp ?? false;
+        var preferUdp                       = webRtcTransportOptions.PreferUdp ?? false;
+        var preferTcp                       = webRtcTransportOptions.PreferTcp ?? false;
+        var initialAvailableOutgoingBitrate = webRtcTransportOptions.InitialAvailableOutgoingBitrate ?? 600000;
+        var enableSctp                      = webRtcTransportOptions.EnableSctp ?? false;
+        var numSctpStreams                  = webRtcTransportOptions.NumSctpStreams ?? new() { OS = 1024, MIS = 1024 };
+        var maxSctpMessageSize              = webRtcTransportOptions.MaxSctpMessageSize ?? 262144;
+        var sctpSendBufferSize              = webRtcTransportOptions.SctpSendBufferSize ?? 262144;
+        var appData                         = webRtcTransportOptions.AppData;
 
-        if(webRtcTransportOptions.WebRtcServer == null && webRtcTransportOptions.ListenIps.IsNullOrEmpty())
+        Logger?.LogDebug("CreateWebRtcTransportAsync()");
+
+        if (webRtcServer == null && webRtcTransportOptions.ListenIps.IsNullOrEmpty())
         {
-            throw new ArgumentException("missing webRtcServer and listenIps (one of them is mandatory)");
+            throw new TypeError("missing webRtcServer and listenIps (one of them is mandatory)");
         }
 
-        var webRtcServer = webRtcTransportOptions.WebRtcServer;
+        List<TransportListenIp>? listenIps = null;
+        if (webRtcTransportOptions.ListenIps != null)
+        {
+            listenIps = webRtcTransportOptions.ListenIps.Select(listenIp =>
+            {
+                return listenIp switch
+                {
+                    string str           => new TransportListenIp { Ip = str },
+                    TransportListenIp ip => new TransportListenIp { Ip = ip.Ip, AnnouncedIp = ip.AnnouncedIp },
+                    _                    => throw new TypeError("wrong listenIp")
+                };
+            }).ToList();
+        }
+
         if (webRtcServer != null)
         {
             webRtcTransportOptions.ListenIps = null;
-            webRtcTransportOptions.Port = null;
+            webRtcTransportOptions.Port      = null;
         }
 
-        using (await closeLock.ReadLockAsync())
+        // TODO : Naming
+        var reqData = new
         {
-            if (closed)
+            TransportId = Guid.NewGuid().ToString(),
+            webRtcServer?.WebRtcServerId,
+            ListenIps                       = listenIps,
+            Port                            = port,
+            EnableUdp                       = enableUdp,
+            EnableTcp                       = enableTcp,
+            PreferUdp                       = preferUdp,
+            PreferTcp                       = preferTcp,
+            InitialAvailableOutgoingBitrate = initialAvailableOutgoingBitrate,
+            EnableSctp                      = enableSctp,
+            NumSctpStreams                  = numSctpStreams,
+            MaxSctpMessageSize              = maxSctpMessageSize,
+            SctpSendBufferSize              = sctpSendBufferSize,
+            IsDataChannel                   = true
+        };
+
+        var data = (WebRtcTransportData)(await channel.Request(
+            webRtcTransportOptions.WebRtcServer != null
+                ? "router.createWebRtcTransportWithServer"
+                : "router.createWebRtcTransport", @internal.RouterId, reqData))!;
+
+        var transport = new WebRtcTransport<TWebRtcTransportAppData>(new()
             {
-                throw new InvalidStateException("Router closed");
-            }
-
-            var reqData = new
-            {
-                TransportId = Guid.NewGuid().ToString(),
-                webRtcServer?.WebRtcServerId,
-                webRtcTransportOptions.ListenIps,
-                webRtcTransportOptions.Port,
-                webRtcTransportOptions.EnableUdp,
-                webRtcTransportOptions.EnableTcp,
-                webRtcTransportOptions.PreferUdp,
-                webRtcTransportOptions.PreferTcp,
-                webRtcTransportOptions.InitialAvailableOutgoingBitrate,
-                webRtcTransportOptions.EnableSctp,
-                webRtcTransportOptions.NumSctpStreams,
-                webRtcTransportOptions.MaxSctpMessageSize,
-                webRtcTransportOptions.MaxSctpSendBufferSize,
-                IsDataChannel = true
-            };
-
-            var resData = await channel.RequestAsync(webRtcTransportOptions.WebRtcServer != null ?
-                    MethodId.ROUTER_CREATE_WEBRTC_TRANSPORT_WITH_SERVER : MethodId.ROUTER_CREATE_WEBRTC_TRANSPORT,
-                @internal.RouterId,
-                reqData);
-            var responseData = resData!.Deserialize<RouterCreateWebRtcTransportResponseData>()!;
-
-            var transport = new WebRtcTransport.WebRtcTransport(loggerFactory,
-                new TransportInternal(@internal.RouterId, reqData.TransportId),
-                responseData, // 直接使用返回值
-                channel,
-                payloadChannel,
-                webRtcTransportOptions.AppData,
-                () => Data.RtpCapabilities,
-                async m =>
+                Internal = new TransportInternal
                 {
-                    using (await producersLock.ReadLockAsync())
-                    {
-                        return producers.TryGetValue(m, out var p) ? p : null;
-                    }
+                    RouterId    = @internal.RouterId,
+                    TransportId = reqData.TransportId
                 },
-                async m =>
-                {
-                    using (await dataProducersLock.ReadLockAsync())
-                    {
-                        return dataProducers.TryGetValue(m, out var p) ? p : null;
-                    }
-                }
-            );
+                Data = data, // 直接使用返回值
+                Channel = channel,
+                PayloadChannel = payloadChannel,
+                AppData = webRtcTransportOptions.AppData,
+                GetRouterRtpCapabilities = () => this.data.RtpCapabilities,
+                GetProducerById = producerId => producers.TryGetValue(producerId, out var producer) ? producer : null,
+                GetDataProducerById = producerId =>
+                    dataProducers.TryGetValue(producerId, out var producer) ? producer : null
+            }
+        );
 
-            await ConfigureTransportAsync(transport, webRtcServer);
+        transports[transport.Id] = transport;
+        transport.On("@close", async _ => { transports.Remove(transport.Id); });
+        transport.On("@listenserverclose", async _ => { transports.Remove(transport.Id); });
+        transport.On("@newproducer", async args =>
+        {
+            var producer = (Producer.Producer)args![1];
+            producers[producer.Id] = producer;
+        });
+        transport.On("@producerclose", async args =>
+        {
+            var producer = (Producer.Producer)args![1];
+            producers.Remove(producer.Id);
+        });
+        transport.On("@newdataproducer", async args =>
+        {
+            var dataProducer = (DataProducer.DataProducer)args![1];
+            dataProducers[dataProducer.Id] = dataProducer;
+        });
+        transport.On("@dataproducerclose", async args =>
+        {
+            var dataProducer = (DataProducer.DataProducer)args![1];
+            dataProducers.Remove(dataProducer.Id);
+        });
 
-            return transport;
-        }
+        // Emit observer event.
+        await Observer.SafeEmit("newtransport", transport);
+
+        webRtcServer?.HandleWebRtcTransport(transport);
+
+        return transport;
     }
 
     /// <summary>
     /// Create a PlainTransport.
     /// </summary>
-    public async Task<PlainTransport.PlainTransport> CreatePlainTransportAsync(PlainTransportOptions plainTransportOptions)
+    public async Task<PlainTransport<TPlainTransportAppData>> CreatePlainTransportAsync<TPlainTransportAppData>(
+        PlainTransportOptions<TPlainTransportAppData> plainTransportOptions)
     {
-        logger.LogDebug("CreatePlainTransportAsync()");
+        var listenIp           = plainTransportOptions.ListenIp;
+        var port               = plainTransportOptions.Port;
+        var rtcpMux            = plainTransportOptions.RtcpMux            ?? true;
+        var comedia            = plainTransportOptions.Comedia            ?? false;
+        var enableSctp         = plainTransportOptions.EnableSctp         ?? false;
+        var numSctpStreams     = plainTransportOptions.NumSctpStreams     ?? new() { OS = 1024, MIS = 1024 };
+        var maxSctpMessageSize = plainTransportOptions.MaxSctpMessageSize ?? 262144;
+        var sctpSendBufferSize = plainTransportOptions.SctpSendBufferSize ?? 262144;
+        var enableSrtp         = plainTransportOptions.EnableSrtp         ?? false;
+        var srtpCryptoSuite    = plainTransportOptions.SrtpCryptoSuite    ?? SrtpCryptoSuite.AES_CM_128_HMAC_SHA1_80;
+        var appData            = plainTransportOptions.AppData;
 
-        using (await closeLock.ReadLockAsync())
+        Logger?.LogDebug("CreatePlainTransportAsync()");
+
+        if (listenIp == null)
         {
-            if (closed)
-            {
-                throw new InvalidStateException("Router closed");
-            }
-
-            if (plainTransportOptions.ListenIp == null || plainTransportOptions.ListenIp.Ip.IsNullOrWhiteSpace())
-            {
-                throw new ArgumentException("Missing listenIp");
-            }
-
-            var reqData = new
-            {
-                TransportId = Guid.NewGuid().ToString(),
-                plainTransportOptions.ListenIp,
-                plainTransportOptions.Port,
-                plainTransportOptions.Comedia,
-                plainTransportOptions.EnableSctp,
-                plainTransportOptions.NumSctpStreams,
-                plainTransportOptions.MaxSctpMessageSize,
-                plainTransportOptions.SctpSendBufferSize,
-                IsDataChannel = false,
-                plainTransportOptions.EnableSrtp,
-                plainTransportOptions.SrtpCryptoSuite
-            };
-
-            var resData = await channel.RequestAsync(MethodId.ROUTER_CREATE_PLAIN_TRANSPORT, @internal.RouterId, reqData);
-            var responseData = resData!.Deserialize<RouterCreatePlainTransportResponseData>()!;
-
-            var transport = new PlainTransport.PlainTransport(loggerFactory,
-                new TransportInternal(@internal.RouterId, reqData.TransportId),
-                responseData, // 直接使用返回值
-                channel,
-                payloadChannel,
-                plainTransportOptions.AppData,
-                () => Data.RtpCapabilities,
-                async m =>
-                {
-                    using (await producersLock.ReadLockAsync())
-                    {
-                        return producers.TryGetValue(m, out var p) ? p : null;
-                    }
-                },
-                async m =>
-                {
-                    using (await dataProducersLock.ReadLockAsync())
-                    {
-                        return  dataProducers.TryGetValue(m, out var p) ? p : null;
-                    }
-                }
-            );
-
-            await ConfigureTransportAsync(transport);
-
-            return transport;
+            throw new TypeError("missing listenIp");
         }
+
+        listenIp = listenIp switch
+        {
+            string str           => new TransportListenIp { Ip = str },
+            TransportListenIp ip => ip with { },
+            _                    => throw new TypeError("wrong listenIp"),
+        };
+
+        var reqData = new
+        {
+            TransportId        = Guid.NewGuid().ToString(),
+            ListenIp           = listenIp,
+            Port               = port,
+            RtcpMux            = rtcpMux,
+            Comedia            = comedia,
+            EnableSctp         = enableSctp,
+            NumSctpStreams     = numSctpStreams,
+            MaxSctpMessageSize = maxSctpMessageSize,
+            SctpSendBufferSize = sctpSendBufferSize,
+            IsDataChannel      = false,
+            EnableSrtp         = enableSrtp,
+            SrtpCryptoSuite    = srtpCryptoSuite
+        };
+
+        var data =
+            await channel.Request("router.createPlainTransport", @internal.RouterId, reqData) as PlainTransportData;
+
+        var transport = new PlainTransport<TPlainTransportAppData>(new()
+        {
+            Internal = new TransportInternal
+            {
+                RouterId    = @internal.RouterId,
+                TransportId = reqData.TransportId
+            },
+            Data = data, // 直接使用返回值
+            Channel = channel,
+            PayloadChannel = payloadChannel,
+            AppData = appData,
+            GetRouterRtpCapabilities = () => this.data.RtpCapabilities,
+            GetProducerById = producerId => producers.TryGetValue(producerId, out var producer) ? producer : null,
+            GetDataProducerById = producerId =>
+                dataProducers.TryGetValue(producerId, out var producer) ? producer : null
+        });
+        
+        transports[transport.Id] = transport;
+        transport.On("@close", async _ => { transports.Remove(transport.Id); });
+        transport.On("@listenserverclose", async _ => { transports.Remove(transport.Id); });
+        transport.On("@newproducer", async args =>
+        {
+            var producer = (Producer.Producer)args![1];
+            producers[producer.Id] = producer;
+        });
+        transport.On("@producerclose", async args =>
+        {
+            var producer = (Producer.Producer)args![1];
+            producers.Remove(producer.Id);
+        });
+        transport.On("@newdataproducer", async args =>
+        {
+            var dataProducer = (DataProducer.DataProducer)args![1];
+            dataProducers[dataProducer.Id] = dataProducer;
+        });
+        transport.On("@dataproducerclose", async args =>
+        {
+            var dataProducer = (DataProducer.DataProducer)args![1];
+            dataProducers.Remove(dataProducer.Id);
+        });
+
+        // Emit observer event.
+        await Observer.SafeEmit("newtransport", transport);
+        
+        return transport;
     }
 
     /// <summary>
     /// Create a PipeTransport.
     /// </summary>
-    public async Task<PipeTransport.PipeTransport> CreatePipeTransportAsync(PipeTransportOptions pipeTransportOptions)
+    public async Task<PipeTransport<TPipeTransportAppData>> CreatePipeTransportAsync<TPipeTransportAppData>(
+        PipeTransportOptions<TPipeTransportAppData> pipeTransportOptions)
     {
-        logger.LogDebug("CreatePipeTransportAsync()");
+        var listenIp           = pipeTransportOptions.ListenIp;
+        var port               = pipeTransportOptions.Port;
+        var enableSctp         = pipeTransportOptions.EnableSctp         ?? false;
+        var numSctpStreams     = pipeTransportOptions.NumSctpStreams     ?? new() { OS = 1024, MIS = 1024 };
+        var maxSctpMessageSize = pipeTransportOptions.MaxSctpMessageSize ?? 268435456;
+        var sctpSendBufferSize = pipeTransportOptions.SctpSendBufferSize ?? 268435456;
+        var enableRtx          = pipeTransportOptions.EnableRtx          ?? false;
+        var enableSrtp         = pipeTransportOptions.EnableSrtp         ?? false;
+        var appData            = pipeTransportOptions.AppData;
+        
+        Logger?.LogDebug("CreatePipeTransportAsync()");
 
-        using (await closeLock.ReadLockAsync())
+        if (listenIp == null)
         {
-            if (closed)
-            {
-                throw new InvalidStateException("Router closed");
-            }
-
-            if (pipeTransportOptions.ListenIp == null)
-            {
-                throw new ArgumentNullException(nameof(pipeTransportOptions.ListenIp), "Missing listenIp");
-            }
-
-            var reqData = new
-            {
-                TransportId = Guid.NewGuid().ToString(),
-                pipeTransportOptions.ListenIp,
-                pipeTransportOptions.Port,
-                pipeTransportOptions.EnableSctp,
-                pipeTransportOptions.NumSctpStreams,
-                pipeTransportOptions.MaxSctpMessageSize,
-                pipeTransportOptions.SctpSendBufferSize,
-                IsDataChannel = false,
-                pipeTransportOptions.EnableRtx,
-                pipeTransportOptions.EnableSrtp,
-            };
-
-            var resData = await channel.RequestAsync(MethodId.ROUTER_CREATE_PIPE_TRANSPORT, @internal.RouterId, reqData);
-            var responseData = resData!.Deserialize<RouterCreatePipeTransportResponseData>()!;
-
-            var transport = new PipeTransport.PipeTransport(loggerFactory,
-                new TransportInternal(@internal.RouterId, reqData.TransportId),
-                responseData, // 直接使用返回值
-                channel,
-                payloadChannel,
-                pipeTransportOptions.AppData,
-                () => Data.RtpCapabilities,
-                async m =>
-                {
-                    using (await producersLock.ReadLockAsync())
-                    {
-                        return producers.TryGetValue(m, out var p) ? p : null;
-                    }
-                },
-                async m =>
-                {
-                    using (await dataProducersLock.ReadLockAsync())
-                    {
-                        return dataProducers.TryGetValue(m, out var p) ? p : null;
-                    }
-                });
-
-            await ConfigureTransportAsync(transport);
-
-            return transport;
+            throw new TypeError("missing listenIp");
         }
+        
+        listenIp = listenIp switch
+        {
+            string str           => new TransportListenIp { Ip = str },
+            TransportListenIp ip => ip with { },
+            _                    => throw new TypeError("wrong listenIp"),
+        };
+
+        var reqData = new
+        {
+            TransportId        = Guid.NewGuid().ToString(),
+            ListenIp           = listenIp,
+            Port               = port,
+            EnableSctp         = enableSctp,
+            NumSctpStreams     = numSctpStreams,
+            MaxSctpMessageSize = maxSctpMessageSize,
+            SctpSendBufferSize = sctpSendBufferSize,
+            IsDataChannel      = false,
+            EnableRtx          = enableRtx,
+            EnableSrtp         = enableSrtp
+        };
+
+        var data =
+            await channel.Request("router.createPipeTransport", @internal.RouterId, reqData) as PipeTransportData;
+
+        var transport =  new PipeTransport<TPipeTransportAppData>(new()
+        {
+            Internal = new TransportInternal
+            {
+                RouterId    = @internal.RouterId,
+                TransportId = reqData.TransportId
+            },
+            Data = data, // 直接使用返回值
+            Channel = channel,
+            PayloadChannel = payloadChannel,
+            AppData = appData,
+            GetRouterRtpCapabilities = () => this.data.RtpCapabilities,
+            GetProducerById = producerId => producers.TryGetValue(producerId, out var producer) ? producer : null,
+            GetDataProducerById = producerId =>
+                dataProducers.TryGetValue(producerId, out var producer) ? producer : null
+        });
+
+        // Emit observer event.
+        await Observer.SafeEmit("newtransport", transport);
+        return transport;
     }
 
     /// <summary>
@@ -463,13 +524,14 @@ public sealed class Router : EventEmitter, IEquatable<Router>
     /// </summary>
     /// <param name="directTransportOptions"></param>
     /// <returns></returns>
-    public async Task<DirectTransport.DirectTransport> CreateDirectTransportAsync(DirectTransportOptions directTransportOptions)
+    public async Task<DirectTransport.DirectTransport> CreateDirectTransportAsync(
+        DirectTransportOptions directTransportOptions)
     {
-        logger.LogDebug("CreateDirectTransportAsync()");
+        Logger?.LogDebug("CreateDirectTransportAsync()");
 
         using (await closeLock.ReadLockAsync())
         {
-            if (closed)
+            if (Closed)
             {
                 throw new InvalidStateException("Router closed");
             }
@@ -477,20 +539,21 @@ public sealed class Router : EventEmitter, IEquatable<Router>
             var reqData = new
             {
                 TransportId = Guid.NewGuid().ToString(),
-                Direct = true,
+                Direct      = true,
                 directTransportOptions.MaxMessageSize,
             };
 
-            var resData = await channel.RequestAsync(MethodId.ROUTER_CREATE_DIRECT_TRANSPORT, @internal.RouterId, reqData);
+            var resData =
+                await channel.RequestAsync(MethodId.ROUTER_CREATE_DIRECT_TRANSPORT, @internal.RouterId, reqData);
             var responseData = resData!.Deserialize<RouterCreateDirectTransportResponseData>();
 
-            var transport = new DirectTransport.DirectTransport(loggerFactory,
+            var transport = new DirectTransport.DirectTransport(Logger ? Factory,
                 new TransportInternal(RouterId, reqData.TransportId),
                 responseData, // 直接使用返回值
                 channel,
                 payloadChannel,
                 directTransportOptions.AppData,
-                () => Data.RtpCapabilities,
+                () => data.RtpCapabilities,
                 async m =>
                 {
                     using (await producersLock.ReadLockAsync())
@@ -513,60 +576,9 @@ public sealed class Router : EventEmitter, IEquatable<Router>
         }
     }
 
-    private async Task ConfigureTransportAsync(Transport.Transport transport, WebRtcServer.WebRtcServer? webRtcServer = null)
+    private async Task ConfigureTransportAsync(Transport.Transport transport,
+        WebRtcServer.WebRtcServer? webRtcServer = null)
     {
-        using (await transportsLock.WriteLockAsync())
-        {
-            transports[transport.TransportId] = transport;
-        }
-            
-        transport.On("@close", async (_, _) =>
-        {
-            using (await transportsLock.WriteLockAsync())
-            {
-                transports.Remove(transport.TransportId);
-            }
-        });
-        transport.On("@listenserverclose", async (_, _) =>
-        {
-            using (await transportsLock.WriteLockAsync())
-            {
-                transports.Remove(transport.TransportId);
-            }
-        });
-        transport.On("@newproducer", async (_, obj) =>
-        {
-            var producer = (Producer.Producer)obj!;
-            using (await producersLock.WriteLockAsync())
-            {
-                producers[producer.Id] = producer;
-            }
-        });
-        transport.On("@producerclose", async (_, obj) =>
-        {
-            var producer = (Producer.Producer)obj!;
-            using (await producersLock.WriteLockAsync())
-            {
-                producers.Remove(producer.Id);
-            }
-        });
-        transport.On("@newdataproducer", async (_, obj) =>
-        {
-            var dataProducer = (DataProducer.DataProducer)obj!;
-            using (await dataProducersLock.WriteLockAsync())
-            {
-                dataProducers[dataProducer.DataProducerId] = dataProducer;
-            }
-        });
-        transport.On("@dataproducerclose", async (_, obj) =>
-        {
-            var dataProducer = (DataProducer.DataProducer)obj!;
-            using (await dataProducersLock.WriteLockAsync())
-            {
-                dataProducers.Remove(dataProducer.DataProducerId);
-            }
-        });
-
         if (webRtcServer != null && transport is WebRtcTransport.WebRtcTransport webRtcTransport)
         {
             await webRtcServer.HandleWebRtcTransportAsync(webRtcTransport);
@@ -585,7 +597,7 @@ public sealed class Router : EventEmitter, IEquatable<Router>
     {
         using (await closeLock.ReadLockAsync())
         {
-            if (closed)
+            if (Closed)
             {
                 throw new InvalidStateException("Router closed");
             }
@@ -595,12 +607,14 @@ public sealed class Router : EventEmitter, IEquatable<Router>
                 throw new ArgumentNullException(nameof(pipeToRouterOptions.ListenIp), "Missing listenIp");
             }
 
-            if (pipeToRouterOptions.ProducerId.IsNullOrWhiteSpace() && pipeToRouterOptions.DataProducerId.IsNullOrWhiteSpace())
+            if (pipeToRouterOptions.ProducerId.IsNullOrWhiteSpace() &&
+                pipeToRouterOptions.DataProducerId.IsNullOrWhiteSpace())
             {
                 throw new ArgumentException("Missing producerId or dataProducerId");
             }
 
-            if (!pipeToRouterOptions.ProducerId.IsNullOrWhiteSpace() && !pipeToRouterOptions.DataProducerId.IsNullOrWhiteSpace())
+            if (!pipeToRouterOptions.ProducerId.IsNullOrWhiteSpace() &&
+                !pipeToRouterOptions.DataProducerId.IsNullOrWhiteSpace())
             {
                 throw new ArgumentException("Just producerId or dataProducerId can be given");
             }
@@ -615,7 +629,7 @@ public sealed class Router : EventEmitter, IEquatable<Router>
                 throw new ArgumentException("Cannot use this Router as destination");
             }
 
-            Producer.Producer? producer = null;
+            Producer.Producer?         producer     = null;
             DataProducer.DataProducer? dataProducer = null;
 
             if (!pipeToRouterOptions.ProducerId.IsNullOrWhiteSpace())
@@ -646,15 +660,16 @@ public sealed class Router : EventEmitter, IEquatable<Router>
             // would end up generating two pairs of PipeTranports. To prevent that, let's
             // use an async queue.
 
-            PipeTransport.PipeTransport? localPipeTransport = null;
+            PipeTransport.PipeTransport? localPipeTransport  = null;
             PipeTransport.PipeTransport? remotePipeTransport = null;
 
             // 因为有可能新增，所以用写锁。
             using (await mapRouterPipeTransportsLock.WriteLockAsync())
             {
-                if (mapRouterPipeTransports.TryGetValue(pipeToRouterOptions.Router, out var pipeTransportPair))
+                if (mapRouterPairPipeTransportPairPromise.TryGetValue(pipeToRouterOptions.Router,
+                        out var pipeTransportPair))
                 {
-                    localPipeTransport = pipeTransportPair[0];
+                    localPipeTransport  = pipeTransportPair[0];
                     remotePipeTransport = pipeTransportPair[1];
                 }
                 else
@@ -663,35 +678,35 @@ public sealed class Router : EventEmitter, IEquatable<Router>
                     {
                         var pipeTransports = await Task.WhenAll(CreatePipeTransportAsync(new PipeTransportOptions
                             {
-                                ListenIp = pipeToRouterOptions.ListenIp,
-                                EnableSctp = pipeToRouterOptions.EnableSctp,
+                                ListenIp       = pipeToRouterOptions.ListenIp,
+                                EnableSctp     = pipeToRouterOptions.EnableSctp,
                                 NumSctpStreams = pipeToRouterOptions.NumSctpStreams,
-                                EnableRtx = pipeToRouterOptions.EnableRtx,
-                                EnableSrtp = pipeToRouterOptions.EnableSrtp
+                                EnableRtx      = pipeToRouterOptions.EnableRtx,
+                                EnableSrtp     = pipeToRouterOptions.EnableSrtp
                             }),
                             pipeToRouterOptions.Router.CreatePipeTransportAsync(new PipeTransportOptions
                             {
-                                ListenIp = pipeToRouterOptions.ListenIp,
-                                EnableSctp = pipeToRouterOptions.EnableSctp,
+                                ListenIp       = pipeToRouterOptions.ListenIp,
+                                EnableSctp     = pipeToRouterOptions.EnableSctp,
                                 NumSctpStreams = pipeToRouterOptions.NumSctpStreams,
-                                EnableRtx = pipeToRouterOptions.EnableRtx,
-                                EnableSrtp = pipeToRouterOptions.EnableSrtp
+                                EnableRtx      = pipeToRouterOptions.EnableRtx,
+                                EnableSrtp     = pipeToRouterOptions.EnableSrtp
                             })
                         );
 
-                        localPipeTransport = pipeTransports[0];
+                        localPipeTransport  = pipeTransports[0];
                         remotePipeTransport = pipeTransports[1];
 
                         await Task.WhenAll(localPipeTransport.ConnectAsync(new PipeTransportConnectParameters
                             {
-                                Ip = remotePipeTransport.data.Tuple.LocalIp,
-                                Port = remotePipeTransport.data.Tuple.LocalPort,
+                                Ip             = remotePipeTransport.data.Tuple.LocalIp,
+                                Port           = remotePipeTransport.data.Tuple.LocalPort,
                                 SrtpParameters = remotePipeTransport.data.SrtpParameters,
                             }),
                             remotePipeTransport.ConnectAsync(new PipeTransportConnectParameters
                             {
-                                Ip = localPipeTransport.data.Tuple.LocalIp,
-                                Port = localPipeTransport.data.Tuple.LocalPort,
+                                Ip             = localPipeTransport.data.Tuple.LocalIp,
+                                Port           = localPipeTransport.data.Tuple.LocalPort,
                                 SrtpParameters = localPipeTransport.data.SrtpParameters,
                             })
                         );
@@ -701,7 +716,7 @@ public sealed class Router : EventEmitter, IEquatable<Router>
                             await remotePipeTransport.CloseAsync();
                             using (await mapRouterPipeTransportsLock.WriteLockAsync())
                             {
-                                mapRouterPipeTransports.Remove(pipeToRouterOptions.Router);
+                                mapRouterPairPipeTransportPairPromise.Remove(pipeToRouterOptions.Router);
                             }
                         });
 
@@ -710,15 +725,16 @@ public sealed class Router : EventEmitter, IEquatable<Router>
                             await localPipeTransport.CloseAsync();
                             using (await mapRouterPipeTransportsLock.WriteLockAsync())
                             {
-                                mapRouterPipeTransports.Remove(pipeToRouterOptions.Router);
+                                mapRouterPairPipeTransportPairPromise.Remove(pipeToRouterOptions.Router);
                             }
                         });
 
-                        mapRouterPipeTransports[pipeToRouterOptions.Router] = new[] { localPipeTransport, remotePipeTransport };
+                        mapRouterPairPipeTransportPairPromise[pipeToRouterOptions.Router] =
+                            new[] { localPipeTransport, remotePipeTransport };
                     }
                     catch (Exception ex)
                     {
-                        logger.LogError(ex, $"PipeToRouterAsync() | Create PipeTransport pair failed.");
+                        Logger?.LogError(ex, $"PipeToRouterAsync() | Create PipeTransport pair failed.");
 
                         if (localPipeTransport != null)
                         {
@@ -749,11 +765,11 @@ public sealed class Router : EventEmitter, IEquatable<Router>
 
                     pipeProducer = await remotePipeTransport.ProduceAsync(new ProducerOptions
                     {
-                        Id = producer.Id,
-                        Kind = pipeConsumer.Data.Kind,
+                        Id            = producer.Id,
+                        Kind          = pipeConsumer.Data.Kind,
                         RtpParameters = pipeConsumer.Data.RtpParameters,
-                        Paused = pipeConsumer.ProducerPaused,
-                        AppData = producer.AppData,
+                        Paused        = pipeConsumer.ProducerPaused,
+                        AppData       = producer.AppData,
                     });
 
                     // Ensure that the producer has not been closed in the meanwhile.
@@ -782,7 +798,7 @@ public sealed class Router : EventEmitter, IEquatable<Router>
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, $"PipeToRouterAsync() | Create pipe Consumer/Producer pair failed");
+                    Logger?.LogError(ex, $"PipeToRouterAsync() | Create pipe Consumer/Producer pair failed");
 
                     if (pipeConsumer != null)
                     {
@@ -811,11 +827,11 @@ public sealed class Router : EventEmitter, IEquatable<Router>
 
                     pipeDataProducer = await remotePipeTransport.ProduceDataAsync(new DataProducerOptions
                     {
-                        Id = dataProducer.DataProducerId,
+                        Id                   = dataProducer.DataProducerId,
                         SctpStreamParameters = pipeDataConsumer.Data.SctpStreamParameters,
-                        Label = pipeDataConsumer.Data.Label,
-                        Protocol = pipeDataConsumer.Data.Protocol,
-                        AppData = dataProducer.AppData,
+                        Label                = pipeDataConsumer.Data.Label,
+                        Protocol             = pipeDataConsumer.Data.Protocol,
+                        AppData              = dataProducer.AppData,
                     });
 
                     // Pipe events from the pipe DataConsumer to the pipe DataProducer.
@@ -824,11 +840,12 @@ public sealed class Router : EventEmitter, IEquatable<Router>
                     // Pipe events from the pipe DataProducer to the pipe DataConsumer.
                     pipeDataProducer.observer.On("close", async (_, _) => await pipeDataConsumer.CloseAsync());
 
-                    return new PipeToRouterResult { PipeDataConsumer = pipeDataConsumer, PipeDataProducer = pipeDataProducer };
+                    return new PipeToRouterResult
+                        { PipeDataConsumer = pipeDataConsumer, PipeDataProducer = pipeDataProducer };
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, $"PipeToRouterAsync() | Create pipe DataConsumer/DataProducer pair failed.");
+                    Logger?.LogError(ex, $"PipeToRouterAsync() | Create pipe DataConsumer/DataProducer pair failed.");
 
                     if (pipeDataConsumer != null)
                     {
@@ -853,13 +870,14 @@ public sealed class Router : EventEmitter, IEquatable<Router>
     /// <summary>
     /// Create an ActiveSpeakerObserver
     /// </summary>
-    public async Task<ActiveSpeakerObserver.ActiveSpeakerObserver> CreateActiveSpeakerObserverAsync(ActiveSpeakerObserverOptions activeSpeakerObserverOptions)
+    public async Task<ActiveSpeakerObserver.ActiveSpeakerObserver> CreateActiveSpeakerObserverAsync(
+        ActiveSpeakerObserverOptions activeSpeakerObserverOptions)
     {
-        logger.LogDebug("CreateActiveSpeakerObserverAsync()");
+        Logger?.LogDebug("CreateActiveSpeakerObserverAsync()");
 
         using (await closeLock.ReadLockAsync())
         {
-            if (closed)
+            if (Closed)
             {
                 throw new InvalidStateException("Router closed");
             }
@@ -871,9 +889,10 @@ public sealed class Router : EventEmitter, IEquatable<Router>
             };
 
             // Fire and forget
-            channel.RequestAsync(MethodId.ROUTER_CREATE_ACTIVE_SPEAKER_OBSERVER, @internal.RouterId, reqData).ContinueWithOnFaultedHandleLog(logger);
+            channel.RequestAsync(MethodId.ROUTER_CREATE_ACTIVE_SPEAKER_OBSERVER, @internal.RouterId, reqData)
+                .ContinueWithOnFaultedHandleLog(Logger ?);
 
-            var activeSpeakerObserver = new ActiveSpeakerObserver.ActiveSpeakerObserver(loggerFactory,
+            var activeSpeakerObserver = new ActiveSpeakerObserver.ActiveSpeakerObserver(Logger ? Factory,
                 new RtpObserverInternal(@internal.RouterId, reqData.RtpObserverId),
                 channel,
                 payloadChannel,
@@ -894,13 +913,14 @@ public sealed class Router : EventEmitter, IEquatable<Router>
     /// <summary>
     /// Create an AudioLevelObserver.
     /// </summary>
-    public async Task<AudioLevelObserver.AudioLevelObserver> CreateAudioLevelObserverAsync(AudioLevelObserverOptions audioLevelObserverOptions)
+    public async Task<AudioLevelObserver.AudioLevelObserver> CreateAudioLevelObserverAsync(
+        AudioLevelObserverOptions audioLevelObserverOptions)
     {
-        logger.LogDebug("CreateAudioLevelObserverAsync()");
+        Logger?.LogDebug("CreateAudioLevelObserverAsync()");
 
         using (await closeLock.ReadLockAsync())
         {
-            if (closed)
+            if (Closed)
             {
                 throw new InvalidStateException("Router closed");
             }
@@ -914,9 +934,10 @@ public sealed class Router : EventEmitter, IEquatable<Router>
             };
 
             // Fire and forget
-            channel.RequestAsync(MethodId.ROUTER_CREATE_AUDIO_LEVEL_OBSERVER, @internal.RouterId, reqData).ContinueWithOnFaultedHandleLog(logger);
+            channel.RequestAsync(MethodId.ROUTER_CREATE_AUDIO_LEVEL_OBSERVER, @internal.RouterId, reqData)
+                .ContinueWithOnFaultedHandleLog(Logger ?);
 
-            var audioLevelObserver = new AudioLevelObserver.AudioLevelObserver(loggerFactory,
+            var audioLevelObserver = new AudioLevelObserver.AudioLevelObserver(Logger ? Factory,
                 new RtpObserverInternal(@internal.RouterId, reqData.RtpObserverId),
                 channel,
                 payloadChannel,
@@ -960,16 +981,17 @@ public sealed class Router : EventEmitter, IEquatable<Router>
         {
             if (!producers.TryGetValue(producerId, out var producer))
             {
-                logger.LogError($"CanConsume() | Producer with id {producerId} not found");
+                Logger?.LogError($"CanConsume() | Producer with id {producerId} not found");
                 return false;
             }
+
             try
             {
                 return ORTC.Ortc.CanConsume(producer.Data.ConsumableRtpParameters, rtpCapabilities);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "CanConsume() | Unexpected error");
+                Logger?.LogError(ex, "CanConsume() | Unexpected error");
                 return false;
             }
         }

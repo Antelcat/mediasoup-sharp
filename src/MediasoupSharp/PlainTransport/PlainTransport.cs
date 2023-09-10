@@ -1,85 +1,76 @@
-﻿using MediasoupSharp.Channel;
-using MediasoupSharp.Exceptions;
-using MediasoupSharp.PayloadChannel;
-using MediasoupSharp.Transport;
+﻿using MediasoupSharp.Transport;
+using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.PlainTransport;
 
-public class PlainTransport : Transport.Transport
+internal class PlainTransport<TPlainTransportAppData>
+    : Transport<TPlainTransportAppData, PlainTransportEvents, PlainTransportObserverEvents>
 {
-    /// <summary>
-    /// Logger.
-    /// </summary>
-    private readonly ILogger<PlainTransport> logger;
-
     /// <summary>
     /// Producer data.
     /// </summary>
-    public PlainTransportData Data { get; }
+    private readonly PlainTransportData data;
 
-    /// <summary>
-    /// <para>Events:</para>
-    /// <para>@emits tuple - (tuple: TransportTuple)</para>
-    /// <para>@emits rtcptuple - (rtcpTuple: TransportTuple)</para>
-    /// <para>@emits sctpstatechange - (sctpState: SctpState)</para>
-    /// <para>@emits trace - (trace: TransportTraceEventData)</para>
-    /// <para>Observer events:</para>
-    /// <para>@emits close</para>
-    /// <para>@emits newproducer - (producer: Producer)</para>
-    /// <para>@emits newconsumer - (consumer: Consumer)</para>
-    /// <para>@emits newdataproducer - (dataProducer: DataProducer)</para>
-    /// <para>@emits newdataconsumer - (dataConsumer: DataConsumer)</para>
-    /// <para>@emits tuple - (tuple: TransportTuple)</para>
-    /// <para>@emits rtcptuple - (rtcpTuple: TransportTuple)</para>
-    /// <para>@emits sctpstatechange - (sctpState: SctpState)</para>
-    /// <para>@emits trace - (trace: TransportTraceEventData)</para>
-    /// </summary>
-    /// <param name="loggerFactory"></param>
-    /// <param name="internal"></param>
-    /// <param name="data"></param>
-    /// <param name="channel"></param>
-    /// <param name="payloadChannel"></param>
-    /// <param name="appData"></param>
-    /// <param name="getRouterRtpCapabilities"></param>
-    /// <param name="getProducerById"></param>
-    /// <param name="getDataProducerById"></param>
-    public PlainTransport(ILoggerFactory loggerFactory,
-        TransportInternal @internal,
-        PlainTransportData data,
-        IChannel channel,
-        IPayloadChannel payloadChannel,
-        Dictionary<string, object>? appData,
-        Func<RtpCapabilities> getRouterRtpCapabilities,
-        Func<string, Task<Producer.Producer?>> getProducerById,
-        Func<string, Task<DataProducer.DataProducer?>> getDataProducerById
-    ) : base(loggerFactory, @internal, data, channel, payloadChannel, appData, getRouterRtpCapabilities, getProducerById, getDataProducerById)
+    public PlainTransport(
+        PlainTransportConstructorOptions<TPlainTransportAppData> options
+    ) : base(options)
     {
-        logger = loggerFactory.CreateLogger<PlainTransport>();
-
-        Data = data;
+        data = options.Data with { };
 
         HandleWorkerNotifications();
     }
 
+    public TransportTuple Tuple => data.Tuple;
+
+    public TransportTuple? RtcpTuple => data.RtcpTuple;
+
+    public SctpParameters.SctpParameters? SctpParameters => data.SctpParameters;
+
+    public SctpState? SctpState => data.SctpState;
+
+    public SrtpParameters.SrtpParameters? SrtpParameters => data.SrtpParameters;
+
     /// <summary>
     /// Close the PlainTransport.
     /// </summary>
-    protected override Task OnCloseAsync()
+    protected override void Close()
     {
-        if (Data.SctpState.HasValue)
+        if (Closed)
         {
-            Data.SctpState = SctpState.Closed;
+            return;
         }
 
-        return Task.CompletedTask;
+        if (data.SctpState.HasValue)
+        {
+            data.SctpState = Transport.SctpState.closed;
+        }
+
+        base.Close();
     }
 
     /// <summary>
     /// Router was closed.
     /// </summary>
-    protected override Task OnRouterClosedAsync()
+    public override void RouterClosed()
     {
-        return OnCloseAsync();
+        if (Closed)
+        {
+            return;
+        }
+
+        if (data.SctpState.HasValue)
+        {
+            data.SctpState = Transport.SctpState.closed;
+        }
+
+        base.RouterClosed();
+    }
+
+    public new async Task<List<PlainTransportStat>> GetStatsAsync()
+    {
+        Logger?.LogDebug("getStats()");
+
+        return await Channel.Request("transport.getStats", Internal.TransportId) as List<PlainTransportStat>;
     }
 
     /// <summary>
@@ -87,121 +78,95 @@ public class PlainTransport : Transport.Transport
     /// </summary>
     public override async Task ConnectAsync(object parameters)
     {
-        logger.LogDebug("ConnectAsync()");
+        Logger?.LogDebug("ConnectAsync()");
 
-        if (parameters is not PlainTransportConnectParameters connectParameters)
+        // TODO : Naming
+        var data =
+            await Channel.Request("transport.connect", Internal.TransportId, parameters) as dynamic;
+
+        // Update data.
+        if (data.tuple)
         {
-            throw new Exception($"{nameof(parameters)} type is not PlainTransportConnectParameters");
+            this.data.Tuple = data.tuple;
         }
 
-        await ConnectAsync(connectParameters);
-    }
-
-    private async Task ConnectAsync(PlainTransportConnectParameters plainTransportConnectParameters)
-    {
-        using (await CloseLock.ReadLockAsync())
+        if (data.rtcpTuple)
         {
-            if (Closed)
-            {
-                throw new InvalidStateException("Transport closed");
-            }
-
-            var reqData = plainTransportConnectParameters;
-            var resData = await Channel.RequestAsync(MethodId.TRANSPORT_CONNECT, Internal.TransportId, reqData);
-            var responseData = resData!.Deserialize<PlainTransportConnectResponseData>();
-
-            // Update data.
-            if (responseData.Tuple != null)
-            {
-                Data.Tuple = responseData.Tuple;
-            }
-
-            if (responseData.RtcpTuple != null)
-            {
-                Data.RtcpTuple = responseData.RtcpTuple;
-            }
-
-            Data.SrtpParameters = responseData.SrtpParameters;
+            this.data.RtcpTuple = data.rtcpTuple;
         }
+
+        this.data.SrtpParameters = data.srtpParameters;
     }
 
-    #region Event Handlers
 
     private void HandleWorkerNotifications()
     {
-        Channel.MessageEvent += OnChannelMessage;
-    }
-
-    private void OnChannelMessage(string targetId, string @event, string? data)
-    {
-        if (targetId != Internal.TransportId)
+        Channel.On(Internal.TransportId, async (args) =>
         {
-            return;
-        }
-
-        switch (@event)
-        {
-            case "tuple":
+            var @event = args![0] as string;
+            var data   = args[1] as dynamic;
+            switch (@event)
             {
-                var notification = data!.Deserialize<PlainTransportTupleNotificationData>();
+                case "tuple":
+                {
+                    var tuple = (data.tuple as TransportTuple)!;
 
-                Data.Tuple = notification.Tuple;
+                    this.data.Tuple = tuple;
 
-                Emit("tuple", Data.Tuple);
+                    await SafeEmit("tuple", tuple);
 
-                // Emit observer event.
-                Observer.Emit("tuple", Data.Tuple);
+                    // Emit observer event.
+                    await Observer.SafeEmit("tuple", tuple);
 
-                break;
+                    break;
+                }
+
+                case "rtcptuple":
+                {
+                    var rtcpTuple = (data.rtcpTuple as TransportTuple)!;
+
+                    this.data.RtcpTuple = rtcpTuple;
+
+                    await SafeEmit("rtcptuple", rtcpTuple);
+
+                    // Emit observer event.
+                    await Observer.SafeEmit("rtcptuple", rtcpTuple);
+
+                    break;
+                }
+
+                case "sctpstatechange":
+                {
+                    var sctpState = (SctpState)data.sctpState;
+
+                    this.data.SctpState = sctpState;
+
+                    await SafeEmit("sctpstatechange", sctpState);
+
+                    // Emit observer event.
+                    await Observer.SafeEmit("sctpstatechange", sctpState);
+
+                    break;
+                }
+
+                case "trace":
+                {
+                    var trace = (data as TransportTraceEventData)!;
+
+                    await SafeEmit("trace", trace);
+
+                    // Emit observer event.
+                    await Observer.SafeEmit("trace", trace);
+
+                    break;
+                }
+
+                default:
+                {
+                    Logger?.LogError("ignoring unknown event {E}", @event);
+                    break;
+                }
             }
-
-            case "rtcptuple":
-            {
-                var notification = data!.Deserialize<PlainTransportRtcpTupleNotificationData>();
-
-                Data.RtcpTuple = notification.RtcpTuple;
-
-                Emit("rtcptuple", Data.RtcpTuple);
-
-                // Emit observer event.
-                Observer.Emit("rtcptuple", Data.RtcpTuple);
-
-                break;
-            }
-
-            case "sctpstatechange":
-            {
-                var notification = data!.Deserialize<TransportSctpStateChangeNotificationData>();
-
-                Data.SctpState = notification.SctpState;
-
-                Emit("sctpstatechange", Data.SctpState);
-
-                // Emit observer event.
-                Observer.Emit("sctpstatechange", Data.SctpState);
-
-                break;
-            }
-
-            case "trace":
-            {
-                var trace = data!.Deserialize<TransportTraceEventData>();
-
-                Emit("trace", trace);
-
-                // Emit observer event.
-                Observer.Emit("trace", trace);
-
-                break;
-            }
-
-            default:
-            {
-                logger.LogError($"OnChannelMessage() | Ignoring unknown event{@event}");
-                break;
-            }
-        }
+        });
     }
-
-    #endregion Event Handlers
 }
