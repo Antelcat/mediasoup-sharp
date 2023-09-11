@@ -22,7 +22,7 @@ public class MediasoupServer
     /// <returns></returns>
     public static RtpCapabilities GetSupportedRtpCapabilities()
     {
-        return RtpCapabilities.SupportedRtpCapabilities.DeepClone();
+        return SupportedRtpCapabilities.DeepClone();
     }
 
     /// <summary>

@@ -168,7 +168,7 @@ internal class WebRtcTransport
         var reqData = new { dtlsParameters };
 
         var data =
-            (await Channel.Request("transport.connect", Internal.TransportId, reqData) as WebRtcTransportConnectResponseData)!;
+            (await Channel.Request("transport.connect", Internal.TransportId, reqData) as dynamic)!;
         
         // Update data.
         // TODO : Naming
@@ -186,7 +186,7 @@ internal class WebRtcTransport
 
         // TODO : Naming
         var data = (await Channel.Request("transport.restartIce", Internal.TransportId)
-            as WebRtcTransportRestartIceResponseData)!;
+            as dynamic)!;
 
         var iceParameters = data.IceParameters;
         

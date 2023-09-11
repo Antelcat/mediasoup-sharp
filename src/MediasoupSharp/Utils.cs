@@ -1,4 +1,4 @@
-﻿namespace MediasoupSharp.Utils;
+﻿namespace MediasoupSharp;
 
 internal static class Utils
 {
