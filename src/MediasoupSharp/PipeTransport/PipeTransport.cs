@@ -41,7 +41,7 @@ internal class PipeTransport<TPipeTransportAppData>
     /// <summary>
     /// Close the PipeTransport.
     /// </summary>
-    protected override void Close()
+    public override void Close()
     {
         if (Closed)
         {

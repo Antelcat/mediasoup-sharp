@@ -2,7 +2,7 @@
 
 namespace MediasoupSharp.Transport;
 
-public record TransportInternal : RouterInternal
+internal record TransportInternal : RouterInternal
 {
     /// <summary>
     /// TransportId id.

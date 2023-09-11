@@ -7,13 +7,21 @@ namespace MediasoupSharp.WebRtcTransport;
 
 public interface IWebRtcTransport{}
 
-internal class WebRtcTransport<TWebRtcTransportAppData> 
-    : Transport<TWebRtcTransportAppData, WebRtcTransportEvents, WebRtcTransportObserverEvents>
+internal class WebRtcTransport<TWebRtcTransportAppData> : WebRtcTransport
+{
+    public WebRtcTransport(WebRtcTransportConstructorOptions<object> options)
+        : base(options)
+    {
+    }
+}
+
+internal class WebRtcTransport
+    : Transport<object, WebRtcTransportEvents, WebRtcTransportObserverEvents>
 {
     readonly WebRtcTransportData data;
     
     public WebRtcTransport(
-        WebRtcTransportConstructorOptions<TWebRtcTransportAppData> options) 
+        WebRtcTransportConstructorOptions<object> options) 
         : base(options)
     {
         data = options.Data.DeepClone();
@@ -76,7 +84,7 @@ internal class WebRtcTransport<TWebRtcTransportAppData>
     /// <summary>
     /// Close the WebRtcTransport.
     /// </summary>
-    protected override void Close()
+    public override void Close()
     {
         if (Closed)
         {
@@ -98,7 +106,7 @@ internal class WebRtcTransport<TWebRtcTransportAppData>
     /// <summary>
     /// Router was closed.
     /// </summary>
-    internal override void RouterClosed()
+    public override void RouterClosed()
     {
         if (Closed)
         {

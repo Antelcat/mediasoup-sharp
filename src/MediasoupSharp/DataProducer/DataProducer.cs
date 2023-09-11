@@ -61,7 +61,7 @@ internal class DataProducer : EnhancedEventEmitter<DataProducerEvents>
     /// <summary>
     /// Observer instance.
     /// </summary>
-    private EnhancedEventEmitter<DataProducerObserverEvents> Observer => observer ??= new();
+    public EnhancedEventEmitter<DataProducerObserverEvents> Observer => observer ??= new();
 
     #region Extra
     private EnhancedEventEmitter<DataProducerObserverEvents>? observer;

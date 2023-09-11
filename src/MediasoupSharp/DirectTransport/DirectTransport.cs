@@ -33,7 +33,7 @@ internal class DirectTransport<TDirectTransportAppData>
     /// Close the DirectTransport.
     /// </summary>
     /// <returns></returns>
-    protected override void Close()
+    public override void Close()
     {
         if (Closed)
         {

@@ -1,6 +1,6 @@
 ﻿namespace MediasoupSharp.Utils;
 
-public static class Utils
+internal static class Utils
 {
     private static readonly Random Random = new();
 

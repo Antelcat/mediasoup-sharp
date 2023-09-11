@@ -2,10 +2,7 @@
 
 namespace MediasoupSharp.RtpObserver;
 
-public class RtpObserverObserverInternal : RouterInternal
+internal record RtpObserverObserverInternal : RouterInternal
 {
-    public RtpObserverObserverInternal(string routerId) : base(routerId)
-    { }
-
     public string RtpObserverId { get; set; } = string.Empty;
 }

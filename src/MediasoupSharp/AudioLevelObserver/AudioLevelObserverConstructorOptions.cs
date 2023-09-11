@@ -2,5 +2,5 @@
 
 namespace MediasoupSharp.AudioLevelObserver;
 
-public record AudioLevelObserverConstructorOptions<TAudioLevelObserverAppData>
+internal record AudioLevelObserverConstructorOptions<TAudioLevelObserverAppData>
     : RtpObserverConstructorOptions<TAudioLevelObserverAppData>;

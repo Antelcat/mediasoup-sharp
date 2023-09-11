@@ -4,7 +4,7 @@ namespace MediasoupSharp.Transport;
 
 public record TransportConstructorOptions<TTransportAppData>
 {
-    public   TransportInternal                        Internal                 { get; set; }
+    internal TransportInternal                        Internal                 { get; set; }
     public   TransportData                            Data                     { get; set; }
     internal Channel.Channel                          Channel                  { get; set; }
     internal PayloadChannel.PayloadChannel            PayloadChannel           { get; set; }

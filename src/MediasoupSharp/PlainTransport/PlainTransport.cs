@@ -33,7 +33,7 @@ internal class PlainTransport<TPlainTransportAppData>
     /// <summary>
     /// Close the PlainTransport.
     /// </summary>
-    protected override void Close()
+    public override void Close()
     {
         if (Closed)
         {

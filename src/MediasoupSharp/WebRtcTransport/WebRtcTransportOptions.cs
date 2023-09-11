@@ -1,4 +1,5 @@
 ﻿using MediasoupSharp.Transport;
+using MediasoupSharp.WebRtcServer;
 
 namespace MediasoupSharp.WebRtcTransport;
 
@@ -7,7 +8,7 @@ public class WebRtcTransportOptions<TWebRtcTransportAppData> : WebRtcTransportOp
     /// <summary>
     /// Instance of WebRtcServer. Mandatory unless listenIps is given.
     /// </summary>
-    public WebRtcServer.WebRtcServer? WebRtcServer { get; set; }
+    public IWebRtcServer? WebRtcServer { get; set; }
 
     /// <summary>
     /// Listening IP address or addresses in order of preference (first one is the

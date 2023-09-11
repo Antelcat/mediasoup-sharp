@@ -2,5 +2,5 @@
 
 namespace MediasoupSharp.ActiveSpeakerObserver;
 
-public record RtpObserverObserverConstructorOptions<TActiveSpeakerObserverAppData>
+internal record RtpObserverObserverConstructorOptions<TActiveSpeakerObserverAppData>
     : RtpObserverConstructorOptions<TActiveSpeakerObserverAppData>;

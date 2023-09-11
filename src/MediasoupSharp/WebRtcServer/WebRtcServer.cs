@@ -1,185 +1,180 @@
-﻿using MediasoupSharp.Channel;
-using MediasoupSharp.Exceptions;
+﻿using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.WebRtcServer;
 
-public class WebRtcServer<TWebRtcServerAppData> : EnhancedEventEmitter<WebRtcServerEvents>
+public interface IWebRtcServer
 {
-    /// <summary>
-    /// Logger.
-    /// </summary>
-    private readonly ILogger<WebRtcServer> logger;
+    string Id { get; }
 
-    #region Internal data.
+    internal void HandleWebRtcTransport<TWebRtcTransportAppData>(
+        WebRtcTransport.WebRtcTransport<TWebRtcTransportAppData> webRtcTransport);
+}
 
+internal class WebRtcServer<TWebRtcServerAppData> : WebRtcServer
+{
+    public WebRtcServer(
+        WebRtcServerInternal @internal, 
+        Channel.Channel channel, 
+        TWebRtcServerAppData? appData)
+        : base(
+            @internal,
+            channel,
+            appData)
+    {
+        
+    }
+
+    public new TWebRtcServerAppData AppData
+    {
+        get => (TWebRtcServerAppData)base.AppData;
+        set => base.AppData = value!;
+    }
+}
+
+internal class WebRtcServer
+    : EnhancedEventEmitter<object> , IWebRtcServer
+{
     private readonly WebRtcServerInternal @internal;
-
-    public string WebRtcServerId => @internal.WebRtcServerId;
-
-    #endregion Internal data.
 
     /// <summary>
     /// Channel instance.
     /// </summary>
-    private IChannel channel;
+    private readonly Channel.Channel channel;
 
     /// <summary>
     /// Closed flag.
     /// </summary>
-    private bool closed = false;
-
-    /// <summary>
-    /// Close locker.
-    /// </summary>
-    private readonly AsyncReaderWriterLock closeLock = new();
+    public bool Closed { get; private set; }
 
     /// <summary>
     /// Custom app data.
     /// </summary>
-    public Dictionary<string, object> AppData { get; }
+    public object AppData { get; set; }
 
     /// <summary>
     /// Transports map.
     /// </summary>
     private readonly Dictionary<string, WebRtcTransport.WebRtcTransport> webRtcTransports = new();
-    private readonly AsyncReaderWriterLock webRtcTransportsLock = new();
 
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EventEmitter Observer { get; } = new EventEmitter();
+    public EnhancedEventEmitter<WebRtcServerObserverEvents> Observer => observer ??= new();
 
-    /// <summary>
-    /// <para>Events:</para>
-    /// <para>@emits workerclose</para>
-    /// <para>@emits @close</para>
-    /// <para>Observer events:</para>
-    /// <para>@emits close</para>
-    /// <para>@emits webrtctransporthandled - (webRtcTransport: WebRtcTransport)</para>
-    /// <para>@emits webrtctransportunhandled - (webRtcTransport: WebRtcTransport)</para>
-    /// </summary>
-    /// <param name="loggerFactory"></param>
-    /// <param name="internal"></param>
-    /// <param name="channel"></param>
-    /// <param name="appData"></param>
-    public WebRtcServer(ILoggerFactory loggerFactory,
-        WebRtcServerInternal @internal,
-        IChannel channel,
-        Dictionary<string, object>? appData)
+    private EnhancedEventEmitter<WebRtcServerObserverEvents>? observer;
+
+    public override ILoggerFactory LoggerFactory
     {
-        logger = loggerFactory.CreateLogger<WebRtcServer>();
-
-        this.@internal = @internal;
-        this.channel = channel;
-        AppData = appData ?? new Dictionary<string, object>();
+        init
+        {
+            observer = new()
+            {
+                LoggerFactory = value
+            };
+            base.LoggerFactory = value;
+        }
     }
+
+    public WebRtcServer(
+        WebRtcServerInternal @internal,
+        Channel.Channel channel,
+        object? appData)
+    {
+        this.@internal = @internal;
+        this.channel   = channel;
+        AppData        = appData ?? new();
+    }
+
+    public string Id => @internal.WebRtcServerId;
+
+    public Dictionary<string, WebRtcTransport.WebRtcTransport> WebRtcTransportsForTesting => webRtcTransports;
 
     /// <summary>
     /// Close the WebRtcServer.
     /// </summary>
-    public async Task CloseAsync()
+    public void Close()
     {
-        logger.LogDebug($"CloseAsync() | WebRtcServer: {WebRtcServerId}");
-
-        using (await closeLock.WriteLockAsync())
+        if (Closed)
         {
-            if (closed)
-            {
-                return;
-            }
+            return;
+        }
 
-            closed = true;
+        Logger?.LogDebug("CloseAsync() | WebRtcServer: {Id}", Id);
 
-            var reqData = new { WebRtcServerId = @internal.WebRtcServerId };
+        Closed = true;
 
-            // Fire and forget
-            channel.RequestAsync(MethodId.WORKER_CLOSE_WEBRTCSERVER, null, reqData).ContinueWithOnFaultedHandleLog(logger);
+        // TODO : Naming
+        var reqData = new { webRtcServerId = @internal.WebRtcServerId };
 
-            await CloseInternalAsync();
+        channel.Request("worker.closeWebRtcServer", null, reqData)
+            .ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
 
-            Emit("@close");
+        // Close every WebRtcTransport.
+        foreach (var webRtcTransport in webRtcTransports.Values)
+        {
+            webRtcTransport.ListenServerClosed();
 
             // Emit observer event.
-            Observer.Emit("close");
-        };
+            _ = Observer.SafeEmit("webrtctransportunhandled", webRtcTransport);
+        }
+
+        webRtcTransports.Clear();
+
+        _ = Emit("@close");
+
+        // Emit observer event.
+        _ = Observer.SafeEmit("close");
     }
 
     /// <summary>
     /// Worker was closed.
     /// </summary>
-    public async Task WorkerClosedAsync()
+    public void WorkerClosed()
     {
-        logger.LogDebug($"WorkerClosedAsync() | WebRtcServer: {WebRtcServerId}");
-
-        using (await closeLock.WriteLockAsync())
+        if (Closed)
         {
-            if (closed)
-            {
-                return;
-            }
-
-            closed = true;
-
-            await CloseInternalAsync();
-
-            Emit("workerclose");
-
-            // Emit observer event.
-            Observer.Emit("close");
+            return;
         }
+
+        Logger?.LogDebug("WorkerClosedAsync() | WebRtcServer: {Id}", Id);
+
+        Closed = true;
+
+        // NOTE: No need to close WebRtcTransports since they are closed by their
+        // respective Router parents.
+        webRtcTransports.Clear();
+
+        _ = SafeEmit("workerclose");
+
+        // Emit observer event.
+        _ = Observer.SafeEmit("close");
     }
 
-    private async Task CloseInternalAsync()
-    {
-        using (await webRtcTransportsLock.WriteLockAsync())
-        {
-            // Close every WebRtcTransport.
-            foreach (var webRtcTransport in webRtcTransports.Values)
-            {
-                await webRtcTransport.ListenServerClosedAsync();
-
-                // Emit observer event.
-                Observer.Emit("webrtctransportunhandled", webRtcTransport);
-            }
-
-            webRtcTransports.Clear();
-        }
-    }
 
     /// <summary>
     /// Dump Router.
     /// </summary>
-    public async Task<string> DumpAsync()
+    public async Task<object> DumpAsync()
     {
-        logger.LogDebug($"DumpAsync() | WebRtcServer: {WebRtcServerId}");
+        Logger?.LogDebug("DumpAsync() | WebRtcServer: {Id}", Id);
 
-        using (await closeLock.ReadLockAsync())
-        {
-            if (closed)
-            {
-                throw new InvalidStateException("WebRtcServer closed");
-            }
-
-            return (await channel.RequestAsync(MethodId.WEBRTCSERVER_DUMP, @internal.WebRtcServerId))!;
-        }
+        return (await channel.Request("webRtcServer.dump", @internal.WebRtcServerId))!;
     }
 
-    internal void HandleWebRtcTransport<TWebRtcTransportAppData>(WebRtcTransport.WebRtcTransport<TWebRtcTransportAppData> webRtcTransport)
+    public void HandleWebRtcTransport<TWebRtcTransportAppData>(
+        WebRtcTransport.WebRtcTransport<TWebRtcTransportAppData> webRtcTransport)
     {
         webRtcTransports[webRtcTransport.Id] = webRtcTransport;
 
         // Emit observer event.
-        Observer.Emit("webrtctransporthandled", webRtcTransport);
+        _ = Observer.SafeEmit("webrtctransporthandled", webRtcTransport);
 
         webRtcTransport.On("@close", async args =>
         {
-            using (await webRtcTransportsLock.WriteLockAsync())
-            {
-                webRtcTransports.Remove(webRtcTransport.Id);
-            }
+            webRtcTransports.Remove(webRtcTransport.Id);
 
             // Emit observer event.
-            Observer.Emit("webrtctransportunhandled", webRtcTransport);
+            await Observer.SafeEmit("webrtctransportunhandled", webRtcTransport);
         });
     }
 }

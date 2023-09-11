@@ -1,11 +1,13 @@
-﻿namespace MediasoupSharp.WebRtcTransport;
+﻿using MediasoupSharp.WebRtcServer;
+
+namespace MediasoupSharp.WebRtcTransport;
 
 public interface IWebRtcTransportListenServer
 {
     /// <summary>
     /// Instance of WebRtcServer. Mandatory unless listenIps is given.
     /// </summary>
-    public WebRtcServer.WebRtcServer WebRtcServer { get; set; }
+    IWebRtcServer WebRtcServer { get; set; }
 }
 
 public class WebRtcTransportListenServer : IWebRtcTransportListenServer
@@ -13,5 +15,5 @@ public class WebRtcTransportListenServer : IWebRtcTransportListenServer
     /// <summary>
     /// Instance of WebRtcServer. Mandatory unless listenIps is given.
     /// </summary>
-    public WebRtcServer.WebRtcServer WebRtcServer { get; set; }
+    public IWebRtcServer WebRtcServer { get; set; }
 }

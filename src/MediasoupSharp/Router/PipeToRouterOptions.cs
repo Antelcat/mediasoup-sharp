@@ -24,7 +24,7 @@ public class PipeToRouterOptions
     /// IP used in the PipeTransport pair. Default '127.0.0.1'.
     /// <see cref="TransportListenIp"/> or <see cref="string"/>
     /// </summary>
-    public TransportListenIp? ListenIp { get; set; } = new () { Ip = "127.0.0.1", AnnouncedIp = null };
+    public object? ListenIp { get; set; }
 
     /// <summary>
     /// Create a SCTP association. Default true.

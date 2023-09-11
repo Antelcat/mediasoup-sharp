@@ -14,7 +14,7 @@ internal abstract class RtpObserver<TRtpObserverAppData, TEvents>
     /// <summary>
     /// Internal data.
     /// </summary>
-    public RtpObserverObserverInternal Internal { get; }
+    protected readonly RtpObserverObserverInternal Internal;
 
     /// <summary>
     /// Channel instance.
@@ -70,6 +70,8 @@ internal abstract class RtpObserver<TRtpObserverAppData, TEvents>
         GetProducerById = args.GetProducerById;
     }
 
+    public string Id => Internal.RtpObserverId;
+    
     /// <summary>
     /// Whether the Producer is closed.
     /// </summary>

@@ -150,7 +150,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     /// <summary>
     /// Close the Transport.
     /// </summary>
-    protected virtual void Close()
+    public virtual void Close()
     {
         if (Closed)
         {

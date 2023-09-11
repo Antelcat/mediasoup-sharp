@@ -1,14 +1,14 @@
 ﻿namespace MediasoupSharp.WebRtcServer;
 
-public class WebRtcServerOptions
+public class WebRtcServerOptions<TWebRtcServerAppData>
 {
 	/// <summary>
 	/// Listen infos.
 	/// </summary>
-	public WebRtcServerListenInfo[] ListenInfos { get; set; }
+	public List<WebRtcServerListenInfo> ListenInfos { get; set; } = new();
 
 	/// <summary>
 	/// Custom application data.
 	/// </summary>
-	public Dictionary<string, object>? AppData { get; set; }
+	public TWebRtcServerAppData? AppData { get; set; }
 }

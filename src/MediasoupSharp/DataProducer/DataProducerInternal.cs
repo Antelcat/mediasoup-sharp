@@ -2,7 +2,7 @@
 
 namespace MediasoupSharp.DataProducer;
 
-public record DataProducerInternal : TransportInternal
+internal record DataProducerInternal : TransportInternal
 {
     /// <summary>
     /// DataProducer id.

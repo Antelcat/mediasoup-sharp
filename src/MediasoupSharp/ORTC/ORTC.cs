@@ -510,9 +510,9 @@ internal static partial class Ortc
         }
 
         // Normalize supported RTP capabilities.
-        ValidateRtpCapabilities(RtpCapabilities.SupportedRtpCapabilities);
+        ValidateRtpCapabilities(SupportedRtpCapabilities);
 
-        var clonedSupportedRtpCapabilities = RtpCapabilities.SupportedRtpCapabilities.DeepClone();
+        var clonedSupportedRtpCapabilities = SupportedRtpCapabilities.DeepClone();
         var dynamicPayloadTypes            = DynamicPayloadTypes.DeepClone().ToList();
         var caps = new RtpCapabilities
         {
@@ -695,7 +695,7 @@ internal static partial class Ortc
         ;
 
         // Generate encodings mapping.
-        var mappedSsrc = Utils.Utils.GenerateRandomNumber();
+        var mappedSsrc = GenerateRandomNumber();
 
         foreach (var encoding in parameters.Encodings!)
         {
@@ -980,7 +980,7 @@ internal static partial class Ortc
         {
             var consumerEncoding = new RtpEncodingParameters
             {
-                Ssrc = Utils.Utils.GenerateRandomNumber()
+                Ssrc = GenerateRandomNumber()
             };
 
             if (rtxSupported)
@@ -1030,8 +1030,8 @@ internal static partial class Ortc
         else
         {
             var consumableEncodings = consumableParams.Encodings.DeepClone();
-            var baseSsrc            = Utils.Utils.GenerateRandomNumber();
-            var baseRtxSsrc         = Utils.Utils.GenerateRandomNumber();
+            var baseSsrc            = GenerateRandomNumber();
+            var baseRtxSsrc         = GenerateRandomNumber();
 
             for (var i = 0; i < consumableEncodings!.Count; ++i)
             {
@@ -1094,8 +1094,8 @@ internal static partial class Ortc
 
         var consumableEncodings = consumableParams.Encodings!.DeepClone();
 
-        var baseSsrc    = Utils.Utils.GenerateRandomNumber();
-        var baseRtxSsrc = Utils.Utils.GenerateRandomNumber();
+        var baseSsrc    = GenerateRandomNumber();
+        var baseRtxSsrc = GenerateRandomNumber();
 
         for (var i = 0; i < consumableEncodings.Count; ++i)
         {

@@ -1,6 +1,6 @@
 ﻿namespace MediasoupSharp.RtpObserver;
 
-public record RtpObserverConstructorOptions<TRtpObserverAppData>
+internal record RtpObserverConstructorOptions<TRtpObserverAppData>
 {
     public RtpObserverObserverInternal Internal { get; set; }
     public Channel.Channel Channel { get; set; }
