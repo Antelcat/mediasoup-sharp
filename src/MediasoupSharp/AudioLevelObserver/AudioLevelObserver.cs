@@ -6,11 +6,13 @@ namespace MediasoupSharp.AudioLevelObserver;
 internal class AudioLevelObserver<TAudioLevelObserverAppData>
     : RtpObserver<TAudioLevelObserverAppData, AudioLevelObserverEvents>
 {
-
+    private readonly ILogger? logger;
     public AudioLevelObserver(
-        AudioLevelObserverConstructorOptions<TAudioLevelObserverAppData> args
-    ) : base(args)
+        AudioLevelObserverConstructorOptions<TAudioLevelObserverAppData> args,
+        ILoggerFactory? loggerFactory = null
+    ) : base(args,loggerFactory)
     {
+        logger = loggerFactory?.CreateLogger(GetType());
     }
 
     internal IEnhancedEventEmitter<AudioLevelObserverObserverEvents> Observer =>
@@ -56,7 +58,7 @@ internal class AudioLevelObserver<TAudioLevelObserverAppData>
                 }
                 default:
                 {
-                    Logger?.LogError("OnChannelMessage() | Ignoring unknown event '{Event}' ", @event);
+                    logger?.LogError("OnChannelMessage() | Ignoring unknown event '{Event}' ", @event);
                     break;
                 }
             }

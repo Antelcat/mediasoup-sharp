@@ -6,9 +6,11 @@ namespace MediasoupSharp.PipeTransport;
 
 public interface IPipeTransport{}
 
-internal class PipeTransport : PipeTransport<IDictionary<string,object?>>
+internal class PipeTransport : PipeTransport<IDictionary<string, object?>>
 {
-    public PipeTransport(PipeTransportConstructorOptions<IDictionary<string, object?>> options) : base(options)
+    public PipeTransport(PipeTransportConstructorOptions<IDictionary<string, object?>> options,
+        ILoggerFactory? loggerFactory = null) 
+        : base(options, loggerFactory)
     {
     }
 }
@@ -16,15 +18,20 @@ internal class PipeTransport : PipeTransport<IDictionary<string,object?>>
 internal class PipeTransport<TPipeTransportAppData> 
     : Transport<TPipeTransportAppData, PipeTransportEvents, PipeTransportObserverEvents> , IPipeTransport
 {
+    private readonly ILogger? logger;
+    
     /// <summary>
     /// PipeTransport data.
     /// </summary>
     private readonly PipeTransportData data;
 
     public PipeTransport(
-        PipeTransportConstructorOptions<TPipeTransportAppData> options) 
-        : base(options)
+        PipeTransportConstructorOptions<TPipeTransportAppData> options,
+        ILoggerFactory? loggerFactory = null) 
+        : base(options,loggerFactory)
     {
+        logger = loggerFactory?.CreateLogger(GetType());
+        
         data = options.Data with { };
 
         HandleWorkerNotifications();
@@ -80,7 +87,7 @@ internal class PipeTransport<TPipeTransportAppData>
     /// <returns></returns>
     public async Task<List<PipeTransportStat>> GetStats()
     {
-        Logger?.LogDebug("getStats()");
+        logger?.LogDebug("getStats()");
 
         return (await Channel.Request("transport.getStats", Internal.TransportId) as List<PipeTransportStat>)!;
     }
@@ -92,7 +99,7 @@ internal class PipeTransport<TPipeTransportAppData>
     /// <returns></returns>
     public override async Task ConnectAsync(object parameters)
     {
-        Logger?.LogDebug("ConnectAsync()");
+        logger?.LogDebug("ConnectAsync()");
 
         var data =
             await Channel.Request("transport.connect", Internal.TransportId, parameters) as dynamic;
@@ -111,7 +118,7 @@ internal class PipeTransport<TPipeTransportAppData>
     {
         var producerId = consumerOptions.ProducerId;
         var appData    = consumerOptions.AppData;
-        Logger?.LogDebug("ConsumeAsync()");
+        logger?.LogDebug("ConsumeAsync()");
 
         if (producerId.IsNullOrEmpty())
         {
@@ -214,7 +221,7 @@ internal class PipeTransport<TPipeTransportAppData>
 
                 default:
                 {
-                    Logger?.LogError("ignoring unknown event {E}", @event);
+                    logger?.LogError("ignoring unknown event {E}", @event);
                     break;
                 }
             }

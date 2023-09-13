@@ -9,11 +9,12 @@ namespace MediasoupSharp.PayloadChannel;
 
 internal class PayloadChannel : EnhancedEventEmitter
 {
+    private readonly ILogger? logger;
     // Binary Length for a 4194304 bytes payload.
     const int MESSAGE_MAX_LEN = 4194308;
     const int PAYLOAD_MAX_LEN = 4194304;
 
-    private bool closed = false;
+    private bool closed;
 
     /// <summary>
     /// Unix Socket instance for sending messages to the worker process.
@@ -37,8 +38,14 @@ internal class PayloadChannel : EnhancedEventEmitter
 
     private OngoingNotification? ongoingNotification;
 
-    public PayloadChannel(UVStream producerSocket, UVStream consumerSocket) : base()
+    public PayloadChannel(
+        UVStream producerSocket, 
+        UVStream consumerSocket,
+        ILoggerFactory? loggerFactory = null) 
+        : base(loggerFactory)
     {
+        logger = loggerFactory?.CreateLogger(GetType());
+        
         this.producerSocket = producerSocket;
         this.consumerSocket = consumerSocket;
 
@@ -49,7 +56,7 @@ internal class PayloadChannel : EnhancedEventEmitter
 
             if (recvBuffer.Length > PAYLOAD_MAX_LEN)
             {
-                Logger?.LogError("receiving buffer is full, discarding all data in it");
+                logger?.LogError("receiving buffer is full, discarding all data in it");
 
                 // Reset the buffer and exit.
                 recvBuffer = Array.Empty<byte>();
@@ -90,16 +97,16 @@ internal class PayloadChannel : EnhancedEventEmitter
         };
 
         consumerSocketOnClosed = () =>
-            Logger?.LogDebug("Consumer PayloadChannel ended by the worker process");
+            logger?.LogDebug("Consumer PayloadChannel ended by the worker process");
 
         consumerSocketOnError = error =>
-            Logger?.LogError("Consumer PayloadChannel error: {Error}", error);
+            logger?.LogError("Consumer PayloadChannel error: {Error}", error);
 
         producerSocketOnClosed = () =>
-            Logger?.LogDebug("Producer PayloadChannel ended by the worker process");
+            logger?.LogDebug("Producer PayloadChannel ended by the worker process");
 
         producerSocketOnError = error =>
-            Logger?.LogError("Producer PayloadChannel error: {Error}", error);
+            logger?.LogError("Producer PayloadChannel error: {Error}", error);
 
         this.consumerSocket.Data   += consumerSocketOnData;
         this.consumerSocket.Closed += consumerSocketOnClosed;
@@ -116,7 +123,7 @@ internal class PayloadChannel : EnhancedEventEmitter
             return;
         }
 
-        Logger?.LogDebug("close()");
+        logger?.LogDebug("close()");
 
         closed = true;
 
@@ -162,7 +169,7 @@ internal class PayloadChannel : EnhancedEventEmitter
         string? data,
         object payload)
     {
-        Logger?.LogDebug("notify() [event:{E}]", @event);
+        logger?.LogDebug("notify() [event:{E}]", @event);
 
         if (closed)
         {
@@ -192,7 +199,7 @@ internal class PayloadChannel : EnhancedEventEmitter
         }
         catch (Exception error)
         {
-            Logger?.LogWarning("notify() | sending notification failed: {E}", error);
+            logger?.LogWarning("notify() | sending notification failed: {E}", error);
 
             return;
         }
@@ -205,7 +212,7 @@ internal class PayloadChannel : EnhancedEventEmitter
         }
         catch (Exception error)
         {
-            Logger?.LogWarning("notify() | sending payload failed: {E}", error);
+            logger?.LogWarning("notify() | sending payload failed: {E}", error);
         }
     }
 
@@ -220,7 +227,7 @@ internal class PayloadChannel : EnhancedEventEmitter
             nextId = 1;
         var id = nextId;
 
-        Logger?.LogDebug("request() [{Method}, {Id}]", method, id);
+        logger?.LogDebug("request() [{Method}, {Id}]", method, id);
 
         if (closed)
         {
@@ -301,20 +308,20 @@ internal class PayloadChannel : EnhancedEventEmitter
                 
                 if (!sents.TryGetValue(id, out var sent))
                 {
-                    Logger?.LogError("ProcessData() | Received response does not match any sent request [id:{Id}]", id);
+                    logger?.LogError("ProcessData() | Received response does not match any sent request [id:{Id}]", id);
                     return;
                 }
 
                 if (msg.TryGetProperty("accepted", out _))
                 {
-                    Logger?.LogDebug("ProcessData() | Request succeed [method:{ValueMethod}, id:{ValueId}]", sent.Method, sent.Id);
+                    logger?.LogDebug("ProcessData() | Request succeed [method:{ValueMethod}, id:{ValueId}]", sent.Method, sent.Id);
 
                     sent.Resolve(msg.GetProperty("data").GetString());
                 }
                 else if (msg.TryGetProperty("error", out var errEle))
                 {
                     var reason = msg.GetProperty("reason").GetString();
-                    Logger?.LogWarning("ProcessData() | Request failed [method:{ValueMethod}, id:{ValueId}]: {S}",
+                    logger?.LogWarning("ProcessData() | Request failed [method:{ValueMethod}, id:{ValueId}]: {S}",
                         sent.Method, sent.Id, reason);
 
                     sent.Reject(new Exception(reason));
@@ -332,7 +339,7 @@ internal class PayloadChannel : EnhancedEventEmitter
                 }
                 else
                 {
-                    Logger?.LogError(
+                    logger?.LogError(
                         "ProcessData() | Received response is not accepted nor rejected [method:{ValueMethod}, id:{ValueId}]",
                         sent.Method, sent.Id);
                 }
@@ -352,7 +359,7 @@ internal class PayloadChannel : EnhancedEventEmitter
             }
             else
             {
-                Logger?.LogError(
+                logger?.LogError(
                     "ProcessData() | Received data is not a notification nor a response");
             }
         }

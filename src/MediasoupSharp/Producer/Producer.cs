@@ -31,7 +31,7 @@ internal class Producer<TProducerAppData> : Producer
 
 internal class Producer : EnhancedEventEmitter<ProducerEvents>
 {
-
+    private readonly ILogger? logger;
     /// <summary>
     /// Internal data.
     /// </summary>
@@ -75,24 +75,7 @@ internal class Producer : EnhancedEventEmitter<ProducerEvents>
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EnhancedEventEmitter<ProducerObserverEvents> Observer => observer ??= new();
-
-    #region Extra
-    private EnhancedEventEmitter<ProducerObserverEvents>? observer;
-
-    public override ILoggerFactory? LoggerFactory
-    {
-        set
-        {
-            observer = new EnhancedEventEmitter<ProducerObserverEvents>
-            {
-                LoggerFactory = value
-            };
-            base.LoggerFactory = value;
-        }
-    }
-
-    #endregion
+    public EnhancedEventEmitter<ProducerObserverEvents> Observer { get; }
     
     internal Producer(
         ProducerInternal @internal,
@@ -100,16 +83,18 @@ internal class Producer : EnhancedEventEmitter<ProducerEvents>
         Channel.Channel channel,
         PayloadChannel.PayloadChannel payloadChannel,
         object? appData,
-        bool paused
-    ) 
+        bool paused,
+        ILoggerFactory? loggerFactory = null
+    ) : base(loggerFactory)
     {
-        this.@internal = @internal;
-        this.data = data;
-        this.channel = channel;
+        logger              = loggerFactory?.CreateLogger(GetType());
+        this.@internal      = @internal;
+        this.data           = data;
+        this.channel        = channel;
         this.payloadChannel = payloadChannel;
-        AppData = appData ?? new object();
-        Paused = paused;
-
+        AppData             = appData ?? new object();
+        Paused              = paused;
+        Observer            = new(loggerFactory);
         HandleWorkerNotifications();
     }
 
@@ -139,7 +124,7 @@ internal class Producer : EnhancedEventEmitter<ProducerEvents>
             return;
         }
 
-        Logger?.LogDebug("CloseAsync() | Producer:{Id}", Id);
+        logger?.LogDebug("CloseAsync() | Producer:{Id}", Id);
 
         Closed = true;
 
@@ -170,7 +155,7 @@ internal class Producer : EnhancedEventEmitter<ProducerEvents>
             return;
         }
 
-        Logger?.LogDebug("CloseAsync() | Producer:{Id}", Id);
+        logger?.LogDebug("CloseAsync() | Producer:{Id}", Id);
 
         Closed = true;
 
@@ -189,7 +174,7 @@ internal class Producer : EnhancedEventEmitter<ProducerEvents>
     /// </summary>
     public async Task<object> DumpAsync()
     {
-        Logger?.LogDebug("DumpAsync() | Producer:{Id}", Id);
+        logger?.LogDebug("DumpAsync() | Producer:{Id}", Id);
 
         return (await channel.Request("producer.dump", @internal.ProducerId))!;
     }
@@ -199,7 +184,7 @@ internal class Producer : EnhancedEventEmitter<ProducerEvents>
     /// </summary>
     public async Task<List<ProducerStat>> GetStatsAsync()
     {
-        Logger?.LogDebug("GetStatsAsync() | Producer:{Id}", Id);
+        logger?.LogDebug("GetStatsAsync() | Producer:{Id}", Id);
 
         return (await channel.Request("producer.getStats", @internal.ProducerId) as List<ProducerStat>)!;
     }
@@ -209,7 +194,7 @@ internal class Producer : EnhancedEventEmitter<ProducerEvents>
     /// </summary>
     public async Task PauseAsync()
     {
-        Logger?.LogDebug("PauseAsync() | Producer:{Id}", Id);
+        logger?.LogDebug("PauseAsync() | Producer:{Id}", Id);
 
         var wasPaused = Paused;
 
@@ -229,7 +214,7 @@ internal class Producer : EnhancedEventEmitter<ProducerEvents>
     /// </summary>
     public async Task ResumeAsync()
     {
-        Logger?.LogDebug("ResumeAsync() | Producer:{Id}", Id);
+        logger?.LogDebug("ResumeAsync() | Producer:{Id}", Id);
 
         var wasPaused = Paused;
 
@@ -249,7 +234,7 @@ internal class Producer : EnhancedEventEmitter<ProducerEvents>
     /// </summary>
     public async Task EnableTraceEventAsync(ProducerTraceEventType[] types)
     {
-        Logger?.LogDebug("EnableTraceEventAsync() | Producer:{Id}", Id);
+        logger?.LogDebug("EnableTraceEventAsync() | Producer:{Id}", Id);
 
         // TODO : Naming
         var reqData = new { types };
@@ -315,7 +300,7 @@ internal class Producer : EnhancedEventEmitter<ProducerEvents>
 
                 default:
                 {
-                    Logger?.LogError("ignoring unknown event {E}", @event);
+                    logger?.LogError("ignoring unknown event {E}", @event);
                     break;
                 }
             }

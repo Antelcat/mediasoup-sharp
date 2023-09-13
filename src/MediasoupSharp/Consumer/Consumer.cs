@@ -37,7 +37,8 @@ internal class Consumer<TConsumerAppData> : Consumer
 
 internal class Consumer : EnhancedEventEmitter<ConsumerEvents>
 {
-
+	private readonly ILogger? logger;
+	
     /// <summary>
     /// Internal data.
     /// </summary>
@@ -95,24 +96,8 @@ internal class Consumer : EnhancedEventEmitter<ConsumerEvents>
     /// <summary>
     /// Observer instance.
     /// </summary>
-    internal EnhancedEventEmitter<ConsumerObserverEvents> Observer => observer ??= new();
-	
-    #region Extra
-
-    private EnhancedEventEmitter<ConsumerObserverEvents>? observer;
-    public override ILoggerFactory? LoggerFactory
-    {
-	    set
-	    {
-		    observer = new EnhancedEventEmitter<ConsumerObserverEvents>
-		    {
-			    LoggerFactory = value
-		    };
-		    base.LoggerFactory = value;
-	    }
-    }
-
-    #endregion
+    internal EnhancedEventEmitter<ConsumerObserverEvents> Observer { get; }
+    
     
     public Consumer(
         ConsumerInternal @internal,
@@ -123,18 +108,21 @@ internal class Consumer : EnhancedEventEmitter<ConsumerEvents>
         bool paused,
         bool producerPaused,
         ConsumerScore? score = null,
-        ConsumerLayers? preferredLayers = null
-    ) 
+        ConsumerLayers? preferredLayers = null,
+        ILoggerFactory? loggerFactory = null
+    ) : base(loggerFactory)
     {
-        this.@internal = @internal;
-        this.data = data;
-        this.channel = channel;
-        PayloadChannel = payloadChannel;
-        AppData = appData ?? new();
-        Paused = paused;
-        ProducerPaused = producerPaused;
-        Score = score!;
+	    logger          = loggerFactory?.CreateLogger(GetType());
+        this.@internal  = @internal;
+        this.data       = data;
+        this.channel    = channel;
+        PayloadChannel  = payloadChannel;
+        AppData         = appData ?? new();
+        Paused          = paused;
+        ProducerPaused  = producerPaused;
+        Score           = score!;
         PreferredLayers = preferredLayers;
+        Observer        = new(loggerFactory);
         
         HandleWorkerNotifications();
     }
@@ -161,7 +149,7 @@ internal class Consumer : EnhancedEventEmitter<ConsumerEvents>
             return;
         }
 
-        Logger?.LogDebug("CloseAsync() | Consumer:{Id}", Id);
+        logger?.LogDebug("CloseAsync() | Consumer:{Id}", Id);
 
         Closed = true;
 
@@ -192,7 +180,7 @@ internal class Consumer : EnhancedEventEmitter<ConsumerEvents>
             return;
         }
 
-        Logger?.LogDebug("TransportClosed() | Consumer:{Id}", Id);
+        logger?.LogDebug("TransportClosed() | Consumer:{Id}", Id);
         
         Closed = true;
 
@@ -211,7 +199,7 @@ internal class Consumer : EnhancedEventEmitter<ConsumerEvents>
     /// </summary>
     public async Task<object> DumpAsync()
     {
-        Logger?.LogDebug("DumpAsync() | Consumer:{Id}", Id);
+        logger?.LogDebug("DumpAsync() | Consumer:{Id}", Id);
 
         return (await channel.Request("consumer.dump", @internal.ConsumerId))!;
     }
@@ -221,7 +209,7 @@ internal class Consumer : EnhancedEventEmitter<ConsumerEvents>
     /// </summary>
     public async Task<List<object>> GetStatsAsync()
     {
-        Logger?.LogDebug("GetStatsAsync() | Consumer:{Id}", Id);
+        logger?.LogDebug("GetStatsAsync() | Consumer:{Id}", Id);
 
         return (await channel.Request("consumer.getStats", @internal.ConsumerId) as List<object>)!;
     }
@@ -231,7 +219,7 @@ internal class Consumer : EnhancedEventEmitter<ConsumerEvents>
     /// </summary>
     public async Task PauseAsync()
     {
-        Logger?.LogDebug("PauseAsync() | Consumer:{Id}", Id);
+        logger?.LogDebug("PauseAsync() | Consumer:{Id}", Id);
 
         var wasPaused = Paused || ProducerPaused;
 
@@ -252,7 +240,7 @@ internal class Consumer : EnhancedEventEmitter<ConsumerEvents>
     /// </summary>
     public async Task ResumeAsync()
     {
-        Logger?.LogDebug("ResumeAsync() | Consumer:{Id}", Id);
+        logger?.LogDebug("ResumeAsync() | Consumer:{Id}", Id);
 
         var wasPaused = Paused || ProducerPaused;
 
@@ -273,7 +261,7 @@ internal class Consumer : EnhancedEventEmitter<ConsumerEvents>
     /// </summary>
     public async Task SetPreferredLayersAsync(ConsumerLayers consumerLayers)
     {
-        Logger?.LogDebug("SetPreferredLayersAsync() | Consumer:{Id}", Id);
+        logger?.LogDebug("SetPreferredLayersAsync() | Consumer:{Id}", Id);
 
         //TODO : Naming
         var reqData = new { spatialLayer = consumerLayers.SpatialLayer, temporalLayer = consumerLayers.TemporalLayer };
@@ -287,7 +275,7 @@ internal class Consumer : EnhancedEventEmitter<ConsumerEvents>
     /// </summary>
     public async Task SetPriorityAsync(int priority)
     {
-        Logger?.LogDebug("SetPriorityAsync() | Consumer:{Id}", Id);
+        logger?.LogDebug("SetPriorityAsync() | Consumer:{Id}", Id);
 
         //TODO : Check Naming
         var reqData = new { Priority = priority };
@@ -300,7 +288,7 @@ internal class Consumer : EnhancedEventEmitter<ConsumerEvents>
     /// </summary>
     public async Task UnsetPriorityAsync()
     {
-        Logger?.LogDebug("UnsetPriorityAsync() | Consumer:{Id}", Id);
+        logger?.LogDebug("UnsetPriorityAsync() | Consumer:{Id}", Id);
 
         //TODO : Check Naming
         var reqData = new { Priority = 1 };
@@ -314,7 +302,7 @@ internal class Consumer : EnhancedEventEmitter<ConsumerEvents>
     /// </summary>
     public async Task RequestKeyFrameAsync()
     {
-        Logger?.LogDebug("RequestKeyFrameAsync() | Consumer:{Id}", Id);
+        logger?.LogDebug("RequestKeyFrameAsync() | Consumer:{Id}", Id);
 
         await channel.Request("consumer.requestKeyFrame", @internal.ConsumerId);
     }
@@ -324,7 +312,7 @@ internal class Consumer : EnhancedEventEmitter<ConsumerEvents>
     /// </summary>
     public async Task EnableTraceEventAsync(ConsumerTraceEventType[] types)
     {
-        Logger?.LogDebug("EnableTraceEventAsync() | Consumer:{Id}", Id);
+        logger?.LogDebug("EnableTraceEventAsync() | Consumer:{Id}", Id);
 
         var reqData = new
         {
@@ -452,7 +440,7 @@ internal class Consumer : EnhancedEventEmitter<ConsumerEvents>
 
 			    default:
 			    {
-				    Logger?.LogError("ignoring unknown event  ' %s'", @event);
+				    logger?.LogError("ignoring unknown event  ' %s'", @event);
 				    break;
 			    }
 		    }
@@ -481,7 +469,7 @@ internal class Consumer : EnhancedEventEmitter<ConsumerEvents>
 
 			    default:
 			    {
-				    Logger?.LogError("ignoring unknown event {E}", @event);
+				    logger?.LogError("ignoring unknown event {E}", @event);
 				    break;
 			    }
 		    }

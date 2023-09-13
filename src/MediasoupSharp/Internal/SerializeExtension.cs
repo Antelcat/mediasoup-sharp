@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Dynamic;
 using System.Runtime.CompilerServices;
+using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text.Json;
 using System.Xml.Serialization;
@@ -46,4 +47,6 @@ internal static class SerializeExtension
         }
         return ret;
     }
+
+    public static T New<T>(this Type type) => (T)FormatterServices.GetUninitializedObject(type);
 }

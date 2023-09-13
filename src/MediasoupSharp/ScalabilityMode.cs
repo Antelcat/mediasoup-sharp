@@ -8,7 +8,7 @@ public partial class ScalabilityMode
     public int  TemporalLayers { get; set; }
     public bool Ksvc           { get; set; }
 
-    public static ScalabilityMode Parse(string? scalabilityMode)
+    internal static ScalabilityMode Parse(string? scalabilityMode)
     {
         var match = Regex().Matches(scalabilityMode ?? string.Empty);
         if (match.Count > 0)

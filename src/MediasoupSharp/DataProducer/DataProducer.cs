@@ -10,13 +10,15 @@ internal class DataProducer<TDataProducerAppData> : DataProducer
         DataProducerData data,
         Channel.Channel channel,
         PayloadChannel.PayloadChannel payloadChannel,
-        TDataProducerAppData? appData)
+        TDataProducerAppData? appData,
+        ILoggerFactory? loggerFactory = null)
         : base(
             @internal,
             data,
             channel,
             payloadChannel,
-            appData)
+            appData,
+            loggerFactory)
     {
     }
 
@@ -28,6 +30,8 @@ internal class DataProducer<TDataProducerAppData> : DataProducer
 }
 internal class DataProducer : EnhancedEventEmitter<DataProducerEvents>
 {
+    private readonly ILogger? logger;
+    
     /// <summary>
     /// Internal data.
     /// </summary>
@@ -61,24 +65,8 @@ internal class DataProducer : EnhancedEventEmitter<DataProducerEvents>
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EnhancedEventEmitter<DataProducerObserverEvents> Observer => observer ??= new();
+    public EnhancedEventEmitter<DataProducerObserverEvents> Observer { get; }
 
-    #region Extra
-    private EnhancedEventEmitter<DataProducerObserverEvents>? observer;
-
-    public override ILoggerFactory? LoggerFactory
-    {
-        set
-        {
-            observer = new EnhancedEventEmitter<DataProducerObserverEvents>
-            {
-                LoggerFactory = value
-            };
-            base.LoggerFactory = value;
-        }
-    }
-
-    #endregion
 
     /// <summary>
     /// 
@@ -88,20 +76,24 @@ internal class DataProducer : EnhancedEventEmitter<DataProducerEvents>
     /// <param name="channel"></param>
     /// <param name="payloadChannel"></param>
     /// <param name="appData"></param>
+    /// <param name="loggerFactory"></param>
     public DataProducer(
         DataProducerInternal @internal,
         DataProducerData data,
         Channel.Channel channel,
         PayloadChannel.PayloadChannel payloadChannel,
-        object? appData
+        object? appData = null,
+        ILoggerFactory? loggerFactory = null
     )
     {
-        this.@internal = @internal;
-        this.data = data;
-        this.channel = channel;
+        logger              = loggerFactory?.CreateLogger(GetType());
+        this.@internal      = @internal;
+        this.data           = data;
+        this.channel        = channel;
         this.payloadChannel = payloadChannel;
-        AppData = appData ?? new();
-
+        AppData             = appData ?? new();
+        Observer            = new(loggerFactory);
+        
         HandleWorkerNotifications();
     }
 
@@ -126,7 +118,7 @@ internal class DataProducer : EnhancedEventEmitter<DataProducerEvents>
             return;
         }
 
-        Logger?.LogDebug("CloseAsync() | DataProducer:{Id}", Id);
+        logger?.LogDebug("CloseAsync() | DataProducer:{Id}", Id);
 
         Closed = true;
 
@@ -158,7 +150,7 @@ internal class DataProducer : EnhancedEventEmitter<DataProducerEvents>
             return;
         }
 
-        Logger?.LogDebug("TransportClosedAsync() | DataProducer:{Id}", Id);
+        logger?.LogDebug("TransportClosedAsync() | DataProducer:{Id}", Id);
 
         Closed = true;
 
@@ -177,7 +169,7 @@ internal class DataProducer : EnhancedEventEmitter<DataProducerEvents>
     /// </summary>
     public async Task<object> DumpAsync()
     {
-        Logger?.LogDebug("DumpAsync() | DataProducer:{Id}", Id);
+        logger?.LogDebug("DumpAsync() | DataProducer:{Id}", Id);
 
         return (await channel.Request("dataProducer.dump", @internal.DataProducerId))!;
     }
@@ -187,7 +179,7 @@ internal class DataProducer : EnhancedEventEmitter<DataProducerEvents>
     /// </summary>
     public async Task<List<DataProducerStat>> GetStatsAsync()
     {
-        Logger?.LogDebug("GetStatsAsync() | DataProducer:{Id}", Id);
+        logger?.LogDebug("GetStatsAsync() | DataProducer:{Id}", Id);
 
         return (await channel.Request("dataProducer.getStats", @internal.DataProducerId) as List<DataProducerStat>)!;
     }

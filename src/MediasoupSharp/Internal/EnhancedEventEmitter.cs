@@ -2,32 +2,21 @@
 
 namespace MediasoupSharp.Internal;
 
-internal interface IEnhancedEventEmitter
+public interface IEnhancedEventEmitter
 {
     Task<bool> SafeEmit(string name, params object[]? args);
 }
 
-internal interface IEnhancedEventEmitter<out TEvent> : IEnhancedEventEmitter
-{
-    
-}
+public interface IEnhancedEventEmitter<TEvent> : IEnhancedEventEmitter { }
 
 internal class EnhancedEventEmitter : EventEmitter, IEnhancedEventEmitter
 {
-    public virtual ILoggerFactory? LoggerFactory
+    protected EnhancedEventEmitter(ILoggerFactory? loggerFactory = null)
     {
-        protected get => loggerFactory;
-        set
-        {
-            if(value == null)return;
-            loggerFactory = value;
-            Logger        = value.CreateLogger(GetType());
-        }
+        logger = loggerFactory?.CreateLogger(GetType());
     }
 
-    private ILoggerFactory? loggerFactory;
-    
-    protected ILogger? Logger { get; private set; }
+    private readonly ILogger? logger;
 
     public async Task<bool> SafeEmit(string name, params object[]? args)
     {
@@ -39,7 +28,7 @@ internal class EnhancedEventEmitter : EventEmitter, IEnhancedEventEmitter
         }
         catch (Exception e)
         {
-            Logger?.LogError("safeEmit() | event listener threw an error [{Name}]:{S}", name, e.ToString());
+            logger?.LogError("safeEmit() | event listener threw an error [{Name}]:{S}", name, e.ToString());
             return numListeners > 0;
         }
     }
@@ -47,5 +36,7 @@ internal class EnhancedEventEmitter : EventEmitter, IEnhancedEventEmitter
 
 internal class EnhancedEventEmitter<TEvent> : EnhancedEventEmitter, IEnhancedEventEmitter<TEvent>
 {
-
+    public EnhancedEventEmitter(ILoggerFactory? loggerFactory = null) : base(loggerFactory)
+    {
+    }
 }

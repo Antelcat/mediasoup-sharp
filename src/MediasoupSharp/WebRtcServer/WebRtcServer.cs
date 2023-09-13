@@ -15,11 +15,13 @@ internal class WebRtcServer<TWebRtcServerAppData> : WebRtcServer
     public WebRtcServer(
         WebRtcServerInternal @internal, 
         Channel.Channel channel, 
-        TWebRtcServerAppData? appData)
+        TWebRtcServerAppData? appData,
+        ILoggerFactory? loggerFactory = null)
         : base(
             @internal,
             channel,
-            appData)
+            appData,
+            loggerFactory)
     {
         
     }
@@ -34,6 +36,8 @@ internal class WebRtcServer<TWebRtcServerAppData> : WebRtcServer
 internal class WebRtcServer
     : EnhancedEventEmitter<object> , IWebRtcServer
 {
+    private readonly ILogger? logger;
+    
     private readonly WebRtcServerInternal @internal;
 
     /// <summary>
@@ -59,30 +63,20 @@ internal class WebRtcServer
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EnhancedEventEmitter<WebRtcServerObserverEvents> Observer => observer ??= new();
-
-    private EnhancedEventEmitter<WebRtcServerObserverEvents>? observer;
-
-    public override ILoggerFactory? LoggerFactory
-    {
-        set
-        {
-            observer = new()
-            {
-                LoggerFactory = value
-            };
-            base.LoggerFactory = value;
-        }
-    }
+    public EnhancedEventEmitter<WebRtcServerObserverEvents> Observer { get; }
 
     public WebRtcServer(
         WebRtcServerInternal @internal,
         Channel.Channel channel,
-        object? appData)
+        object? appData = null,
+        ILoggerFactory? loggerFactory = null)
+    : base(loggerFactory)
     {
+        logger         = loggerFactory?.CreateLogger(GetType());
         this.@internal = @internal;
         this.channel   = channel;
         AppData        = appData ?? new();
+        Observer       = new(loggerFactory);
     }
 
     public string Id => @internal.WebRtcServerId;
@@ -99,7 +93,7 @@ internal class WebRtcServer
             return;
         }
 
-        Logger?.LogDebug("CloseAsync() | WebRtcServer: {Id}", Id);
+        logger?.LogDebug("CloseAsync() | WebRtcServer: {Id}", Id);
 
         Closed = true;
 
@@ -136,7 +130,7 @@ internal class WebRtcServer
             return;
         }
 
-        Logger?.LogDebug("WorkerClosedAsync() | WebRtcServer: {Id}", Id);
+        logger?.LogDebug("WorkerClosedAsync() | WebRtcServer: {Id}", Id);
 
         Closed = true;
 
@@ -156,7 +150,7 @@ internal class WebRtcServer
     /// </summary>
     public async Task<object> DumpAsync()
     {
-        Logger?.LogDebug("DumpAsync() | WebRtcServer: {Id}", Id);
+        logger?.LogDebug("DumpAsync() | WebRtcServer: {Id}", Id);
 
         return (await channel.Request("webRtcServer.dump", @internal.WebRtcServerId))!;
     }

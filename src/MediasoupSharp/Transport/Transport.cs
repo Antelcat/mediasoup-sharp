@@ -21,6 +21,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     where TEvents : TransportEvents
     where TObserverEvents : TransportObserverEvents
 {
+    private readonly ILogger? logger;
     /// <summary>
     /// Internal data.
     /// </summary>
@@ -109,30 +110,14 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EnhancedEventEmitter<TObserverEvents> Observer => observer ??= new();
-
-    #region Extra
-
-    private EnhancedEventEmitter<TObserverEvents>? observer;
-
-    public override ILoggerFactory? LoggerFactory
-    {
-        set
-        {
-            observer = new EnhancedEventEmitter<TObserverEvents>
-            {
-                LoggerFactory = value
-            };
-            base.LoggerFactory = value;
-        }
-    }
-
-    #endregion
+    public EnhancedEventEmitter<TObserverEvents> Observer { get; }
 
     protected Transport(
-        TransportConstructorOptions<TTransportAppData> arg
+        TransportConstructorOptions<TTransportAppData> arg,
+        ILoggerFactory? loggerFactory = null
     )
     {
+        logger = loggerFactory?.CreateLogger(GetType());
         Internal = arg.Internal;
         data = arg.Data;
         Channel = arg.Channel;
@@ -141,6 +126,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
         getRouterRtpCapabilities = arg.GetRouterRtpCapabilities;
         GetProducerById = arg.GetProducerById;
         GetDataProducerById = arg.GetDataProducerById;
+        Observer = new(loggerFactory);
     }
 
     public string Id => Internal.TransportId;
@@ -157,7 +143,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
             return;
         }
 
-        Logger?.LogDebug("CloseAsync() | Transport:{Id}", Id);
+        logger?.LogDebug("CloseAsync() | Transport:{Id}", Id);
 
         Closed = true;
 
@@ -227,7 +213,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
             return;
         }
 
-        Logger?.LogDebug("RouterClosed() | Transport:{Id}", Id);
+        logger?.LogDebug("RouterClosed() | Transport:{Id}", Id);
 
         Closed = true;
 
@@ -292,7 +278,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
             return;
         }
 
-        Logger?.LogDebug("listenServerClosed()");
+        logger?.LogDebug("listenServerClosed()");
 
         Closed = true;
 
@@ -354,7 +340,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     /// </summary>
     public async Task<object> DumpAsync()
     {
-        Logger?.LogDebug("DumpAsync() | Transport:{Id}", Id);
+        logger?.LogDebug("DumpAsync() | Transport:{Id}", Id);
 
         return (await Channel.Request("transport.dump", Internal.TransportId))!;
     }
@@ -382,7 +368,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     /// <returns></returns>
     public virtual async Task SetMaxIncomingBitrateAsync(int bitrate)
     {
-        Logger?.LogDebug("SetMaxIncomingBitrateAsync() | Transport:{Id} Bitrate:{Bitrate}", Id, bitrate);
+        logger?.LogDebug("SetMaxIncomingBitrateAsync() | Transport:{Id} Bitrate:{Bitrate}", Id, bitrate);
 
         // TODO : Naming
         var reqData = new { bitrate };
@@ -397,7 +383,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     /// <returns></returns>
     public virtual async Task SetMaxOutgoingBitrateAsync(int bitrate)
     {
-        Logger?.LogDebug("setMaxOutgoingBitrate() | Transport:{Id} Bitrate:{Bitrate}", Id, bitrate);
+        logger?.LogDebug("setMaxOutgoingBitrate() | Transport:{Id} Bitrate:{Bitrate}", Id, bitrate);
 
         // TODO : Naming
         var reqData = new { bitrate };
@@ -411,7 +397,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     /// <param name="bitrate"></param>
     public virtual async Task SetMinOutgoingBitrate(int bitrate)
     {
-        Logger?.LogDebug("setMinOutgoingBitrate() {Bitrate}", bitrate);
+        logger?.LogDebug("setMinOutgoingBitrate() {Bitrate}", bitrate);
 
         var reqData = new { bitrate };
 
@@ -433,7 +419,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
         var keyFrameRequestDelay = producerOptions.KeyFrameRequestDelay;
         var appData = producerOptions.AppData;
 
-        Logger?.LogDebug("ProduceAsync() | Transport:{Id}", Id);
+        logger?.LogDebug("ProduceAsync() | Transport:{Id}", Id);
 
         if (!id.IsNullOrEmpty() && producers.ContainsKey(producerOptions.Id!))
         {
@@ -557,7 +543,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
         var pipe = consumerOptions.Pipe ?? false;
         var appData = consumerOptions.AppData;
 
-        Logger?.LogDebug("ConsumeAsync() | Transport:{Id}", Id);
+        logger?.LogDebug("ConsumeAsync() | Transport:{Id}", Id);
 
         if (producerId.IsNullOrWhiteSpace())
         {
@@ -605,7 +591,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
                 // We use up to 8 bytes for MID (string).
                 if (nextMidForConsumers == 100000000)
                 {
-                    Logger?.LogError("ConsumeAsync() | Reaching max MID value {NextMidForConsumers}",
+                    logger?.LogError("ConsumeAsync() | Reaching max MID value {NextMidForConsumers}",
                         nextMidForConsumers);
 
                     nextMidForConsumers = 0;
@@ -677,7 +663,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
         var label = options.Label ?? "";
         var protocol = options.Protocol ?? "";
         var appData = options.AppData;
-        Logger?.LogDebug("ProduceDataAsync() | Transport:{Id}", Id);
+        logger?.LogDebug("ProduceDataAsync() | Transport:{Id}", Id);
 
         if (!id.IsNullOrEmpty() && DataProducers.ContainsKey(id!))
         {
@@ -702,7 +688,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
 
             if (sctpStreamParameters != null)
             {
-                Logger?.LogWarning(
+                logger?.LogWarning(
                     "ProduceDataAsync() | Transport:{Id} sctpStreamParameters are ignored when producing data on a DirectTransport",
                     Id);
             }
@@ -763,7 +749,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
         var maxRetransmits = options.MaxRetransmits;
         var appData = options.AppData;
 
-        Logger?.LogDebug("ConsumeDataAsync() | Transport:{Id}", Id);
+        logger?.LogDebug("ConsumeDataAsync() | Transport:{Id}", Id);
 
         if (dataProducerId.IsNullOrEmpty())
         {
@@ -821,7 +807,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
                 options.MaxRetransmits.HasValue
                )
             {
-                Logger?.LogWarning(
+                logger?.LogWarning(
                     "ConsumeDataAsync() | Ordered, maxPacketLifeTime and maxRetransmits are ignored when consuming data on a DirectTransport");
             }
         }
@@ -889,7 +875,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     /// <returns></returns>
     public async Task EnableTraceEventAsync(List<TransportTraceEventType> types)
     {
-        Logger?.LogDebug("EnableTraceEventAsync() | Transport:{Id}", Id);
+        logger?.LogDebug("EnableTraceEventAsync() | Transport:{Id}", Id);
 
         var reqData = new { types };
         // Fire and forget

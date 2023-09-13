@@ -9,8 +9,9 @@ public interface IWebRtcTransport{}
 
 internal class WebRtcTransport<TWebRtcTransportAppData> : WebRtcTransport
 {
-    public WebRtcTransport(WebRtcTransportConstructorOptions<object> options)
-        : base(options)
+    public WebRtcTransport(WebRtcTransportConstructorOptions<object> options, 
+        ILoggerFactory? loggerFactory = null)
+        : base(options, loggerFactory)
     {
     }
 }
@@ -18,12 +19,17 @@ internal class WebRtcTransport<TWebRtcTransportAppData> : WebRtcTransport
 internal class WebRtcTransport
     : Transport<object, WebRtcTransportEvents, WebRtcTransportObserverEvents>
 {
-    readonly WebRtcTransportData data;
+    private readonly ILogger? logger;
+    
+    private readonly WebRtcTransportData data;
     
     public WebRtcTransport(
-        WebRtcTransportConstructorOptions<object> options) 
-        : base(options)
+        WebRtcTransportConstructorOptions<object> options,
+        ILoggerFactory? loggerFactory = null) 
+        : base(options,loggerFactory)
     {
+        logger = loggerFactory?.CreateLogger(GetType());
+        
         data = options.Data.DeepClone();
         
         HandleWorkerNotifications();
@@ -150,7 +156,7 @@ internal class WebRtcTransport
 
     public new async Task<List<WebRtcTransportStat>> GetStatsAsync()
     {
-        Logger?.LogDebug("getStats()");
+        logger?.LogDebug("getStats()");
 
         return (await Channel.Request("transport.getStats", Internal.TransportId)
             as List<WebRtcTransportStat>)!;
@@ -163,7 +169,7 @@ internal class WebRtcTransport
     {
         var dtlsParameters = arg.dtlsParameters as DtlsParameters;
         
-        Logger?.LogDebug("ConnectAsync() | WebRtcTransport:{Id}", Id);
+        logger?.LogDebug("ConnectAsync() | WebRtcTransport:{Id}", Id);
         
         var reqData = new { dtlsParameters };
 
@@ -182,7 +188,7 @@ internal class WebRtcTransport
     /// </summary>
     public async Task<IceParameters> RestartIceAsync()
     {
-        Logger?.LogDebug("RestartIceAsync() | WebRtcTransport:{Id}", Id);
+        logger?.LogDebug("RestartIceAsync() | WebRtcTransport:{Id}", Id);
 
         // TODO : Naming
         var data = (await Channel.Request("transport.restartIce", Internal.TransportId)
@@ -281,7 +287,7 @@ internal class WebRtcTransport
 
                 default:
                 {
-                    Logger?.LogError("OnChannelMessage() | WebRtcTransport:{Id} Ignoring unknown event{Event}", Id,
+                    logger?.LogError("OnChannelMessage() | WebRtcTransport:{Id} Ignoring unknown event{Event}", Id,
                         @event);
 
                     break;

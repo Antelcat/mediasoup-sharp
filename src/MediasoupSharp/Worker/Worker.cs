@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Diagnostics;
+using System.Runtime.Serialization;
 using System.Text;
 using System.Text.RegularExpressions;
 using LibuvSharp;
@@ -12,12 +13,19 @@ using Process = LibuvSharp.Process;
 
 namespace MediasoupSharp.Worker;
 
+public interface IWorker
+{ }
+
+public interface IWorker<TWorkerAppData> : IWorker {}
 
 /// <summary>
 /// A worker represents a mediasoup C++ subprocess that runs in a single CPU core and handles Router instances.
 /// </summary>
-internal partial class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>
+internal partial class Worker<TWorkerAppData> 
+    : EnhancedEventEmitter<WorkerEvents> , IWorker<TWorkerAppData> 
 {
+    private readonly ILogger? logger;
+    
     /// <summary>
     /// mediasoup-worker child process.
     /// </summary>
@@ -37,24 +45,15 @@ internal partial class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvent
 
     private readonly HashSet<Router.Router> routers = new();
 
-    private EnhancedEventEmitter<WorkerObserverEvents> Observer { get; } =
-        new EnhancedEventEmitter<WorkerObserverEvents>();
+    private EnhancedEventEmitter<WorkerObserverEvents> Observer { get; }
 
     private ILogger? workerLogger;
 
-    public override ILoggerFactory? LoggerFactory
-    {
-        set
-        {
-            base.LoggerFactory     = value;
-            Observer.LoggerFactory = value;
-            channel.LoggerFactory  = value;
-            workerLogger           = value?.CreateLogger("Worker");
-        }
-    }
 
-    public Worker(WorkerSettings<object> mediasoupOptions)
+    public Worker(WorkerSettings<TWorkerAppData> mediasoupOptions,ILoggerFactory? loggerFactory = null)
     {
+        logger       = loggerFactory?.CreateLogger(GetType());
+        workerLogger = loggerFactory?.CreateLogger("Worker");
         var logLevel             = mediasoupOptions.LogLevel;
         var logTags              = mediasoupOptions.LogTags;
         var rtcMinPort           = mediasoupOptions.RtcMinPort;
@@ -63,7 +62,9 @@ internal partial class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvent
         var dtlsPrivateKeyFile   = mediasoupOptions.DtlsPrivateKeyFile;
         var libwebrtcFieldTrials = mediasoupOptions.LibwebrtcFieldTrials;
         var appData              = mediasoupOptions.AppData;
-
+        
+        Observer = new EnhancedEventEmitter<WorkerObserverEvents>(loggerFactory);
+        
         var spawnBin  = WorkerBin;
         var spawnArgs = new List<string>();
 
@@ -114,7 +115,7 @@ internal partial class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvent
             spawnArgs.Add($"--{nameof(libwebrtcFieldTrials)}={libwebrtcFieldTrials}");
         }
 
-        Logger?.LogDebug("Worker() | Spawning worker process: {} {}", spawnBin, string.Join(" ", spawnArgs));
+        logger?.LogDebug("Worker() | Spawning worker process: {} {}", spawnBin, string.Join(" ", spawnArgs));
 
         var pipes = new Pipe[7];
 
@@ -146,16 +147,14 @@ internal partial class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvent
 
         Pid = child.ID;
 
-        channel = new Channel.Channel(pipes[3], pipes[4], Pid)
-        {
-            LoggerFactory = base.LoggerFactory
-        };
+        channel = new Channel.Channel(pipes[3], pipes[4], Pid, loggerFactory);
 
         payloadChannel = new PayloadChannel.PayloadChannel(
             pipes[5],
-            pipes[6]);
+            pipes[6], 
+            loggerFactory);
 
-        this.AppData = appData ?? new();
+        this.AppData = appData ?? typeof(TWorkerAppData).New<TWorkerAppData>()!;
 
         var spawnDone = false;
 
@@ -165,7 +164,7 @@ internal partial class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvent
             if (!spawnDone && @event is "running")
             {
                 spawnDone = true;
-                Logger?.LogDebug("worker process running [pid:{Id}]", Pid);
+                logger?.LogDebug("worker process running [pid:{Id}]", Pid);
                 await Emit("@success");
             }
         });
@@ -182,13 +181,13 @@ internal partial class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvent
 
                 if (code is 42)
                 {
-                    Logger?.LogDebug("worker process failed due to wrong settings [pid:{Id}]", Pid);
+                    logger?.LogDebug("worker process failed due to wrong settings [pid:{Id}]", Pid);
                     Close();
                     await Emit("@failure", new TypeError("wrong settings"));
                 }
                 else
                 {
-                    Logger?.LogDebug("worker process failed unexpectedly [pid:{Id}]", Pid);
+                    logger?.LogDebug("worker process failed unexpectedly [pid:{Id}]", Pid);
                     Close();
                     await Emit("@failure",
                         new TypeError($"[pid:${Pid}, code:{code}, signal:{signal}]"));
@@ -196,7 +195,7 @@ internal partial class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvent
             }
             else
             {
-                Logger?.LogDebug("worker process died unexpectedly [pid:{Id}]", Pid);
+                logger?.LogDebug("worker process died unexpectedly [pid:{Id}]", Pid);
                 WorkerDied(new TypeError($"[pid:${Pid}, code:{code}, signal:{signal}]"));
             }
         });
@@ -208,13 +207,13 @@ internal partial class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvent
             if (!spawnDone)
             {
                 spawnDone = true;
-                Logger?.LogDebug("worker process failed [pid:{Id}]: {E}", Pid, error.Message);
+                logger?.LogDebug("worker process failed [pid:{Id}]: {E}", Pid, error.Message);
                 Close();
                 await Emit("@failure", error);
             }
             else
             {
-                Logger?.LogDebug("worker process error [pid:{Id}]: {E}", Pid, error.Message);
+                logger?.LogDebug("worker process error [pid:{Id}]: {E}", Pid, error.Message);
                 WorkerDied(error);
             }
         });
@@ -261,7 +260,7 @@ internal partial class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvent
             throw new InvalidStateException("Worker closed");
         }
         
-        Logger.LogDebug("CloseAsync() | Worker");
+        logger.LogDebug("CloseAsync() | Worker");
 
 
         Closed = true;
@@ -301,14 +300,14 @@ internal partial class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvent
 
     public async Task<object> DumpAsync()
     {
-        Logger?.LogDebug("dump()");
+        logger?.LogDebug("dump()");
 
         return await channel.Request("worker.dump");
     }
 
     public async Task<WorkerResourceUsage> GetResourceUsage()
     {
-        Logger?.LogDebug("getResourceUsage()");
+        logger?.LogDebug("getResourceUsage()");
 
         return (WorkerResourceUsage)(await channel.Request("worker.getResourceUsage"))!;
     }
@@ -323,7 +322,7 @@ internal partial class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvent
     {
         var listenInfos = options.ListenInfos;
         var appData     = options.AppData;
-        Logger?.LogDebug("createWebRtcServer()");
+        logger?.LogDebug("createWebRtcServer()");
 
         var reqData = new
         {
@@ -361,7 +360,7 @@ internal partial class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvent
         var mediaCodecs = options.MediaCodecs;
         var appData     = options.AppData;
 
-        Logger?.LogDebug("createRouter()");
+        logger?.LogDebug("createRouter()");
 
         // This may throw.
         var rtpCapabilities = Ortc.GenerateRouterRtpCapabilities(mediaCodecs);
@@ -397,7 +396,7 @@ internal partial class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvent
             return;
         }
 
-        Logger?.LogDebug("died() [error:${Error}]", exception);
+        logger?.LogDebug("died() [error:${Error}]", exception);
 
         Closed = true;
         Died   = true;

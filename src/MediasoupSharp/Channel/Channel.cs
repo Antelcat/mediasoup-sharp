@@ -9,6 +9,8 @@ namespace MediasoupSharp.Channel;
 
 internal class Channel : EnhancedEventEmitter
 {
+    private readonly ILogger? logger;
+    
     private static bool littleEndian = BitConverter.IsLittleEndian;
     private const int MESSAGE_MAX_LEN = 4194308;
     private const int PAYLOAD_MAX_LEN = 4194304;
@@ -34,8 +36,14 @@ internal class Channel : EnhancedEventEmitter
     /// </summary>
     private byte[] recvBuffer = Array.Empty<byte>();
 
-    public Channel(UVStream producerSocket, UVStream consumerSocket, int pid)
+    public Channel(UVStream producerSocket, 
+        UVStream consumerSocket, 
+        int pid, 
+        ILoggerFactory? loggerFactory = null) 
+        : base(loggerFactory)
     {
+        logger = loggerFactory?.CreateLogger(GetType());
+
         this.producerSocket = producerSocket;
         this.consumerSocket = consumerSocket;
 
@@ -44,7 +52,7 @@ internal class Channel : EnhancedEventEmitter
             recvBuffer = (recvBuffer.Length == 0 ? bytes : recvBuffer.Concat(bytes)).ToArray();
             if (recvBuffer.Length > PAYLOAD_MAX_LEN)
             {
-                Logger?.LogError("receiving buffer is full, discarding all data in it");
+                logger?.LogError("receiving buffer is full, discarding all data in it");
 
                 recvBuffer = Array.Empty<byte>();
                 return;
@@ -80,19 +88,19 @@ internal class Channel : EnhancedEventEmitter
 
                         // 68 = 'D' (a debug log).
                         case 68:
-                            Logger?.LogDebug("[pid:{Pid}] {S}", pid,
+                            logger?.LogDebug("[pid:{Pid}] {S}", pid,
                                 Encoding.UTF8.GetString(payload, 1, payload.Length - 1));
                             break;
 
                         // 87 = 'W' (a warn log).
                         case 87:
-                            Logger?.LogWarning("[pid:{Pid}] {S}", pid,
+                            logger?.LogWarning("[pid:{Pid}] {S}", pid,
                                 Encoding.UTF8.GetString(payload, 1, payload.Length - 1));
                             break;
 
                         // 69 = 'E' (an error log).
                         case 69:
-                            Logger?.LogError("[pid:{Pid} {S}", pid,
+                            logger?.LogError("[pid:{Pid} {S}", pid,
                                 Encoding.UTF8.GetString(payload, 1, payload.Length - 1));
                             break;
 
@@ -111,7 +119,7 @@ internal class Channel : EnhancedEventEmitter
                 }
                 catch (Exception e)
                 {
-                    Logger?.LogError("received invalid message from the worker process: {S}", e);
+                    logger?.LogError("received invalid message from the worker process: {S}", e);
                 }
 
                 if (msgStart != 0)
@@ -121,25 +129,25 @@ internal class Channel : EnhancedEventEmitter
             }
         };
         consumerSocketOnClosed = () =>
-            Logger?.LogDebug("ConsumerSocketOnClosed() |  Consumer Channel ended by the worker process");
+            logger?.LogDebug("ConsumerSocketOnClosed() |  Consumer Channel ended by the worker process");
         consumerSocketOnError = exception =>
-            Logger?.LogDebug(exception, $"ConsumerSocketOnError() |  Consumer Channel error");
-        producerSocketOnClosed = () => 
-            Logger?.LogDebug("ProducerSocketOnClosed() |  Producer Channel ended by the worker process");
+            logger?.LogDebug(exception, $"ConsumerSocketOnError() |  Consumer Channel error");
+        producerSocketOnClosed = () =>
+            logger?.LogDebug("ProducerSocketOnClosed() |  Producer Channel ended by the worker process");
         producerSocketOnError = exception =>
-            Logger?.LogDebug(exception, $"ProducerSocketOnError() |  Producer Channel error");
+            logger?.LogDebug(exception, $"ProducerSocketOnError() |  Producer Channel error");
 
-        this.consumerSocket.Data += consumerSocketOnData;
+        this.consumerSocket.Data   += consumerSocketOnData;
         this.consumerSocket.Closed += consumerSocketOnClosed;
-        this.consumerSocket.Error += consumerSocketOnError;
+        this.consumerSocket.Error  += consumerSocketOnError;
         this.producerSocket.Closed += producerSocketOnClosed;
-        this.producerSocket.Error += producerSocketOnError;
+        this.producerSocket.Error  += producerSocketOnError;
     }
 
     public void Close()
     {
         if (closed) return;
-        Logger?.LogDebug("close()");
+        logger?.LogDebug("close()");
 
         foreach (var sent in sents.Values)
         {
@@ -166,7 +174,7 @@ internal class Channel : EnhancedEventEmitter
             }
             catch (Exception e)
             {
-                Logger?.LogError(e, $"CloseAsync() |  _producerSocket.Close()");
+                logger?.LogError(e, $"CloseAsync() |  _producerSocket.Close()");
             }
 
             try
@@ -175,7 +183,7 @@ internal class Channel : EnhancedEventEmitter
             }
             catch (Exception e)
             {
-                Logger?.LogError(e, $"CloseAsync() |  _consumerSocket.Close()");
+                logger?.LogError(e, $"CloseAsync() |  _consumerSocket.Close()");
             }
         });
     }
@@ -198,7 +206,7 @@ internal class Channel : EnhancedEventEmitter
             nextId = 1;
         var id = nextId;
 
-        Logger?.LogDebug("request() [{Method}, {Id}]", method, id);
+        logger?.LogDebug("request() [{Method}, {Id}]", method, id);
 
         if (closed)
         {
@@ -255,14 +263,14 @@ internal class Channel : EnhancedEventEmitter
             var id = idEle.GetInt32();
             if (!sents.TryGetValue(id, out var sent))
             {
-                Logger?.LogError(
+                logger?.LogError(
                     "received response does not match any sent request {Id}", id);
                 return;
             }
 
             if (msg.TryGetProperty("accepted", out _))
             {
-                Logger?.LogDebug(
+                logger?.LogDebug(
                     "request succeeded {Method},{Id}", sent.Method, sent.Id);
 
                 sent.Resolve(msg.GetProperty("data").GetString());
@@ -270,7 +278,7 @@ internal class Channel : EnhancedEventEmitter
             else if (msg.TryGetProperty("error", out var errEle))
             {
                 string reason = msg.GetProperty("reason").GetString()!;
-                Logger?.LogWarning(
+                logger?.LogWarning(
                     "request failed [{Method}, {Id}]: {%s}",
                     sent.Method, sent.Id, reason);
 
@@ -287,7 +295,7 @@ internal class Channel : EnhancedEventEmitter
             }
             else
             {
-                Logger?.LogError(
+                logger?.LogError(
                     "received response is not accepted nor rejected [{Method}, {Id}]",
                     sent.Method, sent.Id);
             }
@@ -311,7 +319,7 @@ internal class Channel : EnhancedEventEmitter
         // Otherwise unexpected message.
         else
         {
-            Logger?.LogError(
+            logger?.LogError(
                 "received message is not a response nor a notification");
         }
     }

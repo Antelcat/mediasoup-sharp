@@ -6,11 +6,14 @@ namespace MediasoupSharp.ActiveSpeakerObserver;
 internal class ActiveSpeakerObserver<TActiveSpeakerObserverAppData> :
     RtpObserver<TActiveSpeakerObserverAppData, ActiveSpeakerObserverEvents>
 {
-
+    private readonly ILogger? logger;
     public ActiveSpeakerObserver(
-        RtpObserverObserverConstructorOptions<TActiveSpeakerObserverAppData> args
-    ) : base(args)
+        RtpObserverObserverConstructorOptions<TActiveSpeakerObserverAppData> args,
+        ILoggerFactory? loggerFactory = null
+    ) : base(args,loggerFactory)
     {
+        logger = loggerFactory?.CreateLogger(GetType());
+        
         HandleWorkerNotifications();
     }
 
@@ -47,7 +50,7 @@ internal class ActiveSpeakerObserver<TActiveSpeakerObserverAppData> :
 
                 default:
                 {
-                    Logger?.LogError("ignoring unknown event '{E}' ", @event);
+                    logger?.LogError("ignoring unknown event '{E}' ", @event);
                     break;
                 }
             }

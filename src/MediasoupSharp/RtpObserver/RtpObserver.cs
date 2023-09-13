@@ -11,6 +11,8 @@ internal abstract class RtpObserver<TRtpObserverAppData, TEvents>
     : EnhancedEventEmitter<TEvents> , IRtpObserver 
     where TEvents : RtpObserverEvents
 {
+    private readonly ILogger? logger;
+    
     /// <summary>
     /// Internal data.
     /// </summary>
@@ -39,35 +41,21 @@ internal abstract class RtpObserver<TRtpObserverAppData, TEvents>
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EnhancedEventEmitter<RtpObserverObserverEvents> Observer => observer ??= new();
+    public EnhancedEventEmitter<RtpObserverObserverEvents> Observer { get; }
 
-    #region Extra
 
-    private EnhancedEventEmitter<RtpObserverObserverEvents>? observer;
-    public override ILoggerFactory? LoggerFactory
-    {
-        set
-        {
-            observer = new EnhancedEventEmitter<RtpObserverObserverEvents>
-            {
-                LoggerFactory = value
-            };
-            base.LoggerFactory = value;
-        }
-    }
-
-    #endregion
-    
-    
     protected RtpObserver(
-        RtpObserverConstructorOptions<TRtpObserverAppData> args
-    ) 
+        RtpObserverConstructorOptions<TRtpObserverAppData> args,
+        ILoggerFactory? loggerFactory
+    ) : base(loggerFactory)
     {
-        Internal = args.Internal;
-        Channel = args.Channel;
-        PayloadChannel = args.PayloadChannel;
-        AppData = args.AppData ?? default;
+        logger          = loggerFactory?.CreateLogger(GetType());
+        Internal        = args.Internal;
+        Channel         = args.Channel;
+        PayloadChannel  = args.PayloadChannel;
+        AppData         = args.AppData ?? default;
         GetProducerById = args.GetProducerById;
+        Observer        = new EnhancedEventEmitter<RtpObserverObserverEvents>();
     }
 
     public string Id => Internal.RtpObserverId;
@@ -92,7 +80,7 @@ internal abstract class RtpObserver<TRtpObserverAppData, TEvents>
             return;
         }
 
-        Logger?.LogDebug("Close() | RtpObserver:{RtpObserverId}", Internal.RtpObserverId);
+        logger?.LogDebug("Close() | RtpObserver:{RtpObserverId}", Internal.RtpObserverId);
 
         Closed = true;
 
@@ -122,7 +110,7 @@ internal abstract class RtpObserver<TRtpObserverAppData, TEvents>
             return;
         }
 
-        Logger?.LogDebug("RouterClosed() | RtpObserver:{InternalRtpObserverId}", Internal.RtpObserverId);
+        logger?.LogDebug("RouterClosed() | RtpObserver:{InternalRtpObserverId}", Internal.RtpObserverId);
 
         Closed = true;
 
@@ -141,7 +129,7 @@ internal abstract class RtpObserver<TRtpObserverAppData, TEvents>
     /// </summary>
     public async Task PauseAsync()
     {
-        Logger?.LogDebug("PauseAsync() | RtpObserver:{InternalRtpObserverId}", Internal.RtpObserverId);
+        logger?.LogDebug("PauseAsync() | RtpObserver:{InternalRtpObserverId}", Internal.RtpObserverId);
 
         var wasPaused = Paused;
 
@@ -162,7 +150,7 @@ internal abstract class RtpObserver<TRtpObserverAppData, TEvents>
     /// </summary>
     public async Task ResumeAsync()
     {
-        Logger?.LogDebug("ResumeAsync() | RtpObserver:{InternalRtpObserverId}", Internal.RtpObserverId);
+        logger?.LogDebug("ResumeAsync() | RtpObserver:{InternalRtpObserverId}", Internal.RtpObserverId);
 
         var wasPaused = Paused;
 
@@ -184,7 +172,7 @@ internal abstract class RtpObserver<TRtpObserverAppData, TEvents>
     {
         var producerId = rtpObserverAddRemoveProducerOptions.ProducerId;
             
-        Logger?.LogDebug("AddProducerAsync() | RtpObserver:{InternalRtpObserverId}", producerId);
+        logger?.LogDebug("AddProducerAsync() | RtpObserver:{InternalRtpObserverId}", producerId);
 
         var producer = GetProducerById(producerId);
 
@@ -208,7 +196,7 @@ internal abstract class RtpObserver<TRtpObserverAppData, TEvents>
     {
         var producerId = rtpObserverAddRemoveProducerOptions.ProducerId;
             
-        Logger?.LogDebug("RemoveProducerAsync() | RtpObserver:{InternalRtpObserverId}", Internal.RtpObserverId);
+        logger?.LogDebug("RemoveProducerAsync() | RtpObserver:{InternalRtpObserverId}", Internal.RtpObserverId);
             
         var producer = GetProducerById(producerId);
             

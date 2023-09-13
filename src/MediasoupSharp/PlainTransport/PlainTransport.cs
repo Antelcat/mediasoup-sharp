@@ -6,15 +6,19 @@ namespace MediasoupSharp.PlainTransport;
 internal class PlainTransport<TPlainTransportAppData>
     : Transport<TPlainTransportAppData, PlainTransportEvents, PlainTransportObserverEvents>
 {
+    private readonly ILogger? logger;
     /// <summary>
     /// Producer data.
     /// </summary>
     private readonly PlainTransportData data;
 
     public PlainTransport(
-        PlainTransportConstructorOptions<TPlainTransportAppData> options
-    ) : base(options)
+        PlainTransportConstructorOptions<TPlainTransportAppData> options,
+        ILoggerFactory? loggerFactory = null
+    ) : base(options,loggerFactory)
     {
+        logger = loggerFactory?.CreateLogger(GetType());
+        
         data = options.Data with { };
 
         HandleWorkerNotifications();
@@ -68,7 +72,7 @@ internal class PlainTransport<TPlainTransportAppData>
 
     public new async Task<List<PlainTransportStat>> GetStatsAsync()
     {
-        Logger?.LogDebug("getStats()");
+        logger?.LogDebug("getStats()");
 
         return await Channel.Request("transport.getStats", Internal.TransportId) as List<PlainTransportStat>;
     }
@@ -78,7 +82,7 @@ internal class PlainTransport<TPlainTransportAppData>
     /// </summary>
     public override async Task ConnectAsync(object parameters)
     {
-        Logger?.LogDebug("ConnectAsync()");
+        logger?.LogDebug("ConnectAsync()");
 
         // TODO : Naming
         var data =
@@ -163,7 +167,7 @@ internal class PlainTransport<TPlainTransportAppData>
 
                 default:
                 {
-                    Logger?.LogError("ignoring unknown event {E}", @event);
+                    logger?.LogError("ignoring unknown event {E}", @event);
                     break;
                 }
             }

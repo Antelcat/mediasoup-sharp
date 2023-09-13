@@ -1,5 +1,5 @@
+using MediasoupSharp.Internal;
 using MediasoupSharp.Worker;
-using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.Test;
 
@@ -8,10 +8,7 @@ public class Tests
     [SetUp]
     public void Setup()
     {
-        new Worker<object>(new WorkerSettings<object>()
-        {
-            LogLevel = WorkerLogLevel.debug
-        });
+        var aas = new List<int>(){ 1,2,3,4,5 }.DeepClone();
     }
 
     [Test]

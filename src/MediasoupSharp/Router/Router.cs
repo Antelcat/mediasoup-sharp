@@ -27,13 +27,15 @@ internal class Router<TRouterAppData> : Router
         RouterData data,
         Channel.Channel channel,
         PayloadChannel.PayloadChannel payloadChannel,
-        TRouterAppData? appData)
+        TRouterAppData? appData,
+        ILoggerFactory? loggerFactory = null)
         : base(
             @internal,
             data,
             channel,
             payloadChannel,
-            appData)
+            appData,
+            loggerFactory)
     {
     }
 
@@ -46,6 +48,8 @@ internal class Router<TRouterAppData> : Router
 
 internal class Router : EnhancedEventEmitter<RouterEvents>
 {
+    private readonly ILogger? logger;
+    
     private readonly RouterInternal @internal;
 
     private readonly RouterData data;
@@ -97,35 +101,25 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EnhancedEventEmitter<RouterObserverEvents> Observer => observer ??= new();
-
-    private EnhancedEventEmitter<RouterObserverEvents>? observer;
-
-    public override ILoggerFactory? LoggerFactory
-    {
-        set
-        {
-            observer = new EnhancedEventEmitter<RouterObserverEvents>
-            {
-                LoggerFactory = value
-            };
-            base.LoggerFactory = value;
-        }
-    }
+    public EnhancedEventEmitter<RouterObserverEvents> Observer { get; }
 
     internal Router(
         RouterInternal @internal,
         RouterData data,
         Channel.Channel channel,
         PayloadChannel.PayloadChannel payloadChannel,
-        object? appData = null
-    )
+        object? appData = null,
+        ILoggerFactory? loggerFactory = null
+    ) : base(loggerFactory)
     {
+        logger              = loggerFactory?.CreateLogger(GetType());
         this.@internal      = @internal;
         this.data           = data;
         this.channel        = channel;
         this.payloadChannel = payloadChannel;
         AppData             = appData ?? new();
+        Observer            = new(loggerFactory);
+
     }
 
     public string Id => @internal.RouterId;
@@ -145,7 +139,7 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
             return;
         }
 
-        Logger?.LogDebug("CloseAsync() | Router:{Id}", Id);
+        logger?.LogDebug("CloseAsync() | Router:{Id}", Id);
 
         Closed = true;
 
@@ -192,7 +186,7 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
             return;
         }
 
-        Logger?.LogDebug("WorkerClosedAsync() | Router:{Id}", Id);
+        logger?.LogDebug("WorkerClosedAsync() | Router:{Id}", Id);
 
         Closed = true;
 
@@ -229,7 +223,7 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
     /// </summary>
     public async Task<object> DumpAsync()
     {
-        Logger?.LogDebug("DumpAsync() | Router:{Id}", Id);
+        logger?.LogDebug("DumpAsync() | Router:{Id}", Id);
 
         return (await channel.Request("router.dump", @internal.RouterId))!;
     }
@@ -253,7 +247,7 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
         var sctpSendBufferSize              = webRtcTransportOptions.SctpSendBufferSize ?? 262144;
         var appData                         = webRtcTransportOptions.AppData;
 
-        Logger?.LogDebug("CreateWebRtcTransportAsync()");
+        logger?.LogDebug("CreateWebRtcTransportAsync()");
 
         if (webRtcServer == null && webRtcTransportOptions.ListenIps.IsNullOrEmpty())
         {
@@ -372,7 +366,7 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
         var srtpCryptoSuite    = plainTransportOptions.SrtpCryptoSuite    ?? SrtpCryptoSuite.AES_CM_128_HMAC_SHA1_80;
         var appData            = plainTransportOptions.AppData;
 
-        Logger?.LogDebug("CreatePlainTransportAsync()");
+        logger?.LogDebug("CreatePlainTransportAsync()");
 
         if (listenIp == null)
         {
@@ -469,7 +463,7 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
         var enableSrtp         = pipeTransportOptions.EnableSrtp         ?? false;
         var appData            = pipeTransportOptions.AppData;
 
-        Logger?.LogDebug("CreatePipeTransportAsync()");
+        logger?.LogDebug("CreatePipeTransportAsync()");
 
         if (listenIp == null)
         {
@@ -558,7 +552,7 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
     {
         var maxMessageSize = directTransportOptions.MaxMessageSize;
         var appData        = directTransportOptions.AppData;
-        Logger?.LogDebug("CreateDirectTransportAsync()");
+        logger?.LogDebug("CreateDirectTransportAsync()");
 
         var reqData = new
         {
@@ -749,7 +743,7 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
                 }
                 catch (Exception exception)
                 {
-                    Logger?.LogError("pipeToRouter() | error creating PipeTransport pair:{E}", exception);
+                    logger?.LogError("pipeToRouter() | error creating PipeTransport pair:{E}", exception);
                     localPipeTransport?.Close();
                     remotePipeTransport?.Close();
                     promise.SetException(exception);
@@ -810,7 +804,7 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
             }
             catch (Exception ex)
             {
-                Logger?.LogError("PipeToRouterAsync() | Create pipe Consumer/Producer pair failed:{E}", ex);
+                logger?.LogError("PipeToRouterAsync() | Create pipe Consumer/Producer pair failed:{E}", ex);
 
                 pipeConsumer?.Close();
 
@@ -853,7 +847,7 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
             }
             catch (Exception ex)
             {
-                Logger?.LogError("PipeToRouterAsync() | Create pipe DataConsumer/DataProducer pair {E}", ex);
+                logger?.LogError("PipeToRouterAsync() | Create pipe DataConsumer/DataProducer pair {E}", ex);
 
                 pipeDataConsumer?.Close();
 
@@ -910,7 +904,7 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
         var interval = activeSpeakerObserverOptions.Interval ?? 300;
         var appData  = activeSpeakerObserverOptions.AppData;
 
-        Logger?.LogDebug("CreateActiveSpeakerObserverAsync()");
+        logger?.LogDebug("CreateActiveSpeakerObserverAsync()");
 
         var reqData = new
         {
@@ -955,7 +949,7 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
         var interval   = audioLevelObserverOptions.Interval   ?? 1000;
         var appData    = audioLevelObserverOptions.AppData;
 
-        Logger?.LogDebug("CreateAudioLevelObserverAsync()");
+        logger?.LogDebug("CreateAudioLevelObserverAsync()");
 
         // TODO : Naming
         var reqData = new
@@ -1003,7 +997,7 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
 
         if (producer != null)
         {
-            Logger?.LogError(
+            logger?.LogError(
                 "canConsume() | Producer with id {ID} not found", producerId);
 
             return false;
@@ -1015,7 +1009,7 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
         }
         catch (Exception e)
         {
-            Logger?.LogError("canConsume() | unexpected error: {E}", e);
+            logger?.LogError("canConsume() | unexpected error: {E}", e);
 
             return false;
         }

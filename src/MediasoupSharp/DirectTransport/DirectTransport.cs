@@ -14,18 +14,24 @@ internal class DirectTransport<TDirectTransportAppData>
     : Transport.Transport<TDirectTransportAppData, DirectTransportEvents, DirectTransportObserverEvents>,
         IDirectTransport
 {
+    private readonly ILogger? logger;
+    
     private readonly DirectTransportData data;
 
     /// <summary>
     /// 
     /// </summary>
     /// <param name="options"></param>
+    /// <param name="loggerFactory"></param>
     public DirectTransport(
-        DirectTransportConstructorOptions<TDirectTransportAppData> options
-    ) : base(options)
+        DirectTransportConstructorOptions<TDirectTransportAppData> options,
+        ILoggerFactory? loggerFactory = null
+    ) : base(options,loggerFactory)
     {
+        logger = loggerFactory?.CreateLogger(GetType());
+        
         data = new DirectTransportData();
-
+        
         HandleWorkerNotifications();
     }
 
@@ -58,7 +64,7 @@ internal class DirectTransport<TDirectTransportAppData>
 
     public new async Task<List<DirectTransportStat>> GetStatsAsync()
     {
-        Logger?.LogDebug("getStats()");
+        logger?.LogDebug("getStats()");
 
         return (await Channel.Request("transport.getStats", Internal.TransportId) as List<DirectTransportStat>)!;
     }
@@ -70,7 +76,7 @@ internal class DirectTransport<TDirectTransportAppData>
     /// <returns></returns>
     public override Task ConnectAsync(object parameters)
     {
-        Logger?.LogDebug("ConnectAsync() | DiectTransport:{Id}", Id);
+        logger?.LogDebug("ConnectAsync() | DiectTransport:{Id}", Id);
         return Task.CompletedTask;
     }
 
@@ -135,7 +141,7 @@ internal class DirectTransport<TDirectTransportAppData>
 
                 default:
                 {
-                    Logger?.LogError("ignoring unknown event {E}", @event);
+                    logger?.LogError("ignoring unknown event {E}", @event);
 
                     break;
                 }
@@ -166,7 +172,7 @@ internal class DirectTransport<TDirectTransportAppData>
 
                     default:
                     {
-                        Logger?.LogError("ignoring unknown event {E}", @event);
+                        logger?.LogError("ignoring unknown event {E}", @event);
                         break;
                     }
                 }
