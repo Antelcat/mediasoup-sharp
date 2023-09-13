@@ -44,9 +44,9 @@ internal abstract class RtpObserver<TRtpObserverAppData, TEvents>
     #region Extra
 
     private EnhancedEventEmitter<RtpObserverObserverEvents>? observer;
-    public override ILoggerFactory LoggerFactory
+    public override ILoggerFactory? LoggerFactory
     {
-        init
+        set
         {
             observer = new EnhancedEventEmitter<RtpObserverObserverEvents>
             {

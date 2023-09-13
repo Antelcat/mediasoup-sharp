@@ -63,9 +63,9 @@ internal class WebRtcServer
 
     private EnhancedEventEmitter<WebRtcServerObserverEvents>? observer;
 
-    public override ILoggerFactory LoggerFactory
+    public override ILoggerFactory? LoggerFactory
     {
-        init
+        set
         {
             observer = new()
             {

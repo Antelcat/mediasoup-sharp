@@ -4,7 +4,6 @@ namespace MediasoupSharp;
 
 public partial class ScalabilityMode
 {
-
     public int  SpatialLayers  { get; set; }
     public int  TemporalLayers { get; set; }
     public bool Ksvc           { get; set; }

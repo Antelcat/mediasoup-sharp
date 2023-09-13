@@ -13,7 +13,6 @@ using MediasoupSharp.PlainTransport;
 using MediasoupSharp.Producer;
 using MediasoupSharp.RtpObserver;
 using MediasoupSharp.RtpParameters;
-using MediasoupSharp.SctpParameters;
 using MediasoupSharp.SrtpParameters;
 using MediasoupSharp.Transport;
 using MediasoupSharp.WebRtcTransport;
@@ -28,7 +27,7 @@ internal class Router<TRouterAppData> : Router
         RouterData data,
         Channel.Channel channel,
         PayloadChannel.PayloadChannel payloadChannel,
-        RouterInternal? appData = null)
+        TRouterAppData? appData)
         : base(
             @internal,
             data,
@@ -102,9 +101,9 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
 
     private EnhancedEventEmitter<RouterObserverEvents>? observer;
 
-    public override ILoggerFactory LoggerFactory
+    public override ILoggerFactory? LoggerFactory
     {
-        init
+        set
         {
             observer = new EnhancedEventEmitter<RouterObserverEvents>
             {
@@ -186,7 +185,7 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
     /// <summary>
     /// Worker was closed.
     /// </summary>
-    private void WorkerClosed()
+    public void WorkerClosed()
     {
         if (Closed)
         {

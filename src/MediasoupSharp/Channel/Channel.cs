@@ -190,7 +190,7 @@ internal class Channel : EnhancedEventEmitter
 
     private readonly Action<Exception?> producerSocketOnError;
 
-    public Task<object?> Request(string method, string? handlerId, object? data = null)
+    public Task<object?> Request(string method, string? handlerId = null, object? data = null)
     {
         if (nextId < int.MaxValue /*4294967295*/)
             ++nextId;

@@ -100,9 +100,9 @@ internal class Consumer : EnhancedEventEmitter<ConsumerEvents>
     #region Extra
 
     private EnhancedEventEmitter<ConsumerObserverEvents>? observer;
-    public override ILoggerFactory LoggerFactory
+    public override ILoggerFactory? LoggerFactory
     {
-	    init
+	    set
 	    {
 		    observer = new EnhancedEventEmitter<ConsumerObserverEvents>
 		    {

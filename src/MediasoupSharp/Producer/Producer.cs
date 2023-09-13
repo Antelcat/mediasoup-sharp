@@ -80,9 +80,9 @@ internal class Producer : EnhancedEventEmitter<ProducerEvents>
     #region Extra
     private EnhancedEventEmitter<ProducerObserverEvents>? observer;
 
-    public override ILoggerFactory LoggerFactory
+    public override ILoggerFactory? LoggerFactory
     {
-        init
+        set
         {
             observer = new EnhancedEventEmitter<ProducerObserverEvents>
             {

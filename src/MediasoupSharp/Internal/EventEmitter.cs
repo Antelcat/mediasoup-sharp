@@ -56,6 +56,18 @@ internal class EventEmitter
         return new EventListener(() => tuple.Item1 -= handler);
     }
 
+    public void Once(string name, EventHandler handler)
+    {
+        var           tuple = CreateHandlers(name);
+        EventHandler? h     = null;
+        h = async args =>
+        {
+            await handler(args);
+            tuple.Item1 -= h;
+        };
+        tuple.Item1 += h;
+    }
+
     public IDisposable AddEventListener(string name, EventHandler handler) => On(name, handler);
 
     public void Off(string name, EventHandler handler)

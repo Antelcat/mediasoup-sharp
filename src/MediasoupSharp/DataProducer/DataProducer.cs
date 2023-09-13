@@ -66,9 +66,9 @@ internal class DataProducer : EnhancedEventEmitter<DataProducerEvents>
     #region Extra
     private EnhancedEventEmitter<DataProducerObserverEvents>? observer;
 
-    public override ILoggerFactory LoggerFactory
+    public override ILoggerFactory? LoggerFactory
     {
-        init
+        set
         {
             observer = new EnhancedEventEmitter<DataProducerObserverEvents>
             {

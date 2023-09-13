@@ -115,9 +115,9 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
 
     private EnhancedEventEmitter<TObserverEvents>? observer;
 
-    public override ILoggerFactory LoggerFactory
+    public override ILoggerFactory? LoggerFactory
     {
-        init
+        set
         {
             observer = new EnhancedEventEmitter<TObserverEvents>
             {

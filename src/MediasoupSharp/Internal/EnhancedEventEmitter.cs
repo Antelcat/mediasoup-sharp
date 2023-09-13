@@ -14,7 +14,18 @@ internal interface IEnhancedEventEmitter<out TEvent> : IEnhancedEventEmitter
 
 internal class EnhancedEventEmitter : EventEmitter, IEnhancedEventEmitter
 {
-    public virtual ILoggerFactory LoggerFactory { init => Logger = value.CreateLogger(GetType()); }
+    public virtual ILoggerFactory? LoggerFactory
+    {
+        protected get => loggerFactory;
+        set
+        {
+            if(value == null)return;
+            loggerFactory = value;
+            Logger        = value.CreateLogger(GetType());
+        }
+    }
+
+    private ILoggerFactory? loggerFactory;
     
     protected ILogger? Logger { get; private set; }
 

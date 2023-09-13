@@ -1,280 +1,436 @@
-﻿using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Runtime.Serialization;
+﻿using System.Collections;
+using System.Diagnostics;
+using System.Text;
+using System.Text.RegularExpressions;
+using LibuvSharp;
 using MediasoupSharp.Exceptions;
+using MediasoupSharp.ORTC;
+using MediasoupSharp.Router;
+using MediasoupSharp.WebRtcServer;
+using Microsoft.Extensions.Logging;
+using Process = LibuvSharp.Process;
 
 namespace MediasoupSharp.Worker;
+
 
 /// <summary>
 /// A worker represents a mediasoup C++ subprocess that runs in a single CPU core and handles Router instances.
 /// </summary>
-public class Worker : WorkerBase
+internal partial class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>
 {
-    #region Constants
-
-    private const int StdioCount = 7;
-
-    #endregion Constants
-
-    #region Private Fields
-
     /// <summary>
     /// mediasoup-worker child process.
     /// </summary>
     private Process? child;
 
-    /// <summary>
-    /// Worker process PID.
-    /// </summary>
-    public int ProcessId { get; }
+    private readonly Channel.Channel channel;
 
-    /// <summary>
-    /// Is spawn done?
-    /// </summary>
-    private bool spawnDone;
+    private readonly PayloadChannel.PayloadChannel payloadChannel;
 
-    /// <summary>
-    /// Pipes.
-    /// </summary>
-    private readonly UVStream[] pipes;
+    public bool Closed { get; private set; }
 
-    #endregion Private Fields
+    public bool Died { get; private set; }
 
-    /// <summary>
-    /// <para>Events:</para>
-    /// <para>@emits died - (error: Error)</para>
-    /// <para>@emits @success</para>
-    /// <para>@emits @failure - (error: Error)</para>
-    /// <para>Observer events:</para>
-    /// <para>@emits close</para>
-    /// <para>@emits newrouter - (router: Router)</para>
-    /// </summary>
-    /// <param name="loggerFactory"></param>
-    /// <param name="mediasoupOptions"></param>
-    public Worker(ILoggerFactory loggerFactory, MediasoupOptions mediasoupOptions) : base(loggerFactory, mediasoupOptions)
+    public object AppData { get; set; }
+
+    private readonly HashSet<WebRtcServer.WebRtcServer> webRtcServers = new();
+
+    private readonly HashSet<Router.Router> routers = new();
+
+    private EnhancedEventEmitter<WorkerObserverEvents> Observer { get; } =
+        new EnhancedEventEmitter<WorkerObserverEvents>();
+
+    private ILogger? workerLogger;
+
+    public override ILoggerFactory? LoggerFactory
     {
-        var workerPath = mediasoupOptions.MediasoupStartupSettings.WorkerPath;
-        if (workerPath.IsNullOrWhiteSpace())
+        set
         {
-            // 见：https://docs.microsoft.com/en-us/dotnet/core/rid-catalog
-            var rid = RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
-                ? "linux"
-                : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
-                    ? "osx"
-                    : RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                        ? "win"
-                        : throw new NotSupportedException("Unsupported platform");
-            var location = Assembly.GetEntryAssembly()!.Location;
-            var directory = Path.GetDirectoryName(location)!;
-            workerPath = Path.Combine(directory, "runtimes", rid, "native", "mediasoup-worker");
+            base.LoggerFactory     = value;
+            Observer.LoggerFactory = value;
+            channel.LoggerFactory  = value;
+            workerLogger           = value?.CreateLogger("Worker");
+        }
+    }
+
+    public Worker(WorkerSettings<object> mediasoupOptions)
+    {
+        var logLevel             = mediasoupOptions.LogLevel;
+        var logTags              = mediasoupOptions.LogTags;
+        var rtcMinPort           = mediasoupOptions.RtcMinPort;
+        var rtcMaxPort           = mediasoupOptions.RtcMaxPort;
+        var dtlsCertificateFile  = mediasoupOptions.DtlsCertificateFile;
+        var dtlsPrivateKeyFile   = mediasoupOptions.DtlsPrivateKeyFile;
+        var libwebrtcFieldTrials = mediasoupOptions.LibwebrtcFieldTrials;
+        var appData              = mediasoupOptions.AppData;
+
+        var spawnBin  = WorkerBin;
+        var spawnArgs = new List<string>();
+
+        if (Env("MEDIASOUP_USE_VALGRIND") is "true")
+        {
+            spawnBin = Env("MEDIASOUP_VALGRIND_BIN") ?? "valgrind";
+            var options = Env("MEDIASOUP_VALGRIND_OPTIONS");
+            if (!options.IsNullOrEmpty())
+            {
+                spawnArgs = spawnArgs.Concat(MyRegex().Matches(options!).Select(x => x.Value)).ToList();
+            }
+
+            spawnArgs.Add(WorkerBin);
         }
 
-        var workerSettings = mediasoupOptions.MediasoupSettings.WorkerSettings;
-
-        var env = new[] { $"MEDIASOUP_VERSION={mediasoupOptions.MediasoupStartupSettings.MediasoupVersion}" };
-
-        var args = new List<string>
+        if (logLevel.HasValue)
         {
-            workerPath
-        };
-        if (workerSettings.LogLevel.HasValue)
-        {
-            args.Add($"--logLevel={workerSettings.LogLevel.Value.GetDescription<EnumMemberAttribute>(x=>x.Value!)}");
-        }
-        if (!workerSettings.LogTags.IsNullOrEmpty())
-        {
-            workerSettings.LogTags!.ForEach(m => args.Add($"--logTag={m.GetDescription<EnumMemberAttribute>(x=>x.Value!)}"));
-        }
-        if (workerSettings.RtcMinPort.HasValue)
-        {
-            args.Add($"--rtcMinPort={workerSettings.RtcMinPort}");
-        }
-        if (workerSettings.RtcMaxPort.HasValue)
-        {
-            args.Add($"--rtcMaxPort={workerSettings.RtcMaxPort}");
-        }
-        if (!string.IsNullOrWhiteSpace(workerSettings.DtlsCertificateFile))
-        {
-            args.Add($"--dtlsCertificateFile={workerSettings.DtlsCertificateFile}");
-        }
-        if (!workerSettings.DtlsPrivateKeyFile.IsNullOrWhiteSpace())
-        {
-            args.Add($"--dtlsPrivateKeyFile={workerSettings.DtlsPrivateKeyFile}");
+            spawnArgs.Add($"--{nameof(logLevel)}={logLevel}");
         }
 
-        Logger.LogDebug($"Worker() | Spawning worker process: {args.Join(" ")}");
+        foreach (var logTag in logTags ?? new())
+        {
+            spawnArgs.Add($"--{nameof(logTag)}={logTag}");
+        }
 
-        pipes = new Pipe[StdioCount];
+        if (rtcMinPort.HasValue)
+        {
+            spawnArgs.Add($"--{nameof(rtcMinPort)}={rtcMinPort}");
+        }
 
-        // fd 0 (stdin)   : Just ignore it. (忽略标准输入)
+        if (rtcMaxPort.HasValue)
+        {
+            spawnArgs.Add($"--{nameof(rtcMaxPort)}={rtcMaxPort}");
+        }
+
+        if (!dtlsCertificateFile.IsNullOrEmpty())
+        {
+            spawnArgs.Add($"--{nameof(dtlsCertificateFile)}={dtlsCertificateFile}");
+        }
+
+        if (!dtlsPrivateKeyFile.IsNullOrEmpty())
+        {
+            spawnArgs.Add($"--{nameof(dtlsPrivateKeyFile)}={dtlsPrivateKeyFile}");
+        }
+
+        if (!libwebrtcFieldTrials.IsNullOrEmpty())
+        {
+            spawnArgs.Add($"--{nameof(libwebrtcFieldTrials)}={libwebrtcFieldTrials}");
+        }
+
+        Logger?.LogDebug("Worker() | Spawning worker process: {} {}", spawnBin, string.Join(" ", spawnArgs));
+
+        var pipes = new Pipe[7];
+
+        // fd 0 (stdin)   : Just ignore it. 
         // fd 1 (stdout)  : Pipe it for 3rd libraries that log their own stuff.
         // fd 2 (stderr)  : Same as stdout.
         // fd 3 (channel) : Producer Channel fd.
         // fd 4 (channel) : Consumer Channel fd.
         // fd 5 (channel) : Producer PayloadChannel fd.
         // fd 6 (channel) : Consumer PayloadChannel fd.
-        for (var i = 1; i < StdioCount; i++)
+        for (var i = 1; i < pipes.Length; i++)
         {
-            pipes[i] = new Pipe() { Writeable = true, Readable = true };
+            pipes[i] = new Pipe { Writeable = true, Readable = true };
         }
 
-        try
+        // 和 Node.js 不同，_child 没有 error 事件。不过，Process.Spawn 可抛出异常。
+        child = Process.Spawn(new ProcessOptions
         {
-            // 和 Node.js 不同，_child 没有 error 事件。不过，Process.Spawn 可抛出异常。
-            child = Process.Spawn(new ProcessOptions()
+            File      = WorkerBin,
+            Arguments = spawnArgs.ToArray(),
+            Environment = (from DictionaryEntry pair
+                        in Environment.GetEnvironmentVariables()
+                    select $"{pair.Key}={pair.Value}")
+                .Append("MEDIASOUP_VERSION=__MEDIASOUP_VERSION__")
+                .ToArray(),
+            Detached = false,
+            Streams  = pipes,
+        }, _ => { Debugger.Break(); });
+
+        Pid = child.ID;
+
+        channel = new Channel.Channel(pipes[3], pipes[4], Pid)
+        {
+            LoggerFactory = base.LoggerFactory
+        };
+
+        payloadChannel = new PayloadChannel.PayloadChannel(
+            pipes[5],
+            pipes[6]);
+
+        this.AppData = appData ?? new();
+
+        var spawnDone = false;
+
+        channel.Once($"{Pid}", async args =>
+        {
+            var @event = args![0];
+            if (!spawnDone && @event is "running")
             {
-                File = workerPath,
-                Arguments = args.ToArray(),
-                Environment = env,
-                Detached = false,
-                Streams = pipes,
-            }, OnExit);
+                spawnDone = true;
+                Logger?.LogDebug("worker process running [pid:{Id}]", Pid);
+                await Emit("@success");
+            }
+        });
 
-            ProcessId = child.Id;
-        }
-        catch (Exception ex)
+        channel.On("exit", async args =>
         {
+            var code   = (int?)args![0];
+            var signal = (string?)args[0];
             child = null;
-            CloseAsync().ConfigureAwait(false).GetAwaiter().GetResult();
 
             if (!spawnDone)
             {
                 spawnDone = true;
-                Logger.LogError(ex, $"Worker() | Worker process failed [pid:{ProcessId}]");
-                Emit("@failure", ex);
+
+                if (code is 42)
+                {
+                    Logger?.LogDebug("worker process failed due to wrong settings [pid:{Id}]", Pid);
+                    Close();
+                    await Emit("@failure", new TypeError("wrong settings"));
+                }
+                else
+                {
+                    Logger?.LogDebug("worker process failed unexpectedly [pid:{Id}]", Pid);
+                    Close();
+                    await Emit("@failure",
+                        new TypeError($"[pid:${Pid}, code:{code}, signal:{signal}]"));
+                }
             }
             else
             {
-                // 执行到这里的可能性？
-                Logger.LogError(ex, $"Worker() | Worker process error [pid:{ProcessId}]");
-                Emit("died", ex);
+                Logger?.LogDebug("worker process died unexpectedly [pid:{Id}]", Pid);
+                WorkerDied(new TypeError($"[pid:${Pid}, code:{code}, signal:{signal}]"));
             }
-        }
+        });
+        channel.On($"error", async (args) =>
+        {
+            var error = (Exception)args![0];
+            child = null;
 
-        Channel = new Channel.Channel(LoggerFactory.CreateLogger<Channel.Channel>(), pipes[3], pipes[4], ProcessId);
-        Channel.MessageEvent += OnChannelMessage;
+            if (!spawnDone)
+            {
+                spawnDone = true;
+                Logger?.LogDebug("worker process failed [pid:{Id}]: {E}", Pid, error.Message);
+                Close();
+                await Emit("@failure", error);
+            }
+            else
+            {
+                Logger?.LogDebug("worker process error [pid:{Id}]: {E}", Pid, error.Message);
+                WorkerDied(error);
+            }
+        });
 
-        PayloadChannel = new PayloadChannel.PayloadChannel(LoggerFactory.CreateLogger<PayloadChannel.PayloadChannel>(), pipes[5], pipes[6], ProcessId);
+        // Be ready for 3rd party worker libraries logging to stdout.
+        pipes[1].Data += buffer =>
+        {
+            foreach (var line in Encoding.UTF8.GetString(buffer).Split("\n"))
+            {
+                if (!line.IsNullOrEmpty())
+                {
+                    workerLogger?.LogDebug("(stdout) {Line}", line);
+                }
+            }
+        };
 
-        pipes.ForEach(m => m?.Resume());
+        // In case of a worker bug, mediasoup will log to stderr.
+        pipes[2].Data += buffer =>
+        {
+            foreach (var line in Encoding.UTF8.GetString(buffer).Split("\n"))
+            {
+                if (!line.IsNullOrEmpty())
+                {
+                    workerLogger?.LogError("(stderr) {Line}", line);
+                }
+            }
+        };
     }
 
-    public override async Task CloseAsync()
+    /// <summary>
+    /// Worker process PID.
+    /// </summary>
+    public int Pid { get; }
+
+    public HashSet<WebRtcServer.WebRtcServer> WebRtcServersForTesting => webRtcServers;
+
+    public HashSet<Router.Router> RoutersForTesting => routers;
+
+    public void Close()
     {
+
+        if (Closed)
+        {
+            throw new InvalidStateException("Worker closed");
+        }
+        
         Logger.LogDebug("CloseAsync() | Worker");
 
-        using (await CloseLock.WriteLockAsync())
+
+        Closed = true;
+
+        // Kill the worker process.
+        if (child != null)
         {
-            if (Closed)
-            {
-                throw new InvalidStateException("Worker closed");
-            }
-
-
-            Closed = true;
-
-            // Kill the worker process.
-            if (child != null)
-            {
-                // Remove event listeners but leave a fake 'error' hander to avoid
-                // propagation.
-                child.Kill(15/*SIGTERM*/);
-                child = null;
-            }
-
-            // Close the Channel instance.
-            if (Channel != null)
-            {
-                await Channel.CloseAsync();
-            }
-
-            // Close the PayloadChannel instance.
-            if (PayloadChannel != null)
-            {
-                await PayloadChannel.CloseAsync();
-            }
-
-            // Close every Router.
-            Router.Router[] routersForClose;
-            lock (RoutersLock)
-            {
-                routersForClose = Routers.ToArray();
-                Routers.Clear();
-            }
-
-            foreach (var router in routersForClose)
-            {
-                await router.WorkerClosedAsync();
-            }
-
-            // Close every WebRtcServer.
-            WebRtcServer.WebRtcServer[] webRtcServersForClose;
-            lock (WebRtcServersLock)
-            {
-                webRtcServersForClose = WebRtcServers.ToArray();
-                WebRtcServers.Clear();
-            }
-
-            foreach (var webRtcServer in webRtcServersForClose)
-            {
-                await webRtcServer.WorkerClosedAsync();
-            }
-
-            // Emit observer event.
-            Observer.Emit("close");
+            // Remove event listeners but leave a fake "error" hander to avoid
+            // propagation.
+            child.Kill(15 /*SIGTERM*/);
+            child = null;
         }
+
+        // Close the Channel instance.
+        channel.Close();
+
+        // Close the PayloadChannel instance.
+        payloadChannel.Close();
+
+        // Close every Router.
+        foreach (var router in routers)
+        {
+            router.WorkerClosed();
+        }
+        routers.Clear();
+
+        // Close every WebRtcServer.
+        foreach (var webRtcServer in webRtcServers)
+        {
+            webRtcServer.WorkerClosed();
+        }
+        webRtcServers.Clear();
+
+        // Emit observer event.
+        _ = Observer.SafeEmit("close");
     }
 
-    protected override void DestoryManaged()
+    public async Task<object> DumpAsync()
     {
-        child?.Dispose();
-        pipes.ForEach(m => m?.Dispose());
+        Logger?.LogDebug("dump()");
+
+        return await channel.Request("worker.dump");
     }
 
-    #region Event handles
-
-    private void OnChannelMessage(string targetId, string @event, string? data)
+    public async Task<WorkerResourceUsage> GetResourceUsage()
     {
-        if (@event != "running")
+        Logger?.LogDebug("getResourceUsage()");
+
+        return (WorkerResourceUsage)(await channel.Request("worker.getResourceUsage"))!;
+    }
+
+    public async Task UpdateSettings<TTWorkerAppData>(WorkerUpdateableSettings<TWorkerAppData> settings)
+    {
+        await channel.Request("worker.updateSettings", null, settings);
+    }
+
+    public async Task<WebRtcServer<TWebRtcServerAppData>> CreateWebRtcServer<TWebRtcServerAppData>(
+        WebRtcServerOptions<TWebRtcServerAppData> options)
+    {
+        var listenInfos = options.ListenInfos;
+        var appData     = options.AppData;
+        Logger?.LogDebug("createWebRtcServer()");
+
+        var reqData = new
+        {
+            webRtcServerId = Guid.NewGuid().ToString(),
+            listenInfos
+        };
+
+        await channel.Request("worker.createWebRtcServer", null, reqData);
+
+        var webRtcServer = new WebRtcServer<TWebRtcServerAppData>(
+            new WebRtcServerInternal()
+            {
+                WebRtcServerId = reqData.webRtcServerId
+            },
+            channel,
+            appData
+        );
+
+        webRtcServers.Add(webRtcServer);
+        webRtcServer.On("@close", async _ => webRtcServers.Remove(webRtcServer));
+
+        // Emit observer event.
+        _ = Observer.SafeEmit("newwebrtcserver", webRtcServer);
+
+        return webRtcServer;
+    }
+
+
+    /// <summary>
+    /// Create a Router.
+    /// </summary>
+    /// <returns></returns>
+    public async Task<Router<TRouterAppData>> CreateRouter<TRouterAppData>(RouterOptions<TRouterAppData> options)
+    {
+        var mediaCodecs = options.MediaCodecs;
+        var appData     = options.AppData;
+
+        Logger?.LogDebug("createRouter()");
+
+        // This may throw.
+        var rtpCapabilities = Ortc.GenerateRouterRtpCapabilities(mediaCodecs);
+
+        var reqData = new { routerId = Guid.NewGuid().ToString() };
+
+        await channel.Request("worker.createRouter", null, reqData);
+
+        var data = new RouterData { RtpCapabilities = rtpCapabilities };
+        var router = new Router<TRouterAppData>(
+            new RouterInternal
+            {
+                RouterId = reqData.routerId
+            },
+            data,
+            channel,
+            payloadChannel,
+            appData);
+
+        routers.Add(router);
+        router.On("@close", async _ => routers.Remove(router));
+
+        // Emit observer event.
+        await Observer.SafeEmit("newrouter", router);
+
+        return router;
+    }
+
+    private void WorkerDied(Exception exception)
+    {
+        if (Closed)
         {
             return;
         }
 
-        Channel.MessageEvent -= OnChannelMessage;
+        Logger?.LogDebug("died() [error:${Error}]", exception);
 
-        if (!spawnDone)
+        Closed = true;
+        Died   = true;
+
+        // Close the Channel instance.
+        channel.Close();
+
+        // Close the PayloadChannel instance.
+        payloadChannel.Close();
+
+        // Close every Router.
+        foreach (var router in routers)
         {
-            spawnDone = true;
-            Emit("@success");
+            router.WorkerClosed();
         }
+
+        routers.Clear();
+
+        // Close every WebRtcServer.
+        foreach (var webRtcServer in webRtcServers)
+        {
+            webRtcServer.WorkerClosed();
+        }
+
+        webRtcServers.Clear();
+
+        _ = SafeEmit("died", exception);
+
+        // Emit observer event.
+        _ = Observer.SafeEmit("close");
     }
 
-    private void OnExit(Process process)
-    {
-        child = null;
-        CloseAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+    [GeneratedRegex("/\\s+/")]
+    private static partial Regex MyRegex();
 
-        if (!spawnDone)
-        {
-            spawnDone = true;
-
-            if (process.ExitCode == 42)
-            {
-                Logger.LogError($"OnExit() | Worker process failed due to wrong settings [pid:{ProcessId}]");
-                Emit("@failure", new Exception($"Worker process failed due to wrong settings [pid:{ProcessId}]"));
-            }
-            else
-            {
-                Logger.LogError($"OnExit() | Worker process failed unexpectedly [pid:{ProcessId}, code:{process.ExitCode}, signal:{process.TermSignal}]");
-                Emit("@failure", new Exception($"Worker process failed unexpectedly [pid:{ProcessId}, code:{process.ExitCode}, signal:{process.TermSignal}]"));
-            }
-        }
-        else
-        {
-            Logger.LogError($"OnExit() | Worker process died unexpectedly [pid:{ProcessId}, code:{process.ExitCode}, signal:{process.TermSignal}]");
-            Emit("died", new Exception($"Worker process died unexpectedly [pid:{ProcessId}, code:{process.ExitCode}, signal:{process.TermSignal}]"));
-        }
-    }
-
-    #endregion Event handles
 }

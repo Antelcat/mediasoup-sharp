@@ -2,18 +2,18 @@
 
 namespace MediasoupSharp;
 
-public static class MediasoupSharp
+public static partial class MediasoupSharp
 {
-     public static readonly RtpCapabilities SupportedRtpCapabilities = new()
+    public static readonly RtpCapabilities SupportedRtpCapabilities = new()
     {
         Codecs = new()
         {
             new()
             {
-                Kind = MediaKind.audio,
-                MimeType = "audio/opus",
+                Kind      = MediaKind.audio,
+                MimeType  = "audio/opus",
                 ClockRate = 48000,
-                Channels = 2,
+                Channels  = 2,
                 RtcpFeedback = new()
                 {
                     new() { Type = "nack" },
@@ -22,10 +22,10 @@ public static class MediasoupSharp
             },
             new()
             {
-                Kind = MediaKind.audio,
-                MimeType = "audio/multiopus",
+                Kind      = MediaKind.audio,
+                MimeType  = "audio/multiopus",
                 ClockRate = 48000,
-                Channels = 4,
+                Channels  = 4,
                 // Quad channel.
                 Parameters = new Dictionary<string, object?>
                 {
@@ -41,10 +41,10 @@ public static class MediasoupSharp
             },
             new()
             {
-                Kind = MediaKind.audio,
-                MimeType = "audio/multiopus",
+                Kind      = MediaKind.audio,
+                MimeType  = "audio/multiopus",
                 ClockRate = 48000,
-                Channels = 6,
+                Channels  = 6,
                 // 5.1.
                 Parameters = new Dictionary<string, object?>
                 {
@@ -60,10 +60,10 @@ public static class MediasoupSharp
             },
             new()
             {
-                Kind = MediaKind.audio,
-                MimeType = "audio/multiopus",
+                Kind      = MediaKind.audio,
+                MimeType  = "audio/multiopus",
                 ClockRate = 48000,
-                Channels = 8,
+                Channels  = 8,
                 // 7.1.
                 Parameters = new Dictionary<string, object?>
                 {
@@ -79,10 +79,10 @@ public static class MediasoupSharp
             },
             new()
             {
-                Kind = MediaKind.audio,
-                MimeType = "audio/PCMU",
+                Kind                 = MediaKind.audio,
+                MimeType             = "audio/PCMU",
                 PreferredPayloadType = 0,
-                ClockRate = 8000,
+                ClockRate            = 8000,
                 RtcpFeedback = new()
                 {
                     new() { Type = "transport-cc" }
@@ -90,10 +90,10 @@ public static class MediasoupSharp
             },
             new()
             {
-                Kind = MediaKind.audio,
-                MimeType = "audio/PCMA",
+                Kind                 = MediaKind.audio,
+                MimeType             = "audio/PCMA",
                 PreferredPayloadType = 8,
-                ClockRate = 8000,
+                ClockRate            = 8000,
                 RtcpFeedback = new()
                 {
                     new() { Type = "transport-cc" }
@@ -101,8 +101,8 @@ public static class MediasoupSharp
             },
             new()
             {
-                Kind = MediaKind.audio,
-                MimeType = "audio/ISAC",
+                Kind      = MediaKind.audio,
+                MimeType  = "audio/ISAC",
                 ClockRate = 32000,
                 RtcpFeedback = new()
                 {
@@ -111,8 +111,8 @@ public static class MediasoupSharp
             },
             new()
             {
-                Kind = MediaKind.audio,
-                MimeType = "audio/ISAC",
+                Kind      = MediaKind.audio,
+                MimeType  = "audio/ISAC",
                 ClockRate = 16000,
                 RtcpFeedback = new()
                 {
@@ -121,9 +121,19 @@ public static class MediasoupSharp
             },
             new()
             {
-                Kind = MediaKind.audio,
-                MimeType = "audio/G722",
+                Kind                 = MediaKind.audio,
+                MimeType             = "audio/G722",
                 PreferredPayloadType = 9,
+                ClockRate            = 8000,
+                RtcpFeedback = new()
+                {
+                    new() { Type = "transport-cc" }
+                }
+            },
+            new()
+            {
+                Kind      = MediaKind.audio,
+                MimeType  = "audio/iLBC",
                 ClockRate = 8000,
                 RtcpFeedback = new()
                 {
@@ -132,18 +142,8 @@ public static class MediasoupSharp
             },
             new()
             {
-                Kind = MediaKind.audio,
-                MimeType = "audio/iLBC",
-                ClockRate = 8000,
-                RtcpFeedback = new()
-                {
-                    new() { Type = "transport-cc" }
-                }
-            },
-            new()
-            {
-                Kind = MediaKind.audio,
-                MimeType = "audio/SILK",
+                Kind      = MediaKind.audio,
+                MimeType  = "audio/SILK",
                 ClockRate = 24000,
                 RtcpFeedback = new()
                 {
@@ -152,8 +152,8 @@ public static class MediasoupSharp
             },
             new()
             {
-                Kind = MediaKind.audio,
-                MimeType = "audio/SILK",
+                Kind      = MediaKind.audio,
+                MimeType  = "audio/SILK",
                 ClockRate = 16000,
                 RtcpFeedback = new()
                 {
@@ -162,8 +162,8 @@ public static class MediasoupSharp
             },
             new()
             {
-                Kind = MediaKind.audio,
-                MimeType = "audio/SILK",
+                Kind      = MediaKind.audio,
+                MimeType  = "audio/SILK",
                 ClockRate = 12000,
                 RtcpFeedback = new()
                 {
@@ -172,8 +172,8 @@ public static class MediasoupSharp
             },
             new()
             {
-                Kind = MediaKind.audio,
-                MimeType = "audio/SILK",
+                Kind      = MediaKind.audio,
+                MimeType  = "audio/SILK",
                 ClockRate = 8000,
                 RtcpFeedback = new()
                 {
@@ -182,83 +182,83 @@ public static class MediasoupSharp
             },
             new()
             {
-                Kind = MediaKind.audio,
-                MimeType = "audio/CN",
+                Kind                 = MediaKind.audio,
+                MimeType             = "audio/CN",
                 PreferredPayloadType = 13,
-                ClockRate = 32000
+                ClockRate            = 32000
             },
             new()
             {
-                Kind = MediaKind.audio,
-                MimeType = "audio/CN",
+                Kind                 = MediaKind.audio,
+                MimeType             = "audio/CN",
                 PreferredPayloadType = 13,
-                ClockRate = 16000
+                ClockRate            = 16000
             },
             new()
             {
-                Kind = MediaKind.audio,
-                MimeType = "audio/CN",
+                Kind                 = MediaKind.audio,
+                MimeType             = "audio/CN",
                 PreferredPayloadType = 13,
-                ClockRate = 8000
+                ClockRate            = 8000
             },
             new()
             {
-                Kind = MediaKind.audio,
-                MimeType = "audio/telephone-event",
+                Kind      = MediaKind.audio,
+                MimeType  = "audio/telephone-event",
                 ClockRate = 48000
             },
             new()
             {
-                Kind = MediaKind.audio,
-                MimeType = "audio/telephone-event",
+                Kind      = MediaKind.audio,
+                MimeType  = "audio/telephone-event",
                 ClockRate = 32000
             },
 
             new()
             {
-                Kind = MediaKind.audio,
-                MimeType = "audio/telephone-event",
+                Kind      = MediaKind.audio,
+                MimeType  = "audio/telephone-event",
                 ClockRate = 16000
             },
             new()
             {
-                Kind = MediaKind.audio,
-                MimeType = "audio/telephone-event",
+                Kind      = MediaKind.audio,
+                MimeType  = "audio/telephone-event",
                 ClockRate = 8000
             },
             new()
             {
-                Kind = MediaKind.video,
-                MimeType = "video/VP8",
+                Kind      = MediaKind.video,
+                MimeType  = "video/VP8",
                 ClockRate = 90000,
                 RtcpFeedback = new()
                 {
                     new() { Type = "nack" },
                     new() { Type = "nack", Parameter = "pli" },
-                    new() { Type = "ccm", Parameter = "fir" },
+                    new() { Type = "ccm", Parameter  = "fir" },
                     new() { Type = "goog-remb" },
                     new() { Type = "transport-cc" }
                 }
             },
             new()
             {
-                Kind = MediaKind.video,
-                MimeType = "video/VP9",
+                Kind      = MediaKind.video,
+                MimeType  = "video/VP9",
                 ClockRate = 90000,
                 RtcpFeedback =
                     new()
                     {
                         new() { Type = "nack" },
                         new() { Type = "nack", Parameter = "pli" },
-                        new() { Type = "ccm", Parameter = "fir" },
+                        new() { Type = "ccm", Parameter  = "fir" },
                         new() { Type = "goog-remb" },
                         new() { Type = "transport-cc" }
                     }
             },
             new()
             {
-                Kind = MediaKind.video,
-                MimeType = "video/H264",
+                Kind      = MediaKind.video,
+                MimeType  = "video/H264",
                 ClockRate = 90000,
                 Parameters = new Dictionary<string, object?>()
                 {
@@ -269,15 +269,15 @@ public static class MediasoupSharp
                     {
                         new() { Type = "nack" },
                         new() { Type = "nack", Parameter = "pli" },
-                        new() { Type = "ccm", Parameter = "fir" },
+                        new() { Type = "ccm", Parameter  = "fir" },
                         new() { Type = "goog-remb" },
                         new() { Type = "transport-cc" }
                     }
             },
             new()
             {
-                Kind = MediaKind.video,
-                MimeType = "video/H264-SVC",
+                Kind      = MediaKind.video,
+                MimeType  = "video/H264-SVC",
                 ClockRate = 90000,
                 Parameters = new Dictionary<string, object?>
                 {
@@ -287,15 +287,15 @@ public static class MediasoupSharp
                 {
                     new() { Type = "nack" },
                     new() { Type = "nack", Parameter = "pli" },
-                    new() { Type = "ccm", Parameter = "fir" },
+                    new() { Type = "ccm", Parameter  = "fir" },
                     new() { Type = "goog-remb" },
                     new() { Type = "transport-cc" }
                 }
             },
             new()
             {
-                Kind = MediaKind.video,
-                MimeType = "video/H265",
+                Kind      = MediaKind.video,
+                MimeType  = "video/H265",
                 ClockRate = 90000,
                 Parameters =
                     new Dictionary<string, object?>
@@ -307,7 +307,7 @@ public static class MediasoupSharp
                     {
                         new() { Type = "nack" },
                         new() { Type = "nack", Parameter = "pli" },
-                        new() { Type = "ccm", Parameter = "fir" },
+                        new() { Type = "ccm", Parameter  = "fir" },
                         new() { Type = "goog-remb" },
                         new() { Type = "transport-cc" }
                     }
@@ -317,125 +317,125 @@ public static class MediasoupSharp
         {
             new()
             {
-                Kind = MediaKind.audio,
-                Uri = "urn=ietf=params=rtp-hdrext=sdes=mid",
-                PreferredId = 1,
+                Kind             = MediaKind.audio,
+                Uri              = "urn=ietf=params=rtp-hdrext=sdes=mid",
+                PreferredId      = 1,
                 PreferredEncrypt = false,
-                Direction = RtpHeaderExtensionDirection.sendrecv
+                Direction        = RtpHeaderExtensionDirection.sendrecv
             },
             new()
             {
-                Kind = MediaKind.video,
-                Uri = "urn=ietf=params=rtp-hdrext=sdes=mid",
-                PreferredId = 1,
+                Kind             = MediaKind.video,
+                Uri              = "urn=ietf=params=rtp-hdrext=sdes=mid",
+                PreferredId      = 1,
                 PreferredEncrypt = false,
-                Direction = RtpHeaderExtensionDirection.sendrecv
+                Direction        = RtpHeaderExtensionDirection.sendrecv
             },
             new()
             {
-                Kind = MediaKind.video,
-                Uri = "urn=ietf=params=rtp-hdrext=sdes=rtp-stream-id",
-                PreferredId = 2,
+                Kind             = MediaKind.video,
+                Uri              = "urn=ietf=params=rtp-hdrext=sdes=rtp-stream-id",
+                PreferredId      = 2,
                 PreferredEncrypt = false,
-                Direction = RtpHeaderExtensionDirection.recvonly
+                Direction        = RtpHeaderExtensionDirection.recvonly
             },
             new()
             {
-                Kind = MediaKind.video,
-                Uri = "urn=ietf=params=rtp-hdrext=sdes=repaired-rtp-stream-id",
-                PreferredId = 3,
+                Kind             = MediaKind.video,
+                Uri              = "urn=ietf=params=rtp-hdrext=sdes=repaired-rtp-stream-id",
+                PreferredId      = 3,
                 PreferredEncrypt = false,
-                Direction = RtpHeaderExtensionDirection.recvonly
+                Direction        = RtpHeaderExtensionDirection.recvonly
             },
             new()
             {
-                Kind = MediaKind.audio,
-                Uri = "http=//www.webrtc.org/experiments/rtp-hdrext/abs-send-time",
-                PreferredId = 4,
+                Kind             = MediaKind.audio,
+                Uri              = "http=//www.webrtc.org/experiments/rtp-hdrext/abs-send-time",
+                PreferredId      = 4,
                 PreferredEncrypt = false,
-                Direction = RtpHeaderExtensionDirection.sendrecv
+                Direction        = RtpHeaderExtensionDirection.sendrecv
             },
             new()
             {
-                Kind = MediaKind.video,
-                Uri = "http=//www.webrtc.org/experiments/rtp-hdrext/abs-send-time",
-                PreferredId = 4,
+                Kind             = MediaKind.video,
+                Uri              = "http=//www.webrtc.org/experiments/rtp-hdrext/abs-send-time",
+                PreferredId      = 4,
                 PreferredEncrypt = false,
-                Direction = RtpHeaderExtensionDirection.sendrecv
+                Direction        = RtpHeaderExtensionDirection.sendrecv
             },
             // NOTE= For audio we just enable transport-wide-cc-01 when receiving media.
             new()
             {
-                Kind = MediaKind.audio,
-                Uri = "http=//www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01",
-                PreferredId = 5,
+                Kind             = MediaKind.audio,
+                Uri              = "http=//www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01",
+                PreferredId      = 5,
                 PreferredEncrypt = false,
-                Direction = RtpHeaderExtensionDirection.recvonly
+                Direction        = RtpHeaderExtensionDirection.recvonly
             },
             new()
             {
-                Kind = MediaKind.video,
-                Uri = "http=//www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01",
-                PreferredId = 5,
+                Kind             = MediaKind.video,
+                Uri              = "http=//www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01",
+                PreferredId      = 5,
                 PreferredEncrypt = false,
-                Direction = RtpHeaderExtensionDirection.sendrecv
+                Direction        = RtpHeaderExtensionDirection.sendrecv
             },
             // NOTE= Remove this once framemarking draft becomes RFC.
             new()
             {
-                Kind = MediaKind.video,
-                Uri = "http=//tools.ietf.org/html/draft-ietf-avtext-framemarking-07",
-                PreferredId = 6,
+                Kind             = MediaKind.video,
+                Uri              = "http=//tools.ietf.org/html/draft-ietf-avtext-framemarking-07",
+                PreferredId      = 6,
                 PreferredEncrypt = false,
-                Direction = RtpHeaderExtensionDirection.sendrecv
+                Direction        = RtpHeaderExtensionDirection.sendrecv
             },
             new()
             {
-                Kind = MediaKind.video,
-                Uri = "urn=ietf=params=rtp-hdrext=framemarking",
-                PreferredId = 7,
+                Kind             = MediaKind.video,
+                Uri              = "urn=ietf=params=rtp-hdrext=framemarking",
+                PreferredId      = 7,
                 PreferredEncrypt = false,
-                Direction = RtpHeaderExtensionDirection.sendrecv
+                Direction        = RtpHeaderExtensionDirection.sendrecv
             },
             new()
             {
-                Kind = MediaKind.audio,
-                Uri = "urn=ietf=params=rtp-hdrext=ssrc-audio-level",
-                PreferredId = 10,
+                Kind             = MediaKind.audio,
+                Uri              = "urn=ietf=params=rtp-hdrext=ssrc-audio-level",
+                PreferredId      = 10,
                 PreferredEncrypt = false,
-                Direction = RtpHeaderExtensionDirection.sendrecv
+                Direction        = RtpHeaderExtensionDirection.sendrecv
             },
             new()
             {
-                Kind = MediaKind.video,
-                Uri = "urn=3gpp=video-orientation",
-                PreferredId = 11,
+                Kind             = MediaKind.video,
+                Uri              = "urn=3gpp=video-orientation",
+                PreferredId      = 11,
                 PreferredEncrypt = false,
-                Direction = RtpHeaderExtensionDirection.sendrecv
+                Direction        = RtpHeaderExtensionDirection.sendrecv
             },
             new()
             {
-                Kind = MediaKind.video,
-                Uri = "urn=ietf=params=rtp-hdrext=toffset",
-                PreferredId = 12,
+                Kind             = MediaKind.video,
+                Uri              = "urn=ietf=params=rtp-hdrext=toffset",
+                PreferredId      = 12,
                 PreferredEncrypt = false,
-                Direction = RtpHeaderExtensionDirection.sendrecv
+                Direction        = RtpHeaderExtensionDirection.sendrecv
             },
             new()
             {
-                Kind = MediaKind.audio,
-                Uri = "http=//www.webrtc.org/experiments/rtp-hdrext/abs-capture-time",
-                PreferredId = 13,
+                Kind             = MediaKind.audio,
+                Uri              = "http=//www.webrtc.org/experiments/rtp-hdrext/abs-capture-time",
+                PreferredId      = 13,
                 PreferredEncrypt = false,
-                Direction = RtpHeaderExtensionDirection.sendrecv
+                Direction        = RtpHeaderExtensionDirection.sendrecv
             },
             new()
             {
-                Kind = MediaKind.video,
-                Uri = "http=//www.webrtc.org/experiments/rtp-hdrext/abs-capture-time",
-                PreferredId = 13,
+                Kind             = MediaKind.video,
+                Uri              = "http=//www.webrtc.org/experiments/rtp-hdrext/abs-capture-time",
+                PreferredId      = 13,
                 PreferredEncrypt = false,
-                Direction = RtpHeaderExtensionDirection.sendrecv
+                Direction        = RtpHeaderExtensionDirection.sendrecv
             }
         }
     };

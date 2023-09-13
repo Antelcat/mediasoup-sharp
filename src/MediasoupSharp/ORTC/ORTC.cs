@@ -502,7 +502,7 @@ internal static partial class Ortc
     /// Generate RTP capabilities for the Router based on the given media codecs and
     /// mediasoup supported RTP capabilities.
     /// </summary>
-    public static RtpCapabilities GenerateRouterRtpCapabilities(List<RtpCodecCapability> mediaCodecs)
+    public static RtpCapabilities GenerateRouterRtpCapabilities(List<RtpCodecCapability>? mediaCodecs)
     {
         if (mediaCodecs == null)
         {

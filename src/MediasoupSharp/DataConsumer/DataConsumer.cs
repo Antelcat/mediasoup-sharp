@@ -73,9 +73,9 @@ internal class DataConsumer : EnhancedEventEmitter<DataConsumerEvents>
     #region Extra
 
     private EnhancedEventEmitter<DataConsumerObserverEvents>? observer;
-    public override ILoggerFactory LoggerFactory
+    public override ILoggerFactory? LoggerFactory
     {
-        init
+        set
         {
             observer = new EnhancedEventEmitter<DataConsumerObserverEvents>
             {
