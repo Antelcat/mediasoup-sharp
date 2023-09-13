@@ -7,23 +7,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Libuv" Version="1.10.0" />
-      <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.1" />
+        <PackageReference Include="Libuv" Version="1.10.0"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.1"/>
     </ItemGroup>
 
 
     <ItemGroup>
-      <ProjectReference Include="..\..\libuv-sharp\src\LibuvSharp\LibuvSharp.csproj" />
-
-
-
-
+        <ProjectReference Include="..\..\libuv-sharp\src\LibuvSharp\LibuvSharp.csproj"/>
+        <InternalsVisibleTo Include="MediasoupSharp.Test"/>
     </ItemGroup>
-
-
-
-
-
-
 
 </Project>
