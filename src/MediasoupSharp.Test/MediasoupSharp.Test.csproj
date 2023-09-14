@@ -21,4 +21,12 @@
       <ProjectReference Include="..\MediasoupSharp\MediasoupSharp.csproj" />
     </ItemGroup>
 
+
+
+    <ItemGroup>
+      <None Update="runtimes\win-x64\native\mediasoup-worker.exe">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
 </Project>

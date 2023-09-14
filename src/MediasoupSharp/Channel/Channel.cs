@@ -3,6 +3,7 @@ using System.Text.Json;
 using LibuvSharp;
 using MediasoupSharp.Errors;
 using Microsoft.Extensions.Logging;
+// ReSharper disable InconsistentNaming
 
 namespace MediasoupSharp.Channel;
 
@@ -14,7 +15,7 @@ internal class Channel : EnhancedEventEmitter
     private const int MESSAGE_MAX_LEN = 4194308;
     private const int PAYLOAD_MAX_LEN = 4194304;
 
-    private bool closed = false;
+    private bool closed;
 
     /// <summary>
     /// Unix Socket instance for sending messages to the worker process.
@@ -26,9 +27,9 @@ internal class Channel : EnhancedEventEmitter
     /// </summary>
     private readonly UVStream consumerSocket;
 
-    private int nextId;
+    private uint nextId;
 
-    private readonly Dictionary<int, Sent> sents = new();
+    private readonly Dictionary<uint, Sent> sents = new();
 
     /// <summary>
     /// Buffer for reading messages from the worker.
@@ -148,6 +149,8 @@ internal class Channel : EnhancedEventEmitter
         if (closed) return;
         logger?.LogDebug("close()");
 
+        closed = true;
+        
         foreach (var sent in sents.Values)
         {
             sent.Close();
@@ -199,7 +202,7 @@ internal class Channel : EnhancedEventEmitter
 
     public Task<object?> Request(string method, string? handlerId = null, object? data = null)
     {
-        if (nextId < int.MaxValue /*4294967295*/)
+        if (nextId < uint.MaxValue /*4294967295*/)
             ++nextId;
         else
             nextId = 1;
@@ -259,7 +262,7 @@ internal class Channel : EnhancedEventEmitter
         // If a response, retrieve its associated request.
         if (msg.TryGetProperty("id", out var idEle))
         {
-            var id = idEle.GetInt32();
+            var id = idEle.GetUInt32();
             if (!sents.TryGetValue(id, out var sent))
             {
                 logger?.LogError(

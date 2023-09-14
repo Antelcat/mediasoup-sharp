@@ -29,6 +29,6 @@ public partial class ScalabilityMode
         };
     }
 
-    [GeneratedRegex("^[LS]([1-9]\\\\d{0,1})T([1-9]\\\\d{0,1})(_KEY)?")]
+    [GeneratedRegex(@"^[LS]([1-9]\\d{0,1})T([1-9]\\d{0,1})(_KEY)?")]
     private static partial Regex Regex();
 }

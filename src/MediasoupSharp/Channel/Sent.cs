@@ -2,7 +2,7 @@
 
 public class Sent
 {
-    public int Id { get; set; }
+    public uint Id { get; set; }
         
     public string Method { get; set; }
     public Action<object?> Resolve { get; set; }

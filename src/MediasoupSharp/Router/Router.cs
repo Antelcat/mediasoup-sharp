@@ -21,6 +21,9 @@ namespace MediasoupSharp.Router;
 public interface IRouter
 {
     string Id { get; }
+    
+    internal EnhancedEventEmitter Observer { get; }
+    
     void WorkerClosed();
 
     internal Task<PlainTransport<TPlainTransportAppData>> CreatePlainTransportAsync<TPlainTransportAppData>(
@@ -29,6 +32,9 @@ public interface IRouter
     internal Task<PipeTransport<TPipeTransportAppData>> CreatePipeTransportAsync<TPipeTransportAppData>(
         PipeTransportOptions<TPipeTransportAppData> pipeTransportOptions);
 
+    internal Task<ActiveSpeakerObserver<TActiveSpeakerObserverAppData>> CreateActiveSpeakerObserverAsync<
+        TActiveSpeakerObserverAppData>(
+        ActiveSpeakerObserverOptions<TActiveSpeakerObserverAppData>? activeSpeakerObserverOptions = null);
     internal void AddPipeTransportPair(string pipeTransportPairKey, Task<PipeTransportPair> pipeTransportPairPromise);
 }
 
@@ -88,7 +94,7 @@ internal class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>, IRou
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EnhancedEventEmitter<RouterObserverEvents> Observer { get; }
+    public EnhancedEventEmitter Observer { get; }
 
     internal Router(
         RouterInternal @internal,
@@ -105,7 +111,7 @@ internal class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>, IRou
         this.channel        = channel;
         this.payloadChannel = payloadChannel;
         AppData             = appData ?? typeof(TRouterAppData).New<TRouterAppData>();
-        Observer            = new(loggerFactory);
+        Observer            = new EnhancedEventEmitter<RouterObserverEvents>(loggerFactory);
 
     }
 
@@ -886,10 +892,12 @@ internal class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>, IRou
     /// </summary>
     public async Task<ActiveSpeakerObserver<TActiveSpeakerObserverAppData>> CreateActiveSpeakerObserverAsync<
         TActiveSpeakerObserverAppData>(
-        ActiveSpeakerObserverOptions<TActiveSpeakerObserverAppData> activeSpeakerObserverOptions)
+        ActiveSpeakerObserverOptions<TActiveSpeakerObserverAppData>? activeSpeakerObserverOptions = null)
     {
-        var interval = activeSpeakerObserverOptions.Interval ?? 300;
-        var appData  = activeSpeakerObserverOptions.AppData;
+        var interval = activeSpeakerObserverOptions?.Interval ?? 300;
+        var appData = activeSpeakerObserverOptions == null
+            ? typeof(TActiveSpeakerObserverAppData).New<TActiveSpeakerObserverAppData>()
+            : activeSpeakerObserverOptions.AppData;
 
         logger?.LogDebug("CreateActiveSpeakerObserverAsync()");
 

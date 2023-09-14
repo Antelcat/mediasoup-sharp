@@ -1,6 +1,7 @@
 ﻿using MediasoupSharp.RtpParameters;
 using MediasoupSharp.Worker;
 using Microsoft.Extensions.Logging;
+using Microsoft.VisualBasic.CompilerServices;
 
 namespace MediasoupSharp;
 
@@ -10,7 +11,7 @@ public static partial class MediasoupSharp
 
     internal static string? Env(string key) => Environment.GetEnvironmentVariable(key);
 
-    public const string Version = "__MEDIASOUP_VERSION__";
+    public static string Version = "__MEDIASOUP_VERSION__";
     
     public static ScalabilityMode ParseScalabilityMode(string? scalabilityMode) => ScalabilityMode.Parse(scalabilityMode);
     
@@ -18,20 +19,26 @@ public static partial class MediasoupSharp
 
     public static readonly IEnhancedEventEmitter<ObserverEvents> Observer = new EnhancedEventEmitter<ObserverEvents>();
 
+    public static async Task<IWorker> CreateWorker(WorkerSettings<object>? settings = null,
+        ILoggerFactory? loggerFactory = null)
+    {
+        return await CreateWorker<object>(settings, loggerFactory);
+    }
+    
     public static async Task<IWorker<TWorkerAppData>> CreateWorker<TWorkerAppData>(
-        WorkerSettings<TWorkerAppData> settings,
+        WorkerSettings<TWorkerAppData>? settings = null,
         ILoggerFactory? loggerFactory = null)
     {
         logger = loggerFactory?.CreateLogger($"{nameof(MediasoupSharp)}");
 
-        var logLevel             = settings.LogLevel ?? WorkerLogLevel.error;
-        var logTags              = settings.LogTags;
-        var rtcMinPort           = settings.RtcMinPort ?? 10000;
-        var rtcMaxPort           = settings.RtcMaxPort ?? 59999;
-        var dtlsCertificateFile  = settings.DtlsCertificateFile;
-        var dtlsPrivateKeyFile   = settings.DtlsPrivateKeyFile;
-        var libwebrtcFieldTrials = settings.LibwebrtcFieldTrials;
-        var appData              = settings.AppData;
+        var logLevel             = settings?.LogLevel ?? WorkerLogLevel.error;
+        var logTags              = settings?.LogTags;
+        var rtcMinPort           = settings?.RtcMinPort ?? 10000;
+        var rtcMaxPort           = settings?.RtcMaxPort ?? 59999;
+        var dtlsCertificateFile  = settings?.DtlsCertificateFile;
+        var dtlsPrivateKeyFile   = settings?.DtlsPrivateKeyFile;
+        var libwebrtcFieldTrials = settings?.LibwebrtcFieldTrials;
+        var appData              = settings == null ? typeof(TWorkerAppData).New<TWorkerAppData>() : settings.AppData;
 
         logger?.LogDebug("CreateWorker()");
 
@@ -46,7 +53,7 @@ public static partial class MediasoupSharp
                 DtlsPrivateKeyFile   = dtlsPrivateKeyFile,
                 LibwebrtcFieldTrials = libwebrtcFieldTrials,
                 AppData              = appData
-            });
+            }, loggerFactory);
         var taskSource = new TaskCompletionSource<IWorker<TWorkerAppData>>();
         worker.On("@success", async _ =>
         {

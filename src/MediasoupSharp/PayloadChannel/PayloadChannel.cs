@@ -4,6 +4,7 @@ using System.Text.Json;
 using LibuvSharp;
 using MediasoupSharp.Errors;
 using Microsoft.Extensions.Logging;
+// ReSharper disable InconsistentNaming
 
 namespace MediasoupSharp.PayloadChannel;
 
@@ -27,9 +28,9 @@ internal class PayloadChannel : EnhancedEventEmitter
     private readonly UVStream consumerSocket;
 
     // Next id for messages sent to the worker process.
-    private int nextId = 0;
+    private uint nextId = 0;
 
-    private readonly Dictionary<int, Sent> sents = new();
+    private readonly Dictionary<uint, Sent> sents = new();
 
     /// <summary>
     /// Buffer for reading messages from the worker.
@@ -221,7 +222,7 @@ internal class PayloadChannel : EnhancedEventEmitter
         string data,
         object payload)
     {
-        if (nextId < int.MaxValue /*4294967295*/)
+        if (nextId < uint.MaxValue /*4294967295*/)
             ++nextId;
         else
             nextId = 1;
@@ -304,7 +305,7 @@ internal class PayloadChannel : EnhancedEventEmitter
             // If a response, retrieve its associated request.
             if (msg.TryGetProperty("id",out var idEle))
             {
-                var id = idEle.GetInt32();
+                var id = idEle.GetUInt32();
                 
                 if (!sents.TryGetValue(id, out var sent))
                 {

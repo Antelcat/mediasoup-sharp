@@ -14,6 +14,9 @@ namespace MediasoupSharp.Worker;
 
 public interface IWorker
 {
+
+    void Close();
+    Task<IRouter> CreateRouter<TRouterAppData>(RouterOptions<TRouterAppData> options);
 }
 
 public interface IWorker<TWorkerAppData> : IWorker
@@ -120,6 +123,9 @@ internal partial class Worker<TWorkerAppData>
         logger?.LogDebug("Worker() | Spawning worker process: {} {}", spawnBin, string.Join(" ", spawnArgs));
 
         var pipes = new Pipe[7];
+        
+        //NativeHandle的起始指针不可为空，只要不管他就行，如果不读不写会引发ENOTSUP
+        pipes[0] = new Pipe { Writeable = false, Readable = true };
 
         // fd 0 (stdin)   : Just ignore it. 
         // fd 1 (stdout)  : Pipe it for 3rd libraries that log their own stuff.
@@ -130,33 +136,57 @@ internal partial class Worker<TWorkerAppData>
         // fd 6 (channel) : Consumer PayloadChannel fd.
         for (var i = 1; i < pipes.Length; i++)
         {
-            pipes[i] = new Pipe { Writeable = true, Readable = true };
+            var pipe = pipes[i] = new Pipe { Writeable = true, Readable = true };
+            pipe.Data += _ =>
+            {
+                Debugger.Break();
+            };
+            pipe.Error += _ =>
+            {
+                Debugger.Break();
+            };
+            pipe.Complete += () =>
+            {
+                Debugger.Break();
+            };
+            pipe.Closed += () =>
+            {
+                Debugger.Break();
+            };
+            pipe.Drain += () =>
+            {
+                Debugger.Break();
+            };
         }
 
-        // 和 Node.js 不同，_child 没有 error 事件。不过，Process.Spawn 可抛出异常。
-        child = Process.Spawn(new ProcessOptions
+        var pOptions = new ProcessOptions
         {
             File      = WorkerBin,
             Arguments = spawnArgs.ToArray(),
             Environment = (from DictionaryEntry pair
                         in Environment.GetEnvironmentVariables()
                     select $"{pair.Key}={pair.Value}")
-                .Append("MEDIASOUP_VERSION=__MEDIASOUP_VERSION__")
+                .Append($"MEDIASOUP_VERSION={MediasoupSharp.Version}")
                 .ToArray(),
             Detached = false,
             Streams  = pipes,
-        }, _ => { Debugger.Break(); });
+        };
+        child = Process.Spawn(pOptions, _ => { Debugger.Break(); });
 
         Pid = child.ID;
 
-        channel = new Channel.Channel(pipes[3], pipes[4], Pid, loggerFactory);
+        channel = new Channel.Channel(
+            pipes[3],
+            pipes[4], 
+            Pid, 
+            loggerFactory);
 
         payloadChannel = new PayloadChannel.PayloadChannel(
             pipes[5],
             pipes[6],
             loggerFactory);
 
-        this.AppData = appData ?? typeof(TWorkerAppData).New<TWorkerAppData>()!;
+        AppData = appData ?? typeof(TWorkerAppData).New<TWorkerAppData>()!;
 
         var spawnDone = false;
 
@@ -358,7 +388,7 @@ internal partial class Worker<TWorkerAppData>
     /// Create a Router.
     /// </summary>
     /// <returns></returns>
-    public async Task<Router<TRouterAppData>> CreateRouter<TRouterAppData>(RouterOptions<TRouterAppData> options)
+    public async Task<IRouter> CreateRouter<TRouterAppData>(RouterOptions<TRouterAppData> options)
     {
         var mediaCodecs = options.MediaCodecs;
         var appData     = options.AppData;
@@ -392,6 +422,7 @@ internal partial class Worker<TWorkerAppData>
         return router;
     }
 
+    
     private void WorkerDied(Exception exception)
     {
         if (Closed)
