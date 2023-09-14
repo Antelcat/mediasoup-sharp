@@ -4,19 +4,18 @@ using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.PipeTransport;
 
-public interface IPipeTransport{}
-
-internal class PipeTransport : PipeTransport<IDictionary<string, object?>>
+public interface IPipeTransport : ITransport
 {
-    public PipeTransport(PipeTransportConstructorOptions<IDictionary<string, object?>> options,
-        ILoggerFactory? loggerFactory = null) 
-        : base(options, loggerFactory)
-    {
-    }
+    TransportTuple Tuple { get; }
+    
+    SctpParameters.SctpParameters? SctpParameters { get; }
+    
+    SrtpParameters.SrtpParameters? SrtpParameters { get; }
 }
 
+
 internal class PipeTransport<TPipeTransportAppData> 
-    : Transport<TPipeTransportAppData, PipeTransportEvents, PipeTransportObserverEvents> , IPipeTransport
+    : Transport<TPipeTransportAppData, PipeTransportEvents, PipeTransportObserverEvents> , IPipeTransport 
 {
     private readonly ILogger? logger;
     

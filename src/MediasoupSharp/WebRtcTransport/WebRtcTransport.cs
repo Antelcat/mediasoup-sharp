@@ -1,30 +1,23 @@
-﻿using MediasoupSharp.Channel;
-using MediasoupSharp.Exceptions;
-using MediasoupSharp.Transport;
+﻿using MediasoupSharp.Transport;
 using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.WebRtcTransport;
 
-public interface IWebRtcTransport{}
-
-internal class WebRtcTransport<TWebRtcTransportAppData> : WebRtcTransport
+public interface IWebRtcTransport : ITransport
 {
-    public WebRtcTransport(WebRtcTransportConstructorOptions<object> options, 
-        ILoggerFactory? loggerFactory = null)
-        : base(options, loggerFactory)
-    {
-    }
+    
 }
 
-internal class WebRtcTransport
-    : Transport<object, WebRtcTransportEvents, WebRtcTransportObserverEvents>
+
+internal class WebRtcTransport<TWebRtcTransportAppData>
+    : Transport<TWebRtcTransportAppData, WebRtcTransportEvents, WebRtcTransportObserverEvents> ,IWebRtcTransport
 {
     private readonly ILogger? logger;
     
     private readonly WebRtcTransportData data;
     
     public WebRtcTransport(
-        WebRtcTransportConstructorOptions<object> options,
+        WebRtcTransportConstructorOptions<TWebRtcTransportAppData> options,
         ILoggerFactory? loggerFactory = null) 
         : base(options,loggerFactory)
     {
@@ -134,7 +127,7 @@ internal class WebRtcTransport
     /// <summary>
     /// Called when closing the associated listenServer (WebRtcServer).
     /// </summary>
-    internal override void ListenServerClosed()
+    public override void ListenServerClosed()
     {
         if (Closed)
         {

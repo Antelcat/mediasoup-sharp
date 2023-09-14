@@ -1,10 +1,12 @@
-﻿namespace MediasoupSharp.RtpObserver;
+﻿using MediasoupSharp.Producer;
 
-internal record RtpObserverConstructorOptions<TRtpObserverAppData>
+namespace MediasoupSharp.RtpObserver;
+
+public record RtpObserverConstructorOptions<TRtpObserverAppData>
 {
-    public RtpObserverObserverInternal Internal { get; set; }
-    public Channel.Channel Channel { get; set; }
-    public PayloadChannel.PayloadChannel PayloadChannel { get; set; }
+    internal RtpObserverObserverInternal Internal { get; set; }
+    internal Channel.Channel             Channel  { get; set; }
+    internal PayloadChannel.PayloadChannel PayloadChannel { get; set; }
     public TRtpObserverAppData? AppData { get; set; }
-    public Func<string, Producer.Producer?> GetProducerById { get; set; }
+    public Func<string, IProducer?> GetProducerById { get; set; }
 }

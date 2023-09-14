@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using MediasoupSharp.Producer;
+using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.RtpObserver;
 
@@ -36,7 +37,7 @@ internal abstract class RtpObserver<TRtpObserverAppData, TEvents>
     /// <summary>
     /// Method to retrieve a Producer.
     /// </summary>
-    protected readonly Func<string, Producer.Producer?> GetProducerById;
+    protected readonly Func<string, IProducer?> GetProducerById;
 
     /// <summary>
     /// Observer instance.

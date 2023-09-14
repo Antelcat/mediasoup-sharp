@@ -2,32 +2,33 @@
 
 public record RtpHeaderExtension
 {
-    /**
-     * Media kind.
-     */
+   
+    /// <summary>
+    /// Media kind.
+    /// </summary>
     public MediaKind Kind { get; set; }
 
-    /*
-     * The URI of the RTP header extension, as defined in RFC 5285.
-     */
+    /// <summary>
+    /// The URI of the RTP header extension, as defined in RFC 5285.
+    /// </summary>
     public string Uri { get; set; } = string.Empty;
 
-    /**
-     * The preferred numeric identifier that goes in the RTP packet. Must be
-     * unique.
-     */
+    /// <summary>
+    /// The preferred numeric identifier that goes in the RTP packet. Must be
+    /// unique.
+    /// </summary>
     public int PreferredId { get; set; }
 
-    /**
-     * If true, it is preferred that the value in the header be encrypted as per
-     * RFC 6904. Default false.
-     */
+    /// <summary>
+    /// If true, it is preferred that the value in the header be encrypted as per
+    /// RFC 6904. Default false.
+    /// </summary>
     public bool? PreferredEncrypt { get; set; }
 
-    /**
-     * If 'sendrecv', mediasoup supports sending and receiving this RTP extension.
-     * 'sendonly' means that mediasoup can send (but not receive) it. 'recvonly'
-     * means that mediasoup can receive (but not send) it.
-     */
+    /// <summary>
+    /// If 'sendrecv', mediasoup supports sending and receiving this RTP extension.
+    /// 'sendonly' means that mediasoup can send (but not receive) it. 'recvonly'
+    /// means that mediasoup can receive (but not send) it.
+    /// </summary>
     public RtpHeaderExtensionDirection? Direction { get; set; }
 }

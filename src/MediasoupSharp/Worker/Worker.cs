@@ -1,10 +1,9 @@
 ﻿using System.Collections;
 using System.Diagnostics;
-using System.Runtime.Serialization;
 using System.Text;
 using System.Text.RegularExpressions;
 using LibuvSharp;
-using MediasoupSharp.Exceptions;
+using MediasoupSharp.Errors;
 using MediasoupSharp.ORTC;
 using MediasoupSharp.Router;
 using MediasoupSharp.WebRtcServer;
@@ -14,18 +13,21 @@ using Process = LibuvSharp.Process;
 namespace MediasoupSharp.Worker;
 
 public interface IWorker
-{ }
+{
+}
 
-public interface IWorker<TWorkerAppData> : IWorker {}
+public interface IWorker<TWorkerAppData> : IWorker
+{
+}
 
 /// <summary>
 /// A worker represents a mediasoup C++ subprocess that runs in a single CPU core and handles Router instances.
 /// </summary>
-internal partial class Worker<TWorkerAppData> 
-    : EnhancedEventEmitter<WorkerEvents> , IWorker<TWorkerAppData> 
+internal partial class Worker<TWorkerAppData>
+    : EnhancedEventEmitter<WorkerEvents>, IWorker<TWorkerAppData>
 {
     private readonly ILogger? logger;
-    
+
     /// <summary>
     /// mediasoup-worker child process.
     /// </summary>
@@ -43,14 +45,14 @@ internal partial class Worker<TWorkerAppData>
 
     private readonly HashSet<WebRtcServer.WebRtcServer> webRtcServers = new();
 
-    private readonly HashSet<Router.Router> routers = new();
+    private readonly HashSet<IRouter> routers = new();
 
     private EnhancedEventEmitter<WorkerObserverEvents> Observer { get; }
 
     private ILogger? workerLogger;
 
 
-    public Worker(WorkerSettings<TWorkerAppData> mediasoupOptions,ILoggerFactory? loggerFactory = null)
+    public Worker(WorkerSettings<TWorkerAppData> mediasoupOptions, ILoggerFactory? loggerFactory = null)
     {
         logger       = loggerFactory?.CreateLogger(GetType());
         workerLogger = loggerFactory?.CreateLogger("Worker");
@@ -62,9 +64,9 @@ internal partial class Worker<TWorkerAppData>
         var dtlsPrivateKeyFile   = mediasoupOptions.DtlsPrivateKeyFile;
         var libwebrtcFieldTrials = mediasoupOptions.LibwebrtcFieldTrials;
         var appData              = mediasoupOptions.AppData;
-        
+
         Observer = new EnhancedEventEmitter<WorkerObserverEvents>(loggerFactory);
-        
+
         var spawnBin  = WorkerBin;
         var spawnArgs = new List<string>();
 
@@ -151,7 +153,7 @@ internal partial class Worker<TWorkerAppData>
 
         payloadChannel = new PayloadChannel.PayloadChannel(
             pipes[5],
-            pipes[6], 
+            pipes[6],
             loggerFactory);
 
         this.AppData = appData ?? typeof(TWorkerAppData).New<TWorkerAppData>()!;
@@ -250,17 +252,16 @@ internal partial class Worker<TWorkerAppData>
 
     public HashSet<WebRtcServer.WebRtcServer> WebRtcServersForTesting => webRtcServers;
 
-    public HashSet<Router.Router> RoutersForTesting => routers;
+    public HashSet<IRouter> RoutersForTesting => routers;
 
     public void Close()
     {
-
         if (Closed)
         {
-            throw new InvalidStateException("Worker closed");
+            throw new InvalidStateError("Worker closed");
         }
-        
-        logger.LogDebug("CloseAsync() | Worker");
+
+        logger?.LogDebug("CloseAsync() | Worker");
 
 
         Closed = true;
@@ -285,6 +286,7 @@ internal partial class Worker<TWorkerAppData>
         {
             router.WorkerClosed();
         }
+
         routers.Clear();
 
         // Close every WebRtcServer.
@@ -292,6 +294,7 @@ internal partial class Worker<TWorkerAppData>
         {
             webRtcServer.WorkerClosed();
         }
+
         webRtcServers.Clear();
 
         // Emit observer event.
@@ -431,5 +434,4 @@ internal partial class Worker<TWorkerAppData>
 
     [GeneratedRegex("/\\s+/")]
     private static partial Regex MyRegex();
-
 }

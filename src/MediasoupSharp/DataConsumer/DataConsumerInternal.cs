@@ -2,7 +2,7 @@
 
 namespace MediasoupSharp.DataConsumer;
 
-internal record DataConsumerInternal : TransportInternal
+public record DataConsumerInternal : TransportInternal
 {
     /// <summary>
     /// DataConsumer id.

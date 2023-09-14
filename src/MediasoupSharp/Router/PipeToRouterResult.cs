@@ -1,24 +1,29 @@
-﻿namespace MediasoupSharp.Router;
+﻿using MediasoupSharp.Consumer;
+using MediasoupSharp.DataConsumer;
+using MediasoupSharp.DataProducer;
+using MediasoupSharp.Producer;
+
+namespace MediasoupSharp.Router;
 
 public class PipeToRouterResult
 {
     /// <summary>
     /// The Consumer created in the current Router.
     /// </summary>
-    internal Consumer.Consumer? PipeConsumer { get; set; }
+    internal IConsumer? PipeConsumer { get; set; }
 
     /// <summary>
     /// The Producer created in the target Router.
     /// </summary>
-    internal Producer.Producer? PipeProducer { get; set; }
+    internal IProducer? PipeProducer { get; set; }
 
     /// <summary>
     /// The DataConsumer created in the current Router.
     /// </summary>
-    internal DataConsumer.DataConsumer? PipeDataConsumer { get; set; }
+    internal IDataConsumer? PipeDataConsumer { get; set; }
 
     /// <summary>
     /// The DataProducer created in the target Router.
     /// </summary>
-    internal DataProducer.DataProducer? PipeDataProducer { get; set; }
+    internal IDataProducer? PipeDataProducer { get; set; }
 }

@@ -3,8 +3,13 @@ using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.ActiveSpeakerObserver;
 
+public interface IActiveSpeakerObserver : IRtpObserver
+{
+    
+}
+
 internal class ActiveSpeakerObserver<TActiveSpeakerObserverAppData> :
-    RtpObserver<TActiveSpeakerObserverAppData, ActiveSpeakerObserverEvents>
+    RtpObserver<TActiveSpeakerObserverAppData, ActiveSpeakerObserverEvents>, IActiveSpeakerObserver
 {
     private readonly ILogger? logger;
     public ActiveSpeakerObserver(

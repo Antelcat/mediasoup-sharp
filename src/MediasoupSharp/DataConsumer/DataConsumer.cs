@@ -1,34 +1,26 @@
-﻿using System.Security.Cryptography.X509Certificates;
-using MediasoupSharp.Exceptions;
-using MediasoupSharp.SctpParameters;
+﻿using MediasoupSharp.SctpParameters;
 using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.DataConsumer;
 
-internal class DataConsumer<TDataConsumerAppData> : DataConsumer
+public interface IDataConsumer
 {
-    public DataConsumer(
-        DataConsumerInternal @internal,
-        DataConsumerData data,
-        Channel.Channel channel,
-        PayloadChannel.PayloadChannel payloadChannel,
-        TDataConsumerAppData? appData)
-        : base(
-            @internal,
-            data,
-            channel,
-            payloadChannel,
-            appData)
-    { }
+    string Id { get; }
 
-    public new TDataConsumerAppData AppData
-    {
-        get => (TDataConsumerAppData)base.AppData;
-        set => base.AppData = value;
-    }
+    internal EnhancedEventEmitter Observer { get; }
+
+    SctpStreamParameters? SctpStreamParameters { get; }
+
+    string Label { get; }
+
+    string Protocol { get; }
+
+    void Close();
+
+    void TransportClosed();
 }
 
-internal class DataConsumer : EnhancedEventEmitter<DataConsumerEvents>
+internal class DataConsumer<TDataConsumerAppData>  : EnhancedEventEmitter<DataConsumerEvents> , IDataConsumer
 {
     private readonly ILogger? logger;
     /// <summary>
@@ -64,12 +56,12 @@ internal class DataConsumer : EnhancedEventEmitter<DataConsumerEvents>
     /// <summary>
     /// App custom data.
     /// </summary>
-    public object AppData { get; set; }
+    public TDataConsumerAppData AppData { get; set; }
 
     /// <summary>
     /// Observer instance.
     /// </summary>
-    internal EnhancedEventEmitter<DataConsumerObserverEvents> Observer { get; }
+    public EnhancedEventEmitter Observer { get; }
 
     /// <summary>
     /// 
@@ -85,7 +77,7 @@ internal class DataConsumer : EnhancedEventEmitter<DataConsumerEvents>
         DataConsumerData data,
         Channel.Channel channel,
         PayloadChannel.PayloadChannel payloadChannel,
-        object? appData = null,
+        TDataConsumerAppData? appData,
         ILoggerFactory? loggerFactory = null
     ) : base(loggerFactory)
     {
@@ -94,8 +86,8 @@ internal class DataConsumer : EnhancedEventEmitter<DataConsumerEvents>
         this.data           = data;
         this.channel        = channel;
         this.payloadChannel = payloadChannel;
-        AppData             = appData ?? new();
-        Observer            = new(loggerFactory);
+        AppData             = appData ?? typeof(TDataConsumerAppData).New<TDataConsumerAppData>();
+        Observer            = new EnhancedEventEmitter<DataConsumerObserverEvents>(loggerFactory);
         HandleWorkerNotifications();
     }
 

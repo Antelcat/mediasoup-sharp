@@ -1,6 +1,6 @@
 ﻿namespace MediasoupSharp.RtpParameters;
 
-public record RtpParameters()
+public record RtpParameters
 {
     /// <summary>
     /// The MID RTP extension value as defined in the BUNDLE specification.

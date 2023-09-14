@@ -1,4 +1,7 @@
-﻿namespace MediasoupSharp.Transport;
+﻿using MediasoupSharp.DataProducer;
+using MediasoupSharp.Producer;
+
+namespace MediasoupSharp.Transport;
 
 public record TransportEvents
 {
@@ -9,9 +12,9 @@ public record TransportEvents
 
     // Private events.
     private List<object>                     close             { get; set; } = new();
-    private Tuple<Producer.Producer>         newproducer       { get; set; }
-    private Tuple<Producer.Producer>         producerclose     { get; set; }
-    private Tuple<DataProducer.DataProducer> newdataproducer   { get; set; }
-    private Tuple<DataProducer.DataProducer> dataproducerclose { get; set; }
+    private Tuple<IProducer>                 newproducer       { get; set; }
+    private Tuple<IProducer>                 producerclose     { get; set; }
+    private Tuple<IDataProducer> newdataproducer   { get; set; }
+    private Tuple<IDataProducer> dataproducerclose { get; set; }
     private List<object>                     listenserverclose { get; set; } = new();
 }

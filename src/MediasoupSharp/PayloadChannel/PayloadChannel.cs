@@ -2,7 +2,7 @@
 using System.Text;
 using System.Text.Json;
 using LibuvSharp;
-using MediasoupSharp.Exceptions;
+using MediasoupSharp.Errors;
 using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.PayloadChannel;
@@ -231,7 +231,7 @@ internal class PayloadChannel : EnhancedEventEmitter
 
         if (closed)
         {
-            throw new InvalidStateException("PayloadChannel closed");
+            throw new InvalidStateError("PayloadChannel closed");
         }
 
         var request      = $"r:{id}:{method}:{handlerId}:{data.Serialize()}";
@@ -275,7 +275,7 @@ internal class PayloadChannel : EnhancedEventEmitter
 
                 ret.SetException(error);
             },
-            Close = () => { ret.SetException(new InvalidStateException("PayloadChannel closed")); }
+            Close = () => { ret.SetException(new InvalidStateError("PayloadChannel closed")); }
         };
 
         // Add sent stuff to the map.

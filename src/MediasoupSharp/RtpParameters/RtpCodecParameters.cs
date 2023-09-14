@@ -1,6 +1,4 @@
-﻿using System.Dynamic;
-
-namespace MediasoupSharp.RtpParameters;
+﻿namespace MediasoupSharp.RtpParameters;
 
 public record RtpCodecParameters : RtpCodec
 {

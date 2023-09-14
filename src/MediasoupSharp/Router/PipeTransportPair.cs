@@ -1,4 +1,6 @@
-﻿namespace MediasoupSharp.Router;
+﻿using MediasoupSharp.PipeTransport;
 
-internal class PipeTransportPair : Dictionary<string, PipeTransport.PipeTransport> { }
+namespace MediasoupSharp.Router;
+
+internal class PipeTransportPair : Dictionary<string, IPipeTransport> { }
     

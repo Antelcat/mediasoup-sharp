@@ -3,14 +3,21 @@ using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.AudioLevelObserver;
 
+
+public interface IAudioLevelObserver : IRtpObserver
+{
+    internal EnhancedEventEmitter<AudioLevelObserverObserverEvents> Observer { get; }
+}
+
 internal class AudioLevelObserver<TAudioLevelObserverAppData>
     : RtpObserver<TAudioLevelObserverAppData, AudioLevelObserverEvents>
 {
     private readonly ILogger? logger;
+
     public AudioLevelObserver(
         AudioLevelObserverConstructorOptions<TAudioLevelObserverAppData> args,
         ILoggerFactory? loggerFactory = null
-    ) : base(args,loggerFactory)
+    ) : base(args, loggerFactory)
     {
         logger = loggerFactory?.CreateLogger(GetType());
     }

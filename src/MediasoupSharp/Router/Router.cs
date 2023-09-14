@@ -1,12 +1,10 @@
-﻿using System.Globalization;
-using MediasoupSharp.ActiveSpeakerObserver;
+﻿using MediasoupSharp.ActiveSpeakerObserver;
 using MediasoupSharp.AudioLevelObserver;
-using MediasoupSharp.Channel;
 using MediasoupSharp.Consumer;
 using MediasoupSharp.DataConsumer;
 using MediasoupSharp.DataProducer;
 using MediasoupSharp.DirectTransport;
-using MediasoupSharp.Exceptions;
+using MediasoupSharp.Errors;
 using MediasoupSharp.ORTC;
 using MediasoupSharp.PipeTransport;
 using MediasoupSharp.PlainTransport;
@@ -20,36 +18,25 @@ using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.Router;
 
-internal class Router<TRouterAppData> : Router
+public interface IRouter
 {
-    internal Router(
-        RouterInternal @internal,
-        RouterData data,
-        Channel.Channel channel,
-        PayloadChannel.PayloadChannel payloadChannel,
-        TRouterAppData? appData,
-        ILoggerFactory? loggerFactory = null)
-        : base(
-            @internal,
-            data,
-            channel,
-            payloadChannel,
-            appData,
-            loggerFactory)
-    {
-    }
+    string Id { get; }
+    void WorkerClosed();
 
-    public new TRouterAppData AppData
-    {
-        get => (TRouterAppData)base.AppData;
-        set => base.AppData = value!;
-    }
+    internal Task<PlainTransport<TPlainTransportAppData>> CreatePlainTransportAsync<TPlainTransportAppData>(
+        PlainTransportOptions<TPlainTransportAppData> plainTransportOptions);
+
+    internal Task<PipeTransport<TPipeTransportAppData>> CreatePipeTransportAsync<TPipeTransportAppData>(
+        PipeTransportOptions<TPipeTransportAppData> pipeTransportOptions);
+
+    internal void AddPipeTransportPair(string pipeTransportPairKey, Task<PipeTransportPair> pipeTransportPairPromise);
 }
 
-internal class Router : EnhancedEventEmitter<RouterEvents>
+
+internal class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>, IRouter
 {
     private readonly ILogger? logger;
-    
+
     private readonly RouterInternal @internal;
 
     private readonly RouterData data;
@@ -70,7 +57,7 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
     public bool Closed { get; private set; }
 
     // Custom app data.
-    public object AppData { get; set; }
+    public TRouterAppData AppData { get; set; }
 
     /// <summary>
     /// Transports map.
@@ -80,7 +67,7 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
     /// <summary>
     /// Producers map.
     /// </summary>
-    private readonly Dictionary<string, Producer.Producer> producers = new();
+    private readonly Dictionary<string, IProducer> producers = new();
 
     /// <summary>
     /// RtpObservers map.
@@ -90,7 +77,7 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
     /// <summary>
     /// DataProducers map.
     /// </summary>
-    private readonly Dictionary<string, DataProducer.DataProducer> dataProducers = new();
+    private readonly Dictionary<string, IDataProducer> dataProducers = new();
 
     /// <summary>
     /// Map of PipeTransport pair Promises indexed by the id of the Router in
@@ -108,7 +95,7 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
         RouterData data,
         Channel.Channel channel,
         PayloadChannel.PayloadChannel payloadChannel,
-        object? appData = null,
+        TRouterAppData? appData,
         ILoggerFactory? loggerFactory = null
     ) : base(loggerFactory)
     {
@@ -117,7 +104,7 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
         this.data           = data;
         this.channel        = channel;
         this.payloadChannel = payloadChannel;
-        AppData             = appData ?? new();
+        AppData             = appData ?? typeof(TRouterAppData).New<TRouterAppData>();
         Observer            = new(loggerFactory);
 
     }
@@ -321,22 +308,22 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
         transport.On("@listenserverclose", async _ => { transports.Remove(transport.Id); });
         transport.On("@newproducer", async args =>
         {
-            var producer = (Producer.Producer)args![1];
+            var producer = (IProducer)args![1];
             producers[producer.Id] = producer;
         });
         transport.On("@producerclose", async args =>
         {
-            var producer = (Producer.Producer)args![1];
+            var producer = (IProducer)args![1];
             producers.Remove(producer.Id);
         });
         transport.On("@newdataproducer", async args =>
         {
-            var dataProducer = (DataProducer.DataProducer)args![1];
+            var dataProducer = (IDataProducer)args![1];
             dataProducers[dataProducer.Id] = dataProducer;
         });
         transport.On("@dataproducerclose", async args =>
         {
-            var dataProducer = (DataProducer.DataProducer)args![1];
+            var dataProducer = (IDataProducer)args![1];
             dataProducers.Remove(dataProducer.Id);
         });
 
@@ -422,22 +409,22 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
         transport.On("@listenserverclose", async _ => { transports.Remove(transport.Id); });
         transport.On("@newproducer", async args =>
         {
-            var producer = (Producer.Producer)args![1];
+            var producer = (IProducer)args![1];
             producers[producer.Id] = producer;
         });
         transport.On("@producerclose", async args =>
         {
-            var producer = (Producer.Producer)args![1];
+            var producer = (IProducer)args![1];
             producers.Remove(producer.Id);
         });
         transport.On("@newdataproducer", async args =>
         {
-            var dataProducer = (DataProducer.DataProducer)args![1];
+            var dataProducer = (IDataProducer)args![1];
             dataProducers[dataProducer.Id] = dataProducer;
         });
         transport.On("@dataproducerclose", async args =>
         {
-            var dataProducer = (DataProducer.DataProducer)args![1];
+            var dataProducer = (IDataProducer)args![1];
             dataProducers.Remove(dataProducer.Id);
         });
 
@@ -517,22 +504,22 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
         transport.On("@listenserverclose", async _ => { transports.Remove(transport.Id); });
         transport.On("@newproducer", async args =>
         {
-            var producer = (Producer.Producer)args![1];
+            var producer = (IProducer)args![1];
             producers[producer.Id] = producer;
         });
         transport.On("@producerclose", async args =>
         {
-            var producer = (Producer.Producer)args![1];
+            var producer = (IProducer)args![1];
             producers.Remove(producer.Id);
         });
         transport.On("@newdataproducer", async args =>
         {
-            var dataProducer = (DataProducer.DataProducer)args![1];
+            var dataProducer = (IDataProducer)args![1];
             dataProducers[dataProducer.Id] = dataProducer;
         });
         transport.On("@dataproducerclose", async args =>
         {
-            var dataProducer = (DataProducer.DataProducer)args![1];
+            var dataProducer = (IDataProducer)args![1];
             dataProducers.Remove(dataProducer.Id);
         });
 
@@ -586,22 +573,22 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
         transport.On("@listenserverclose", async _ => { transports.Remove(transport.Id); });
         transport.On("@newproducer", async args =>
         {
-            var producer = (Producer.Producer)args![1];
+            var producer = (IProducer)args![1];
             producers[producer.Id] = producer;
         });
         transport.On("@producerclose", async args =>
         {
-            var producer = (Producer.Producer)args![1];
+            var producer = (IProducer)args![1];
             producers.Remove(producer.Id);
         });
         transport.On("@newdataproducer", async args =>
         {
-            var dataProducer = (DataProducer.DataProducer)args![1];
+            var dataProducer = (IDataProducer)args![1];
             dataProducers[dataProducer.Id] = dataProducer;
         });
         transport.On("@dataproducerclose", async args =>
         {
-            var dataProducer = (DataProducer.DataProducer)args![1];
+            var dataProducer = (IDataProducer)args![1];
             dataProducers.Remove(dataProducer.Id);
         });
 
@@ -646,8 +633,8 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
         }
 
 
-        Producer.Producer?         producer     = null;
-        DataProducer.DataProducer? dataProducer = null;
+        IProducer?         producer     = null;
+        IDataProducer? dataProducer = null;
 
         if (!producerId.IsNullOrEmpty())
         {
@@ -668,8 +655,8 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
         var pipeTransportPairPromise =
             mapRouterPairPipeTransportPairPromise.GetValueOrDefault(pipeTransportPairKey);
         PipeTransportPair?           pipeTransportPair;
-        PipeTransport.PipeTransport? localPipeTransport  = null;
-        PipeTransport.PipeTransport? remotePipeTransport = null;
+        IPipeTransport? localPipeTransport  = null;
+        IPipeTransport? remotePipeTransport = null;
 
         // 因为有可能新增，所以用写锁。
         if (pipeTransportPairPromise != null)
@@ -705,8 +692,8 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
                             EnableRtx      = enableRtx,
                             EnableSrtp     = enableSrtp
                         });
-                    localPipeTransport  = (PipeTransport.PipeTransport)await t1;
-                    remotePipeTransport = (PipeTransport.PipeTransport)await t2;
+                    localPipeTransport  = await t1;
+                    remotePipeTransport = await t2;
                     var t3 = localPipeTransport.ConnectAsync(new
                     {
                         Ip             = remotePipeTransport.Tuple.LocalIp,
@@ -721,14 +708,14 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
                     });
                     await t3;
                     await t4;
-                    localPipeTransport!.Observer.On("close", async _ =>
+                    localPipeTransport.Observer.On("close", async _ =>
                     {
-                        remotePipeTransport!.Close();
+                        remotePipeTransport.Close();
                         mapRouterPairPipeTransportPairPromise.Remove(
                             pipeTransportPairKey);
                     });
 
-                    remotePipeTransport!.Observer.On("close", async _ =>
+                    remotePipeTransport.Observer.On("close", async _ =>
                     {
                         localPipeTransport.Close();
                         mapRouterPairPipeTransportPairPromise.Remove(
@@ -759,8 +746,8 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
 
         if (producer != null)
         {
-            Consumer.Consumer? pipeConsumer = null;
-            Producer.Producer? pipeProducer = null;
+            IConsumer? pipeConsumer = null;
+            IProducer? pipeProducer = null;
 
             try
             {
@@ -780,7 +767,7 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
 
                 // Ensure that the producer has not been closed in the meanwhile.
                 if (producer.Closed)
-                    throw new InvalidStateException("original Producer closed");
+                    throw new InvalidStateError("original Producer closed");
 
                 // Ensure that producer.paused has not changed in the meanwhile and, if
                 // so, sync the pipeProducer.
@@ -815,8 +802,8 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
         }
         else if (dataProducer != null)
         {
-            DataConsumer.DataConsumer? pipeDataConsumer = null;
-            DataProducer.DataProducer? pipeDataProducer = null;
+            IDataConsumer? pipeDataConsumer = null;
+            IDataProducer? pipeDataProducer = null;
 
             try
             {
@@ -976,10 +963,7 @@ internal class Router : EnhancedEventEmitter<RouterEvents>
             GetProducerById = producerId => producers.GetValueOrDefault(producerId)
         });
         rtpObservers[audioLevelObserver.Id] = audioLevelObserver;
-        audioLevelObserver.On("@close", async _ =>
-        {
-            rtpObservers.Remove(audioLevelObserver.Id);
-        });
+        audioLevelObserver.On("@close", async _ => { rtpObservers.Remove(audioLevelObserver.Id); });
 
         // Emit observer event.
         await Observer.SafeEmit("newrtpobserver", audioLevelObserver);

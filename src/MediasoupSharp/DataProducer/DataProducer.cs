@@ -3,32 +3,28 @@ using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.DataProducer;
 
-internal class DataProducer<TDataProducerAppData> : DataProducer
+public interface IDataProducer
 {
-    public DataProducer(
-        DataProducerInternal @internal,
-        DataProducerData data,
-        Channel.Channel channel,
-        PayloadChannel.PayloadChannel payloadChannel,
-        TDataProducerAppData? appData,
-        ILoggerFactory? loggerFactory = null)
-        : base(
-            @internal,
-            data,
-            channel,
-            payloadChannel,
-            appData,
-            loggerFactory)
-    {
-    }
+    string Id { get; }
 
-    public new TDataProducerAppData AppData
-    {
-        get => (TDataProducerAppData)base.AppData;
-        set => base.AppData = value!;
-    }
+    object AppData { get; set; }
+
+    internal EnhancedEventEmitter Observer { get; }
+
+    DataProducerType Type { get; }
+
+    SctpStreamParameters? SctpStreamParameters { get; }
+    
+    string Label { get; }
+    
+    string Protocol { get; }
+
+    void Close();
+
+    void TransportClosed();
 }
-internal class DataProducer : EnhancedEventEmitter<DataProducerEvents>
+
+internal class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataProducerEvents> , IDataProducer
 {
     private readonly ILogger? logger;
     
@@ -56,16 +52,22 @@ internal class DataProducer : EnhancedEventEmitter<DataProducerEvents>
     /// Whether the DataProducer is closed.
     /// </summary>
     public bool Closed { get; private set; }
-    
+
     /// <summary>
     /// App custom data.
     /// </summary>
-    public object AppData { get; set; }
+    public object AppData
+    {
+        get => appData;
+        set => appData = (TDataProducerAppData)value;
+    }
+
+    private TDataProducerAppData? appData;
 
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EnhancedEventEmitter<DataProducerObserverEvents> Observer { get; }
+    public EnhancedEventEmitter Observer { get; }
 
 
     /// <summary>
@@ -82,7 +84,7 @@ internal class DataProducer : EnhancedEventEmitter<DataProducerEvents>
         DataProducerData data,
         Channel.Channel channel,
         PayloadChannel.PayloadChannel payloadChannel,
-        object? appData = null,
+        TDataProducerAppData? appData,
         ILoggerFactory? loggerFactory = null
     )
     {
@@ -91,9 +93,9 @@ internal class DataProducer : EnhancedEventEmitter<DataProducerEvents>
         this.data           = data;
         this.channel        = channel;
         this.payloadChannel = payloadChannel;
-        AppData             = appData ?? new();
-        Observer            = new(loggerFactory);
-        
+        AppData             = appData ?? typeof(TDataProducerAppData).New<TDataProducerAppData>()!;
+        Observer            = new EnhancedEventEmitter<DataProducerObserverEvents>(loggerFactory);
+
         HandleWorkerNotifications();
     }
 

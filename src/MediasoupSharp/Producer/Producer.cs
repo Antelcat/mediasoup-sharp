@@ -3,33 +3,42 @@ using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.Producer;
 
-internal class Producer<TProducerAppData> : Producer
+public interface IProducer
 {
-    public Producer(
-        ProducerInternal @internal,
-        ProducerData data,
-        Channel.Channel channel,
-        PayloadChannel.PayloadChannel payloadChannel,
-        TProducerAppData? appData,
-        bool paused)
-        : base(
-            @internal,
-            data,
-            channel,
-            payloadChannel,
-            appData,
-            paused)
-    {
-    }
+    string Id { get; }
+    
+    bool Closed { get; }
+    
+    bool Paused { get; }
+    
+    MediaKind Kind { get; }
 
-    public new TProducerAppData AppData
-    {
-        get => (TProducerAppData)base.AppData;
-        set => base.AppData = value!;
-    }
+    ProducerType Type { get; }
+    
+
+
+    void Close();
+    
+    object AppData { get; set; }
+    
+    internal EnhancedEventEmitter Observer { get; } 
+    
+    internal RtpParameters.RtpParameters ConsumableRtpParameters { get; }
+
+    Task PauseAsync();
+
+    Task ResumeAsync();
+    
+    void TransportClosed();
 }
 
-internal class Producer : EnhancedEventEmitter<ProducerEvents>
+
+public interface IProducer<TProducerAppData> : IProducer
+{
+}
+
+
+internal class Producer<TProducerAppData>  : EnhancedEventEmitter<ProducerEvents> ,IProducer<TProducerAppData>
 {
     private readonly ILogger? logger;
     /// <summary>
@@ -60,7 +69,12 @@ internal class Producer : EnhancedEventEmitter<ProducerEvents>
     /// <summary>
     /// App custom data.
     /// </summary>
-    public object AppData { get; set; }
+    public object AppData
+    {
+        get => appData;
+        set => appData = (TProducerAppData)value;
+    }
+    private TProducerAppData? appData;
 
     /// <summary>
     /// Paused flag.
@@ -75,14 +89,14 @@ internal class Producer : EnhancedEventEmitter<ProducerEvents>
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EnhancedEventEmitter<ProducerObserverEvents> Observer { get; }
+    public EnhancedEventEmitter Observer { get; }
     
     internal Producer(
         ProducerInternal @internal,
         ProducerData data,
         Channel.Channel channel,
         PayloadChannel.PayloadChannel payloadChannel,
-        object? appData,
+        TProducerAppData? appData,
         bool paused,
         ILoggerFactory? loggerFactory = null
     ) : base(loggerFactory)
@@ -92,9 +106,9 @@ internal class Producer : EnhancedEventEmitter<ProducerEvents>
         this.data           = data;
         this.channel        = channel;
         this.payloadChannel = payloadChannel;
-        AppData             = appData ?? new object();
+        AppData             = appData ?? typeof(TProducerAppData).New<TProducerAppData>()!;
         Paused              = paused;
-        Observer            = new(loggerFactory);
+        Observer            = new EnhancedEventEmitter<ProducerObserverEvents>(loggerFactory);
         HandleWorkerNotifications();
     }
 
@@ -109,7 +123,7 @@ internal class Producer : EnhancedEventEmitter<ProducerEvents>
 
     public ProducerType Type => data.Type;
 
-    internal RtpParameters.RtpParameters ConsumableRtpParameters => data.ConsumableRtpParameters;
+    public RtpParameters.RtpParameters ConsumableRtpParameters => data.ConsumableRtpParameters;
 
     internal Channel.Channel ChannelForTesting => channel;
 
@@ -148,7 +162,7 @@ internal class Producer : EnhancedEventEmitter<ProducerEvents>
     /// <summary>
     /// Transport was closed.
     /// </summary>
-    internal void TransportClosed()
+    public void TransportClosed()
     {
         if (Closed)
         {

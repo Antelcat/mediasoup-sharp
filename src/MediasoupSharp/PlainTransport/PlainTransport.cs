@@ -3,8 +3,13 @@ using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.PlainTransport;
 
+public interface IPlainTransport : ITransport
+{
+    
+}
+
 internal class PlainTransport<TPlainTransportAppData>
-    : Transport<TPlainTransportAppData, PlainTransportEvents, PlainTransportObserverEvents>
+    : Transport<TPlainTransportAppData, PlainTransportEvents, PlainTransportObserverEvents> , IPlainTransport
 {
     private readonly ILogger? logger;
     /// <summary>

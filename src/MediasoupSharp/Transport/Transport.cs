@@ -14,6 +14,26 @@ namespace MediasoupSharp.Transport;
 public interface ITransport
 {
     void RouterClosed();
+    
+    void ListenServerClosed();
+
+    Task ConnectAsync(object parameters);
+
+    void Close();
+    
+    internal EnhancedEventEmitter Observer { get; }
+
+    internal Task<Consumer<TConsumerAppData>> ConsumeAsync<TConsumerAppData>(
+        ConsumerOptions<TConsumerAppData> consumerOptions);
+
+    internal Task<Producer<TProducerAppData>> ProduceAsync<TProducerAppData>(
+        ProducerOptions<TProducerAppData> producerOptions);
+
+    internal Task<DataProducer<TDataProducerAppData>> ProduceDataAsync<TDataProducerAppData>(
+        DataProducerOptions<TDataProducerAppData> options);
+
+    internal Task<IDataConsumer> ConsumeDataAsync<TConsumerAppData>(
+        DataConsumerOptions<TConsumerAppData> options);
 }
 
 internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
@@ -60,32 +80,32 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     /// <summary>
     /// Method to retrieve a Producer.
     /// </summary>
-    protected readonly Func<string, Producer.Producer?> GetProducerById;
+    protected readonly Func<string, IProducer?> GetProducerById;
 
     /// <summary>
     /// Method to retrieve a DataProducer.
     /// </summary>
-    protected readonly Func<string, DataProducer.DataProducer?> GetDataProducerById;
+    protected readonly Func<string, IDataProducer?> GetDataProducerById;
 
     /// <summary>
     /// Producers map.
     /// </summary>
-    private readonly Dictionary<string, Producer.Producer> producers = new();
+    private readonly Dictionary<string, IProducer> producers = new();
 
     /// <summary>
     /// Consumers map.
     /// </summary>
-    protected readonly Dictionary<string, Consumer.Consumer> Consumers = new();
+    protected readonly Dictionary<string, IConsumer> Consumers = new();
 
     /// <summary>
     /// DataProducers map.
     /// </summary>
-    protected readonly Dictionary<string, DataProducer.DataProducer> DataProducers = new();
+    protected readonly Dictionary<string, IDataProducer> DataProducers = new();
 
     /// <summary>
     /// DataConsumers map.
     /// </summary>
-    protected readonly Dictionary<string, DataConsumer.DataConsumer> DataConsumers = new();
+    protected readonly Dictionary<string, IDataConsumer> DataConsumers = new();
 
     /// <summary>
     /// RTCP CNAME for Producers.
@@ -110,7 +130,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EnhancedEventEmitter<TObserverEvents> Observer { get; }
+    public EnhancedEventEmitter Observer { get; }
 
     protected Transport(
         TransportConstructorOptions<TTransportAppData> arg,
@@ -126,7 +146,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
         getRouterRtpCapabilities = arg.GetRouterRtpCapabilities;
         GetProducerById = arg.GetProducerById;
         GetDataProducerById = arg.GetDataProducerById;
-        Observer = new(loggerFactory);
+        Observer = new EnhancedEventEmitter<TObserverEvents>(loggerFactory);
     }
 
     public string Id => Internal.TransportId;
@@ -271,7 +291,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     /// associated WebRtcServer is closed).
     /// @private
     /// </summary>
-    internal virtual void ListenServerClosed()
+    public virtual void ListenServerClosed()
     {
         if (Closed)
         {
@@ -740,7 +760,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     /// </summary>
     /// <param name="options"></param>
     /// <returns></returns>
-    public async Task<DataConsumer.DataConsumer> ConsumeDataAsync<TConsumerAppData>(
+    public async Task<IDataConsumer> ConsumeDataAsync<TConsumerAppData>(
         DataConsumerOptions<TConsumerAppData> options)
     {
         var dataProducerId = options.DataProducerId;
@@ -829,7 +849,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
             (await Channel.Request("transport.consumeData", Internal.TransportId, reqData) as dynamic)!;
 
 
-        var dataConsumer = new DataConsumer.DataConsumer(
+        var dataConsumer = new DataConsumer<TConsumerAppData>(
             new DataConsumerInternal
             {
                 RouterId = Internal.RouterId,

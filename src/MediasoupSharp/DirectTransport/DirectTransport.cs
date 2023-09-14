@@ -1,17 +1,14 @@
-﻿using MediasoupSharp.Consumer;
-using MediasoupSharp.Exceptions;
-using MediasoupSharp.Producer;
-using MediasoupSharp.Transport;
+﻿using MediasoupSharp.Transport;
 using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.DirectTransport;
 
-internal interface IDirectTransport
+public interface IDirectTransport
 {
 }
 
 internal class DirectTransport<TDirectTransportAppData>
-    : Transport.Transport<TDirectTransportAppData, DirectTransportEvents, DirectTransportObserverEvents>,
+    : Transport<TDirectTransportAppData, DirectTransportEvents, DirectTransportObserverEvents>,
         IDirectTransport
 {
     private readonly ILogger? logger;

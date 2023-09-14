@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using MediasoupSharp.WebRtcTransport;
+using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.WebRtcServer;
 
@@ -58,7 +59,7 @@ internal class WebRtcServer
     /// <summary>
     /// Transports map.
     /// </summary>
-    private readonly Dictionary<string, WebRtcTransport.WebRtcTransport> webRtcTransports = new();
+    private readonly Dictionary<string, IWebRtcTransport> webRtcTransports = new();
 
     /// <summary>
     /// Observer instance.
@@ -81,7 +82,7 @@ internal class WebRtcServer
 
     public string Id => @internal.WebRtcServerId;
 
-    public Dictionary<string, WebRtcTransport.WebRtcTransport> WebRtcTransportsForTesting => webRtcTransports;
+    public Dictionary<string, IWebRtcTransport> WebRtcTransportsForTesting => webRtcTransports;
 
     /// <summary>
     /// Close the WebRtcServer.
@@ -156,7 +157,7 @@ internal class WebRtcServer
     }
 
     public void HandleWebRtcTransport<TWebRtcTransportAppData>(
-        WebRtcTransport.WebRtcTransport<TWebRtcTransportAppData> webRtcTransport)
+        WebRtcTransport<TWebRtcTransportAppData> webRtcTransport)
     {
         webRtcTransports[webRtcTransport.Id] = webRtcTransport;
 

@@ -18,7 +18,7 @@ public class PipeToRouterOptions
     /// <summary>
     /// Target Router instance.
     /// </summary>
-    internal Router Router { get; set; }
+    internal IRouter Router { get; set; }
 
     /// <summary>
     /// IP used in the PipeTransport pair. Default '127.0.0.1'.

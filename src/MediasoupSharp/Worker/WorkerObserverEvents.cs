@@ -1,4 +1,6 @@
-﻿namespace MediasoupSharp.Worker;
+﻿using MediasoupSharp.Router;
+
+namespace MediasoupSharp.Worker;
 
 public record WorkerObserverEvents
 {
@@ -6,5 +8,5 @@ public record WorkerObserverEvents
     
     internal Tuple<WebRtcServer.WebRtcServer> Newwebrtcserver { get; set; } 
     
-    internal Tuple<Router.Router> Newrouter { get; set; }
+    internal Tuple<IRouter> Newrouter { get; set; }
 }
