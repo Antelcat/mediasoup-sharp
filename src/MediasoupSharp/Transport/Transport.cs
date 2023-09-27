@@ -14,13 +14,13 @@ namespace MediasoupSharp.Transport;
 public interface ITransport
 {
     void RouterClosed();
-    
+
     void ListenServerClosed();
 
     Task ConnectAsync(object parameters);
 
     void Close();
-    
+
     internal EnhancedEventEmitter Observer { get; }
 
     internal Task<Consumer<TConsumerAppData>> ConsumeAsync<TConsumerAppData>(
@@ -37,11 +37,12 @@ public interface ITransport
 }
 
 internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
-    : EnhancedEventEmitter<TEvents> , ITransport
+    : EnhancedEventEmitter<TEvents>, ITransport
     where TEvents : TransportEvents
     where TObserverEvents : TransportObserverEvents
 {
     private readonly ILogger? logger;
+
     /// <summary>
     /// Internal data.
     /// </summary>
@@ -432,12 +433,12 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     public virtual async Task<Producer.Producer<TProducerAppData>> ProduceAsync<TProducerAppData>(
         ProducerOptions<TProducerAppData> producerOptions)
     {
-        var id = producerOptions.Id;
-        var kind = producerOptions.Kind;
-        var rtpParameters = producerOptions.RtpParameters;
-        var paused = producerOptions.Paused ?? false;
+        var id                   = producerOptions.Id;
+        var kind                 = producerOptions.Kind;
+        var rtpParameters        = producerOptions.RtpParameters;
+        var paused               = producerOptions.Paused ?? false;
         var keyFrameRequestDelay = producerOptions.KeyFrameRequestDelay;
-        var appData = producerOptions.AppData;
+        var appData              = producerOptions.AppData;
 
         logger?.LogDebug("ProduceAsync() | Transport:{Id}", Id);
 
@@ -484,8 +485,8 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
 
             // Override Producer"s CNAME.
             // 对 RtcpParameters 序列化时，CNAME 和 ReducedSize 为 null 会忽略，因为客户端库对其有校验。
-            producerOptions.RtpParameters.Rtcp ??= new RtcpParameters();
-            producerOptions.RtpParameters.Rtcp.Cname = cnameForProducers;
+            producerOptions.RtpParameters.Rtcp       ??= new RtcpParameters();
+            producerOptions.RtpParameters.Rtcp.Cname =   cnameForProducers;
         }
 
         var routerRtpCapabilities = getRouterRtpCapabilities();
@@ -511,18 +512,18 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
         var status = await Channel.Request("transport.produce", Internal.TransportId, reqData) as dynamic;
         var data = new ProducerData
         {
-            Kind = kind,
-            RtpParameters = rtpParameters,
-            Type = status!.Type,
+            Kind                    = kind,
+            RtpParameters           = rtpParameters,
+            Type                    = status!.Type,
             ConsumableRtpParameters = consumableRtpParameters
         };
 
         var producer = new Producer<TProducerAppData>(
             new ProducerInternal
             {
-                RouterId = Internal.RouterId,
+                RouterId    = Internal.RouterId,
                 TransportId = Internal.TransportId,
-                ProducerId = reqData.ProducerId
+                ProducerId  = reqData.ProducerId
             },
             data,
             Channel,
@@ -553,15 +554,15 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     public virtual async Task<Consumer<TConsumerAppData>> ConsumeAsync<TConsumerAppData>(
         ConsumerOptions<TConsumerAppData> consumerOptions)
     {
-        var producerId = consumerOptions.ProducerId;
+        var producerId      = consumerOptions.ProducerId;
         var rtpCapabilities = consumerOptions.RtpCapabilities;
-        var paused = consumerOptions.Paused ?? false;
-        var mid = consumerOptions.Mid;
+        var paused          = consumerOptions.Paused ?? false;
+        var mid             = consumerOptions.Mid;
         var preferredLayers = consumerOptions.PreferredLayers;
-        var ignoreDtx = consumerOptions.IgnoreDtx ?? false;
-        var enableRtx = consumerOptions.EnableRtx;
-        var pipe = consumerOptions.Pipe ?? false;
-        var appData = consumerOptions.AppData;
+        var ignoreDtx       = consumerOptions.IgnoreDtx ?? false;
+        var enableRtx       = consumerOptions.EnableRtx;
+        var pipe            = consumerOptions.Pipe ?? false;
+        var appData         = consumerOptions.AppData;
 
         logger?.LogDebug("ConsumeAsync() | Transport:{Id}", Id);
 
@@ -626,7 +627,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
             producerId,
             kind = producer.Kind,
             rtpParameters,
-            type = (pipe ? ConsumerType.pipe : (ConsumerType)producer.Type).ToString(),
+            type                   = (pipe ? ConsumerType.pipe : (ConsumerType)producer.Type).ToString(),
             consumableRtpEncodings = producer.ConsumableRtpParameters.Encodings,
             paused,
             preferredLayers,
@@ -638,19 +639,19 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
         // TODO : Naming
         var data = new ConsumerData
         {
-            ProducerId = consumerOptions.ProducerId,
-            Kind = producer.Kind,
+            ProducerId    = consumerOptions.ProducerId,
+            Kind          = producer.Kind,
             RtpParameters = rtpParameters,
-            Type = pipe ? ConsumerType.pipe : (ConsumerType)producer.Type
+            Type          = pipe ? ConsumerType.pipe : (ConsumerType)producer.Type
         };
 
 
         var consumer = new Consumer<TConsumerAppData>(
             new ConsumerInternal
             {
-                RouterId = Internal.RouterId,
+                RouterId    = Internal.RouterId,
                 TransportId = Internal.TransportId,
-                ConsumerId = reqData.consumerId
+                ConsumerId  = reqData.consumerId
             },
             data,
             Channel,
@@ -678,11 +679,11 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     public async Task<DataProducer<TDataProducerAppData>> ProduceDataAsync<TDataProducerAppData>(
         DataProducerOptions<TDataProducerAppData> options)
     {
-        var id = options.Id;
+        var id                   = options.Id;
         var sctpStreamParameters = options.SctpStreamParameters;
-        var label = options.Label ?? "";
-        var protocol = options.Protocol ?? "";
-        var appData = options.AppData;
+        var label                = options.Label    ?? "";
+        var protocol             = options.Protocol ?? "";
+        var appData              = options.AppData;
         logger?.LogDebug("ProduceDataAsync() | Transport:{Id}", Id);
 
         if (!id.IsNullOrEmpty() && DataProducers.ContainsKey(id!))
@@ -721,7 +722,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
                 : options.Id,
             Type = type.ToString(),
             sctpStreamParameters,
-            Label = label,
+            Label    = label,
             Protocol = protocol
         };
 
@@ -731,8 +732,8 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
         var dataProducer = new DataProducer<TDataProducerAppData>(
             new DataProducerInternal
             {
-                RouterId = Internal.RouterId,
-                TransportId = Internal.TransportId,
+                RouterId       = Internal.RouterId,
+                TransportId    = Internal.TransportId,
                 DataProducerId = reqData.DataProducerId!
             },
             data,
@@ -763,11 +764,11 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
     public async Task<IDataConsumer> ConsumeDataAsync<TConsumerAppData>(
         DataConsumerOptions<TConsumerAppData> options)
     {
-        var dataProducerId = options.DataProducerId;
-        var ordered = options.Ordered;
+        var dataProducerId    = options.DataProducerId;
+        var ordered           = options.Ordered;
         var maxPacketLifeTime = options.MaxPacketLifeTime;
-        var maxRetransmits = options.MaxRetransmits;
-        var appData = options.AppData;
+        var maxRetransmits    = options.MaxRetransmits;
+        var appData           = options.AppData;
 
         logger?.LogDebug("ConsumeDataAsync() | Transport:{Id}", Id);
 
@@ -782,9 +783,9 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
             throw new Exception($"DataProducer with id {options.DataProducerId} not found");
         }
 
-        DataProducerType type;
+        DataProducerType      type;
         SctpStreamParameters? sctpStreamParameters = null;
-        var sctpStreamId = 0;
+        var                   sctpStreamId         = 0;
 
         // If this is not a DirectTransport, use sctpStreamParameters from the
         // DataProducer (if type "sctp") unless they are given in method parameters.
@@ -813,16 +814,15 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
 
             sctpStreamId = GetNextSctpStreamId();
 
-            sctpStreamIds![sctpStreamId] = 1;
+            sctpStreamIds![sctpStreamId]  = 1;
             sctpStreamParameters.StreamId = sctpStreamId;
-
         }
         // If this is a DirectTransport, sctpStreamParameters must not be used.
         else
         {
             type = DataProducerType.direct;
 
-            if (options.Ordered.HasValue ||
+            if (options.Ordered.HasValue           ||
                 options.MaxPacketLifeTime.HasValue ||
                 options.MaxRetransmits.HasValue
                )
@@ -832,17 +832,17 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
             }
         }
 
-        var label = dataProducer.Label;
+        var label    = dataProducer.Label;
         var protocol = dataProducer.Protocol;
 
         var reqData = new
         {
             DataConsumerId = Guid.NewGuid().ToString(),
             options.DataProducerId,
-            Type = type.ToString(),
+            Type                 = type.ToString(),
             SctpStreamParameters = sctpStreamParameters,
-            Label = label,
-            Protocol = protocol,
+            Label                = label,
+            Protocol             = protocol,
         };
 
         var data =
@@ -852,8 +852,8 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
         var dataConsumer = new DataConsumer<TConsumerAppData>(
             new DataConsumerInternal
             {
-                RouterId = Internal.RouterId,
-                TransportId = Internal.TransportId,
+                RouterId       = Internal.RouterId,
+                TransportId    = Internal.TransportId,
                 DataConsumerId = reqData.DataConsumerId
             },
             data, // 直接使用返回值
@@ -887,6 +887,7 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
 
         return dataConsumer;
     }
+
 
     /// <summary>
     /// Enable "trace" event.
@@ -934,5 +935,4 @@ internal abstract class Transport<TTransportAppData, TEvents, TObserverEvents>
 
         throw new Exception("No sctpStreamId available");
     }
-
 }
