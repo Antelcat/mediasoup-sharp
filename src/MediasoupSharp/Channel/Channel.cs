@@ -1,8 +1,9 @@
 ﻿using System.Text;
 using System.Text.Json;
-using LibuvSharp;
+using LightweightUv;
 using MediasoupSharp.Errors;
 using Microsoft.Extensions.Logging;
+
 // ReSharper disable InconsistentNaming
 
 namespace MediasoupSharp.Channel;
@@ -20,12 +21,12 @@ internal class Channel : EnhancedEventEmitter
     /// <summary>
     /// Unix Socket instance for sending messages to the worker process.
     /// </summary>
-    private readonly UVStream producerSocket;
+    private readonly UvStream producerSocket;
 
     /// <summary>
     /// Unix Socket instance for receiving messages to the worker process.
     /// </summary>
-    private readonly UVStream consumerSocket;
+    private readonly UvStream consumerSocket;
 
     private uint nextId;
 
@@ -36,8 +37,8 @@ internal class Channel : EnhancedEventEmitter
     /// </summary>
     private byte[] recvBuffer = Array.Empty<byte>();
 
-    public Channel(UVStream producerSocket, 
-        UVStream consumerSocket, 
+    public Channel(UvStream producerSocket, 
+        UvStream consumerSocket, 
         int pid, 
         ILoggerFactory? loggerFactory = null) 
         : base(loggerFactory)
@@ -224,7 +225,7 @@ internal class Channel : EnhancedEventEmitter
 
         // This may throw if closed or remote side ended.
         producerSocket.Write(buffer);
-        producerSocket.Write(request);
+        producerSocket.Write(Encoding.UTF8.GetBytes(request));
         var ret = new TaskCompletionSource<object?>();
         Sent sent = new()
         {

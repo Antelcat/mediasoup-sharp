@@ -13,10 +13,14 @@
 
 
     <ItemGroup>
-        <ProjectReference Include="..\..\libuv-sharp\src\LibuvSharp\LibuvSharp.csproj"/>
         <InternalsVisibleTo Include="MediasoupSharp.Test"/>
     </ItemGroup>
 
+
+
+    <ItemGroup>
+      <ProjectReference Include="..\LightweightUv\LightweightUv.csproj" />
+    </ItemGroup>
 
 
 </Project>

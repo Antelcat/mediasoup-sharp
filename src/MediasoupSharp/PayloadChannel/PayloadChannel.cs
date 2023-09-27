@@ -1,9 +1,10 @@
 ﻿using System.ComponentModel;
 using System.Text;
 using System.Text.Json;
-using LibuvSharp;
+using LightweightUv;
 using MediasoupSharp.Errors;
 using Microsoft.Extensions.Logging;
+
 // ReSharper disable InconsistentNaming
 
 namespace MediasoupSharp.PayloadChannel;
@@ -20,12 +21,12 @@ internal class PayloadChannel : EnhancedEventEmitter
     /// <summary>
     /// Unix Socket instance for sending messages to the worker process.
     /// </summary>
-    private readonly UVStream producerSocket;
+    private readonly UvStream producerSocket;
 
     /// <summary>
     /// Unix Socket instance for receiving messages to the worker process.
     /// </summary>
-    private readonly UVStream consumerSocket;
+    private readonly UvStream consumerSocket;
 
     // Next id for messages sent to the worker process.
     private uint nextId = 0;
@@ -40,8 +41,8 @@ internal class PayloadChannel : EnhancedEventEmitter
     private OngoingNotification? ongoingNotification;
 
     public PayloadChannel(
-        UVStream producerSocket, 
-        UVStream consumerSocket,
+        UvStream producerSocket, 
+        UvStream consumerSocket,
         ILoggerFactory? loggerFactory = null) 
         : base(loggerFactory)
     {
@@ -195,8 +196,9 @@ internal class PayloadChannel : EnhancedEventEmitter
         try
         {
             // This may throw if closed or remote side ended.
-            producerSocket.Write(BitConverter.GetBytes(Encoding.UTF8.GetBytes(notification).Length));
-            producerSocket.Write(notification);
+            var encoded = Encoding.UTF8.GetBytes(notification);
+            producerSocket.Write(BitConverter.GetBytes(encoded.Length));
+            producerSocket.Write(encoded);
         }
         catch (Exception error)
         {
@@ -249,7 +251,7 @@ internal class PayloadChannel : EnhancedEventEmitter
 
         // This may throw if closed or remote side ended.
         producerSocket.Write(BitConverter.GetBytes(requestBytes.Length));
-        producerSocket.Write(request);
+        producerSocket.Write(requestBytes);
         producerSocket.Write(BitConverter.GetBytes(payloadBytes.Length));
         producerSocket.Write(payloadBytes);
 
