@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Text;
 using System.Text.Json;
-using LightweightUv;
+using LibuvSharp;
 using MediasoupSharp.Errors;
 using Microsoft.Extensions.Logging;
 
@@ -21,12 +21,12 @@ internal class PayloadChannel : EnhancedEventEmitter
     /// <summary>
     /// Unix Socket instance for sending messages to the worker process.
     /// </summary>
-    private readonly UvStream producerSocket;
+    private readonly Pipe producerSocket;
 
     /// <summary>
     /// Unix Socket instance for receiving messages to the worker process.
     /// </summary>
-    private readonly UvStream consumerSocket;
+    private readonly Pipe consumerSocket;
 
     // Next id for messages sent to the worker process.
     private uint nextId = 0;
@@ -41,8 +41,8 @@ internal class PayloadChannel : EnhancedEventEmitter
     private OngoingNotification? ongoingNotification;
 
     public PayloadChannel(
-        UvStream producerSocket, 
-        UvStream consumerSocket,
+        Pipe producerSocket, 
+        Pipe consumerSocket,
         ILoggerFactory? loggerFactory = null) 
         : base(loggerFactory)
     {

@@ -1,6 +1,6 @@
 ﻿using System.Text;
 using System.Text.Json;
-using LightweightUv;
+using LibuvSharp;
 using MediasoupSharp.Errors;
 using Microsoft.Extensions.Logging;
 
@@ -21,12 +21,12 @@ internal class Channel : EnhancedEventEmitter
     /// <summary>
     /// Unix Socket instance for sending messages to the worker process.
     /// </summary>
-    private readonly UvStream producerSocket;
+    private readonly Pipe producerSocket;
 
     /// <summary>
     /// Unix Socket instance for receiving messages to the worker process.
     /// </summary>
-    private readonly UvStream consumerSocket;
+    private readonly Pipe consumerSocket;
 
     private uint nextId;
 
@@ -37,8 +37,8 @@ internal class Channel : EnhancedEventEmitter
     /// </summary>
     private byte[] recvBuffer = Array.Empty<byte>();
 
-    public Channel(UvStream producerSocket, 
-        UvStream consumerSocket, 
+    public Channel(Pipe producerSocket, 
+        Pipe consumerSocket, 
         int pid, 
         ILoggerFactory? loggerFactory = null) 
         : base(loggerFactory)

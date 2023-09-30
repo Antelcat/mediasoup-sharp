@@ -18,8 +18,10 @@
 
 
 
+
+
     <ItemGroup>
-      <ProjectReference Include="..\LightweightUv\LightweightUv.csproj" />
+      <ProjectReference Include="..\..\libuv-sharp\src\LibuvSharp\LibuvSharp.csproj" />
     </ItemGroup>
 
 

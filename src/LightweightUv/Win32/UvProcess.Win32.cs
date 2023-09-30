@@ -79,7 +79,7 @@ public partial class UvProcess
             var builder = new StringBuilder();
             foreach (var pair in options.Environment)
             {
-                builder.Append(pair).Append('\0');
+                builder.AppendLine(pair).Append('\0');
             }
             env = builder.ToString();
         }
