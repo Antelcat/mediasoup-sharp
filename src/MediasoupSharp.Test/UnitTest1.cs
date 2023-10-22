@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using LibuvSharp;
 using Process = LibuvSharp.Process;
 
@@ -21,7 +22,7 @@ public class Tests
             { "INTERACTIVE", "'true'" },
             { "MEDIASOUP_LISTEN_IP", "0.0.0.0" },
             { "MEDIASOUP_ANNOUNCED_IP", "0.0.0.0" },
-        }; 
+        };
         Process? process;
         try
         {
@@ -49,9 +50,10 @@ public class Tests
         }
 
         await Task.Delay(10000);
-        
-        return;
 
+        return;
+    
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         Pipe Pipe()
         {
             var ret = new Pipe { Writeable = true, Readable = true };
