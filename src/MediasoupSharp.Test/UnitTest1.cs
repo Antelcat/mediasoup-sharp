@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using LibuvSharp;
-using Process = LibuvSharp.Process;
+using Process = LibuvSharp.UvProcess;
 
 namespace MediasoupSharp.Test;
 
@@ -26,10 +26,10 @@ public class Tests
         Process? process;
         try
         {
-            process = Process.Spawn(new ProcessOptions
+            process = Process.Spawn(new UvProcessOptions
             {
                 Detached = false,
-                Arguments = new[]
+                Args = new[]
                 {
                     "--logLevel=debug", "--logTag=info",
                     "--logTag=ice", "--logTag=rtx",
@@ -38,27 +38,30 @@ public class Tests
                     "--logTag=sctp", "--logTag=message",
                     "--rtcMinPort=20000", "--rtcMaxPort=29999"
                 },
-                Environment = dic.Select(x => $"{x.Key}={x.Value}").ToArray(),
+                Env = dic.Select(x => $"{x.Key}={x.Value}").ToArray(),
                 File =
                     @"D:\Shared\WorkSpace\Git\mediasoup-sharp\src\MediasoupSharp.Test\runtimes\win-x64\native\mediasoup-worker.exe",
-                Streams = new List<UVStream> { Pipe(), Pipe(), Pipe(), Pipe(), Pipe(), Pipe(), Pipe(), }
-            }, Console.WriteLine);
+                Stdio = new List<UvPipe> { new (), Pipe(), Pipe(), Pipe(), Pipe(), Pipe(), Pipe(), }.ToArray()
+            });
         }
         catch (Exception e)
         {
-            throw e;
+            Debugger.Break();
         }
 
         await Task.Delay(10000);
 
         return;
-    
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        Pipe Pipe()
+        UvPipe Pipe()
         {
-            var ret = new Pipe { Writeable = true, Readable = true };
+            var ret = new UvPipe { Writable = true, Readable = true };
             ret.Error += _ => Debugger.Break();
-            ret.Data  += _ => { };
+            ret.Data += data =>
+            {
+                
+            };
             return ret;
         }
     }

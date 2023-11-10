@@ -4,6 +4,8 @@ using LibuvSharp;
 using MediasoupSharp.Errors;
 using Microsoft.Extensions.Logging;
 
+using Pipe = LibuvSharp.UvPipe;
+
 // ReSharper disable InconsistentNaming
 
 namespace MediasoupSharp.Channel;

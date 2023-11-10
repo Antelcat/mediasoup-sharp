@@ -16,7 +16,6 @@ public class DebugLogger : ILogger
     {
         var stack  = new StackTrace(1, true);
         var frames = stack.GetFrames();
-        Debugger.Break();
     }
 
     public bool IsEnabled(LogLevel logLevel)

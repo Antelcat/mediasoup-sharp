@@ -8,7 +8,6 @@ using MediasoupSharp.ORTC;
 using MediasoupSharp.Router;
 using MediasoupSharp.WebRtcServer;
 using Microsoft.Extensions.Logging;
-using Process = LibuvSharp.Process;
 
 namespace MediasoupSharp.Worker;
 
@@ -34,7 +33,7 @@ internal partial class Worker<TWorkerAppData>
     /// <summary>
     /// mediasoup-worker child process.
     /// </summary>
-    private Process? child;
+    private UvProcess? child;
 
     private readonly Channel.Channel channel;
 
@@ -122,10 +121,10 @@ internal partial class Worker<TWorkerAppData>
 
         logger?.LogDebug("Worker() | Spawning worker process: {} {}", spawnBin, string.Join(" ", spawnArgs));
 
-        var pipes = new Pipe[7];
+        var pipes = new UvPipe[7];
         
         // NativeHandle的起始指针不可为空，只要不管他就行，如果不读不写会引发ENOTSUP
-        pipes[0] = new Pipe { Writeable = false, Readable = true };
+        pipes[0] = new UvPipe { Writable = false, Readable = false };
 
         // fd 0 (stdin)   : Just ignore it. 
         // fd 1 (stdout)  : Pipe it for 3rd libraries that log their own stuff.
@@ -136,47 +135,24 @@ internal partial class Worker<TWorkerAppData>
         // fd 6 (channel) : Consumer PayloadChannel fd.
         for (var i = 1; i < pipes.Length; i++)
         {
-            var pipe = pipes[i] = new Pipe { Writeable = true, Readable = true };
-            pipe.Data += _ =>
-            {
-                if (_.Count > 0)
-                {
-                    Debugger.Break();
-                }
-            };
-            pipe.Error += _ =>
-            {
-                Debugger.Break();
-            };
-            pipe.Complete += () =>
-            {
-                Debugger.Break();
-            };
-            pipe.Closed += () =>
-            {
-                Debugger.Break();
-            };
-            pipe.Drain += () =>
-            {
-                Debugger.Break();
-            };
+            pipes[i] = new UvPipe { Writable = true, Readable = true };
         }
 
-        var pOptions = new ProcessOptions
+        var pOptions = new UvProcessOptions
         {
             File      = WorkerBin,
-            Arguments = spawnArgs.ToArray(),
-            Environment = Environment.GetEnvironmentVariables()
+            Args = spawnArgs.ToArray(),
+            Env = Environment.GetEnvironmentVariables()
                 .Cast<DictionaryEntry>()
                 .Select(pair => $"{pair.Key}={pair.Value}")
                 .Append($"MEDIASOUP_VERSION={MediasoupSharp.Version}")
                 .ToArray(),
             Detached = false,
-            Streams  = pipes,
+            Stdio  = pipes,
         };
-        child = Process.Spawn(pOptions, _ => { Debugger.Break(); });
+        child = UvProcess.Spawn(pOptions);
 
-        Pid = child.ID;
+        Pid = child.Pid;
 
         channel = new Channel.Channel(
             pipes[3],
