@@ -194,14 +194,10 @@ internal class Channel : EnhancedEventEmitter
     }
 
     private readonly Action<ArraySegment<byte>> consumerSocketOnData;
-
-    private readonly Action consumerSocketOnClosed;
-
-    private readonly Action<Exception?> consumerSocketOnError;
-
-    private readonly Action producerSocketOnClosed;
-
-    private readonly Action<Exception?> producerSocketOnError;
+    private readonly Action                     consumerSocketOnClosed;
+    private readonly Action<Exception?>         consumerSocketOnError;
+    private readonly Action                     producerSocketOnClosed;
+    private readonly Action<Exception?>         producerSocketOnError;
 
     public Task<object?> Request(string method, string? handlerId = null, object? data = null)
     {
@@ -282,7 +278,7 @@ internal class Channel : EnhancedEventEmitter
             }
             else if (msg.TryGetProperty("error", out var errEle))
             {
-                string reason = msg.GetProperty("reason").GetString()!;
+                var reason = msg.GetProperty("reason").GetString()!;
                 logger?.LogWarning(
                     "request failed [{Method}, {Id}]: {%s}",
                     sent.Method, sent.Id, reason);
