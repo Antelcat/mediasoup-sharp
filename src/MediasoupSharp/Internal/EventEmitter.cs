@@ -1,6 +1,6 @@
 ﻿namespace MediasoupSharp.Internal;
 
-internal delegate Task EventHandler(params object[]? args);
+internal delegate Task EventHandler(params object?[]? args);
 
 internal interface IEventEmitter
 {
@@ -86,7 +86,7 @@ internal class EventEmitter
         readerWriterLock.ExitWriteLock();
     }
 
-    public async Task Emit(string name, params object[]? data)
+    public async Task Emit(string name, params object?[]? data)
     {
         if (!namedHandlers.TryGetValue(name, out var handlers)) return;
         handlers.Item2.EnterReadLock();

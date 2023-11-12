@@ -139,15 +139,15 @@ internal partial class Worker<TWorkerAppData>
 
         var pOptions = new UvProcessOptions
         {
-            File      = WorkerBin,
-            Args = spawnArgs.ToArray(),
+            File     = WorkerBin,
+            Detached = false,
+            Args     = spawnArgs.ToArray(),
+            Stdio    = pipes,
             Env = Environment.GetEnvironmentVariables()
                 .Cast<DictionaryEntry>()
                 .Select(pair => $"{pair.Key}={pair.Value}")
                 .Append($"MEDIASOUP_VERSION={MediasoupSharp.Version}")
                 .ToArray(),
-            Detached = false,
-            Stdio  = pipes,
         };
         child = UvProcess.Spawn(pOptions);
 

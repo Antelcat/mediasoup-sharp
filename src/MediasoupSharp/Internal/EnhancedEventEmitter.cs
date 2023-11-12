@@ -18,7 +18,7 @@ internal class EnhancedEventEmitter : EventEmitter, IEnhancedEventEmitter
 
     private readonly ILogger? logger;
 
-    public async Task<bool> SafeEmit(string name, params object[]? args)
+    public async Task<bool> SafeEmit(string name, params object?[]? args)
     {
         var numListeners = ListenerCount(name);
         try

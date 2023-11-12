@@ -316,10 +316,10 @@ internal class Channel : EnhancedEventEmitter
             // the response, destroying the ordered delivery. So we must wait a bit
             // here.
             // See https://github.com/versatica/mediasoup/issues/510
-            Task.Run(() =>
-                Emit(targetIdEle.GetString()!,
-                    eventEle.GetString()!,
-                    msg.GetProperty("data").GetString()!));
+            Task.Run(async () =>
+                await Emit(targetIdEle.GetString()!,
+                    eventEle.GetString(),
+                    msg.GetProperty("data").GetString()));
         }
         // Otherwise unexpected message.
         else
