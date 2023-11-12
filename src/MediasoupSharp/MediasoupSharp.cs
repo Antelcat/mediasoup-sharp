@@ -20,11 +20,9 @@ public static partial class MediasoupSharp
     public static readonly IEnhancedEventEmitter<ObserverEvents> Observer = new EnhancedEventEmitter<ObserverEvents>();
 
     public static async Task<IWorker> CreateWorker(WorkerSettings<object>? settings = null,
-        ILoggerFactory? loggerFactory = null)
-    {
-        return await CreateWorker<object>(settings, loggerFactory);
-    }
-    
+        ILoggerFactory? loggerFactory = null) =>
+        await CreateWorker<object>(settings, loggerFactory);
+
     public static async Task<IWorker<TWorkerAppData>> CreateWorker<TWorkerAppData>(
         WorkerSettings<TWorkerAppData>? settings = null,
         ILoggerFactory? loggerFactory = null)
@@ -65,6 +63,6 @@ public static partial class MediasoupSharp
         worker.On("@failure", async _ => { taskSource.SetException(new Exception()); });
         return await taskSource.Task;
     }
-    
+
     public static RtpCapabilities GetSupportedRtpCapabilities() => SupportedRtpCapabilities.DeepClone();
 }

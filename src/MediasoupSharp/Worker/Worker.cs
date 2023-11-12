@@ -123,8 +123,6 @@ internal partial class Worker<TWorkerAppData>
 
         var pipes = new UvPipe[7];
         
-        // NativeHandle的起始指针不可为空，只要不管他就行，如果不读不写会引发ENOTSUP
-        pipes[0] = new UvPipe { Writable = false, Readable = false };
 
         // fd 0 (stdin)   : Just ignore it. 
         // fd 1 (stdout)  : Pipe it for 3rd libraries that log their own stuff.
@@ -133,6 +131,7 @@ internal partial class Worker<TWorkerAppData>
         // fd 4 (channel) : Consumer Channel fd.
         // fd 5 (channel) : Producer PayloadChannel fd.
         // fd 6 (channel) : Consumer PayloadChannel fd.
+        pipes[0] = UvPipe.Ignore;
         for (var i = 1; i < pipes.Length; i++)
         {
             pipes[i] = new UvPipe { Writable = true, Readable = true };
