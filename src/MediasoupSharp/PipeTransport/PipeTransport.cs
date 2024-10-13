@@ -1,229 +1,335 @@
-﻿using MediasoupSharp.Consumer;
+﻿using FlatBuffers.Notification;
+using FlatBuffers.PipeTransport;
+using FlatBuffers.Request;
+using FlatBuffers.Transport;
+using MediasoupSharp.Extensions;
+using MediasoupSharp.Channel;
+using MediasoupSharp.Consumer;
+using MediasoupSharp.FlatBuffers.Consumer.T;
+using MediasoupSharp.FlatBuffers.PipeTransport.T;
+using MediasoupSharp.FlatBuffers.Transport.T;
+using MediasoupSharp.ORTC;
+using MediasoupSharp.RtpParameters;
+using MediasoupSharp.RtpParameters.Extensions;
 using MediasoupSharp.Transport;
 using Microsoft.Extensions.Logging;
+using DumpResponseT = MediasoupSharp.FlatBuffers.PipeTransport.T.DumpResponseT;
 
 namespace MediasoupSharp.PipeTransport;
 
-public interface IPipeTransport : ITransport
+public class PipeTransport : Transport.Transport
 {
-    TransportTuple Tuple { get; }
-    
-    SctpParameters.SctpParameters? SctpParameters { get; }
-    
-    SrtpParameters.SrtpParameters? SrtpParameters { get; }
-}
+    /// <summary>
+    /// Logger factory for create logger.
+    /// </summary>
+    private readonly ILoggerFactory loggerFactory;
 
+    /// <summary>
+    /// Logger.
+    /// </summary>
+    private readonly ILogger<PipeTransport> logger;
 
-internal class PipeTransport<TPipeTransportAppData> 
-    : Transport<TPipeTransportAppData, PipeTransportEvents, PipeTransportObserverEvents> , IPipeTransport 
-{
-    private readonly ILogger? logger;
-    
     /// <summary>
     /// PipeTransport data.
     /// </summary>
-    private readonly PipeTransportData data;
+    public DumpResponseT Data { get; }
 
+    /// <summary>
+    /// <para>Events:</para>
+    /// <para>@emits sctpstatechange - (sctpState: SctpState)</para>
+    /// <para>@emits trace - (trace: TransportTraceEventData)</para>
+    /// <para>Observer events:</para>
+    /// <para>@emits close</para>
+    /// <para>@emits newproducer - (producer: Producer)</para>
+    /// <para>@emits newconsumer - (consumer: Consumer)</para>
+    /// <para>@emits newdataproducer - (dataProducer: DataProducer)</para>
+    /// <para>@emits newdataconsumer - (dataConsumer: DataConsumer)</para>
+    /// <para>@emits sctpstatechange - (sctpState: SctpState)</para>
+    /// <para>@emits trace - (trace: TransportTraceEventData)</para>
+    /// </summary>
     public PipeTransport(
-        PipeTransportConstructorOptions<TPipeTransportAppData> options,
-        ILoggerFactory? loggerFactory = null) 
-        : base(options,loggerFactory)
+        ILoggerFactory loggerFactory,
+        TransportInternal @internal,
+        DumpResponseT data,
+        IChannel channel,
+        Dictionary<string, object>? appData,
+        Func<RtpCapabilities> getRouterRtpCapabilities,
+        Func<string, Task<Producer.Producer?>> getProducerById,
+        Func<string, Task<DataProducer.DataProducer?>> getDataProducerById
+    )
+        : base(
+            loggerFactory,
+            @internal,
+            data.Base,
+            channel,
+            appData,
+            getRouterRtpCapabilities,
+            getProducerById,
+            getDataProducerById
+        )
     {
-        logger = loggerFactory?.CreateLogger(GetType());
-        
-        data = options.Data with { };
+        this.loggerFactory = loggerFactory;
+        logger        = loggerFactory.CreateLogger<PipeTransport>();
+
+        Data = data;
 
         HandleWorkerNotifications();
     }
 
-    public TransportTuple Tuple => data.Tuple;
-
-    public SctpParameters.SctpParameters? SctpParameters => data.SctpParameters;
-
-    public SctpState? SctpState => data.SctpState;
-
-    public SrtpParameters.SrtpParameters? SrtpParameters => data.SrtpParameters;
-    
     /// <summary>
     /// Close the PipeTransport.
     /// </summary>
-    public override void Close()
+    protected override Task OnCloseAsync()
     {
-        if (Closed)
+        if(Data.Base.SctpState.HasValue)
         {
-            return;
+            Data.Base.SctpState = global::FlatBuffers.SctpAssociation.SctpState.CLOSED;
         }
 
-        if (data.SctpState != null)
-        {
-            data.SctpState = Transport.SctpState.closed;
-        }
-        
-        base.Close();
+        return Task.CompletedTask;
     }
 
     /// <summary>
     /// Router was closed.
     /// </summary>
-    public override void RouterClosed()
+    protected override Task OnRouterClosedAsync()
     {
-        if (Closed)
-        {
-            return;
-        }
-
-        if (data.SctpState != null)
-        {
-            data.SctpState = Transport.SctpState.closed;
-        }
-        
-        base.RouterClosed();
+        return OnCloseAsync();
     }
 
     /// <summary>
-    /// Get PipeTransport stats.
+    /// Dump Transport.
     /// </summary>
-    /// <returns></returns>
-    public async Task<List<PipeTransportStat>> GetStats()
+    protected override async Task<object> OnDumpAsync()
     {
-        logger?.LogDebug("getStats()");
+        // Build Request
+        var bufferBuilder = Channel.BufferPool.Get();
 
-        return (await Channel.Request("transport.getStats", Internal.TransportId) as List<PipeTransportStat>)!;
+        var response = await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_DUMP, null, null, Internal.TransportId);
+        var data     = response.Value.BodyAsPipeTransport_DumpResponse().UnPack();
+
+        return data;
+    }
+
+    /// <summary>
+    /// Get Transport stats.
+    /// </summary>
+    protected override async Task<object[]> OnGetStatsAsync()
+    {
+        // Build Request
+        var bufferBuilder = Channel.BufferPool.Get();
+
+        var response = await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_GET_STATS, null, null, Internal.TransportId);
+        var data     = response.Value.BodyAsPipeTransport_GetStatsResponse().UnPack();
+
+        return [data];
     }
 
     /// <summary>
     /// Provide the PipeTransport remote parameters.
     /// </summary>
-    /// <param name="parameters"></param>
-    /// <returns></returns>
-    public override async Task ConnectAsync(object parameters)
+    protected override async Task OnConnectAsync(object parameters)
     {
-        logger?.LogDebug("ConnectAsync()");
+        logger.LogDebug("OnConnectAsync() | PipeTransport:{TransportId}", TransportId);
 
-        var data =
-            await Channel.Request("transport.connect", Internal.TransportId, parameters) as dynamic;
+        if(parameters is not ConnectRequestT connectRequestT)
+        {
+            throw new Exception($"{nameof(parameters)} type is not FBS.PipeTransport.ConnectRequestT");
+        }
+
+        // Build Request
+        var bufferBuilder = Channel.BufferPool.Get();
+
+        var connectRequestOffset = ConnectRequest.Pack(bufferBuilder, connectRequestT);
+
+        var response = await Channel.RequestAsync(bufferBuilder, Method.PIPETRANSPORT_CONNECT,
+            global::FlatBuffers.Request.Body.PipeTransport_ConnectRequest,
+            connectRequestOffset.Value,
+            Internal.TransportId);
+
+        /* Decode Response. */
+        var data = response.Value.BodyAsPipeTransport_ConnectResponse().UnPack();
 
         // Update data.
-        this.data.Tuple = data!.Tuple;
+        Data.Tuple = data.Tuple;
     }
-
 
     /// <summary>
     /// Create a Consumer.
     /// </summary>
     /// <param name="consumerOptions">注意：由于强类型的原因，这里使用的是 ConsumerOptions 类而不是 PipConsumerOptions 类</param>
-    /// <returns></returns>
-    public async Task<Consumer<TConsumerAppData>> ConsumeAsync<TConsumerAppData>(PipeConsumerOptions<TConsumerAppData> consumerOptions)
+    public override async Task<Consumer.Consumer> ConsumeAsync(ConsumerOptions consumerOptions)
     {
-        var producerId = consumerOptions.ProducerId;
-        var appData    = consumerOptions.AppData;
-        logger?.LogDebug("ConsumeAsync()");
+        logger.LogDebug("ConsumeAsync()");
 
-        if (producerId.IsNullOrEmpty())
+        if(consumerOptions.ProducerId.IsNullOrWhiteSpace())
         {
-            throw new TypeError("missing producerId");
+            throw new Exception("missing producerId");
         }
 
-        var producer = GetProducerById(consumerOptions.ProducerId);
-        if (producer == null)
-        {
-            throw new TypeError($"Producer with id {consumerOptions.ProducerId} not found");
-        }
+        var producer = await GetProducerById(consumerOptions.ProducerId) ?? throw new Exception($"Producer with id {consumerOptions.ProducerId} not found");
 
         // This may throw.
-        var rtpParameters = ORTC.Ortc.GetPipeConsumerRtpParameters(producer.ConsumableRtpParameters, this.data.Rtx);
-        // TODO : Naming
-        var reqData = new
+        var rtpParameters = Ortc.GetPipeConsumerRtpParameters(producer.Data.ConsumableRtpParameters, Data.Rtx);
+
+        var consumerId = Guid.NewGuid().ToString();
+
+        // Build Request
+        var bufferBuilder = Channel.BufferPool.Get();
+
+        var consumeRequest = new ConsumeRequestT
         {
-            ConsumerId = Guid.NewGuid().ToString(),
-            producerId,
-            Kind                   = producer.Kind,
-            RtpParameters          = rtpParameters,
-            Type                   = ConsumerType.pipe,
-            ConsumableRtpEncodings = producer.ConsumableRtpParameters.Encodings,
+            ProducerId             = consumerOptions.ProducerId,
+            ConsumerId             = consumerId,
+            Kind                   = producer.Data.Kind,
+            RtpParameters          = rtpParameters.SerializeRtpParameters(),
+            Type                   = global::FlatBuffers.RtpParameters.Type.PIPE,
+            ConsumableRtpEncodings = producer.Data.ConsumableRtpParameters.Encodings,
         };
 
-        var status = await Channel.Request("transport.consume", Internal.TransportId, reqData) as dynamic;
+        var consumeRequestOffset = ConsumeRequest.Pack(bufferBuilder, consumeRequest);
 
-        var data = new ConsumerData
+        var response = await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_CONSUME,
+            global::FlatBuffers.Request.Body.Transport_ConsumeRequest,
+            consumeRequestOffset.Value,
+            Internal.TransportId);
+
+        /* Decode Response. */
+        var responseData = response.Value.BodyAsTransport_ConsumeResponse().UnPack();
+
+        var consumerData = new ConsumerData
         {
-            ProducerId    = producerId,
-            Kind          = producer.Kind,
+            ProducerId    = consumerOptions.ProducerId,
+            Kind          = producer.Data.Kind,
             RtpParameters = rtpParameters,
-            Type          = ConsumerType.pipe
+            Type          = producer.Data.Type,
         };
 
-        // TODO : Naming
-        var consumer = new Consumer<TConsumerAppData>(
-            new ConsumerInternal
-            {
-                RouterId    = Internal.RouterId,
-                TransportId = Internal.TransportId,
-                ConsumerId  = reqData.ConsumerId
-            },
-            data,
+        var score = new ConsumerScoreT
+        {
+            Score          = 10,
+            ProducerScore  = 10,
+            ProducerScores = []
+        };
+
+        var consumer = new Consumer.Consumer(
+            loggerFactory,
+            new ConsumerInternal(Internal.RouterId, Internal.TransportId, consumerId),
+            consumerData,
             Channel,
-            PayloadChannel,
-            appData,
-            status!.Paused,
-            status.ProducerPaused);
+            AppData,
+            responseData.Paused,
+            responseData.ProducerPaused,
+            score, // Not `responseData.Score`
+            responseData.PreferredLayers
+        );
 
-        Consumers[consumer.Id] = consumer;
+        consumer.On(
+            "@close",
+            async (_, _) =>
+            {
+                await ConsumersLock.WaitAsync();
+                try
+                {
+                    Consumers.Remove(consumer.ConsumerId);
+                }
+                catch(Exception ex)
+                {
+                    logger.LogError(ex, "@close");
+                }
+                finally
+                {
+                    ConsumersLock.Set();
+                }
+            }
+        );
+        consumer.On(
+            "@producerclose",
+            async (_, _) =>
+            {
+                await ConsumersLock.WaitAsync();
+                try
+                {
+                    Consumers.Remove(consumer.ConsumerId);
+                }
+                catch(Exception ex)
+                {
+                    logger.LogError(ex, "@producerclose");
+                }
+                finally
+                {
+                    ConsumersLock.Set();
+                }
+            }
+        );
 
-        consumer.On("@close", async _ =>
+        await ConsumersLock.WaitAsync();
+        try
         {
-            Consumers.Remove(consumer.Id);
-        });
-        consumer.On("@producerclose", async _ =>
+            Consumers[consumer.ConsumerId] = consumer;
+        }
+        catch(Exception ex)
         {
-            Consumers.Remove(consumer.Id);
-        });
-       
+            logger.LogError(ex, "ConsumeAsync()");
+        }
+        finally
+        {
+            ConsumersLock.Set();
+        }
+
         // Emit observer event.
-        await Observer.Emit("newconsumer", consumer);
+        Observer.Emit("newconsumer", consumer);
+
         return consumer;
     }
 
+    #region Event Handlers
+
     private void HandleWorkerNotifications()
     {
-        Channel.On(Internal.TransportId, async args =>
-        {
-            var @event = args![0] as string;
-            var data   = args[1] as dynamic;
-            switch (@event)
-            {
-                case "sctpstatechange":
-                {
-                    var sctpState = (SctpState)data.sctpState;
-
-                    data.SctpState = sctpState;
-
-                    await SafeEmit("sctpstatechange", sctpState);
-
-                    // Emit observer event.
-                    await Observer.SafeEmit("sctpstatechange", sctpState);
-
-                    break;
-                }
-
-                case "trace":
-                {
-                    var trace = (data as TransportTraceEventData)!;
-
-                    await SafeEmit("trace", trace);
-
-                    // Emit observer event.
-                    await Observer.SafeEmit("trace", trace);
-
-                    break;
-                }
-
-                default:
-                {
-                    logger?.LogError("ignoring unknown event {E}", @event);
-                    break;
-                }
-            }
-        });
+        Channel.OnNotification += OnNotificationHandle;
     }
+
+    private void OnNotificationHandle(string handlerId, Event @event, Notification notification)
+    {
+        if(handlerId != Internal.TransportId)
+        {
+            return;
+        }
+
+        switch(@event)
+        {
+            case Event.TRANSPORT_SCTP_STATE_CHANGE:
+                {
+                    var sctpStateChangeNotification = notification.BodyAsTransport_SctpStateChangeNotification().UnPack();
+
+                    Data.Base.SctpState = sctpStateChangeNotification.SctpState;
+
+                    Emit("sctpstatechange", Data.Base.SctpState);
+
+                    // Emit observer event.
+                    Observer.Emit("sctpstatechange", Data.Base.SctpState);
+
+                    break;
+                }
+            case Event.TRANSPORT_TRACE:
+                {
+                    var traceNotification = notification.BodyAsTransport_TraceNotification().UnPack();
+
+                    Emit("trace", traceNotification);
+
+                    // Emit observer event.
+                    Observer.Emit("trace", traceNotification);
+
+                    break;
+                }
+            default:
+                {
+                    logger.LogError("OnNotificationHandle() | PipeTransport:{TransportId} Ignoring unknown event:{@event}", TransportId, @event);
+                    break;
+                }
+        }
+    }
+
+    #endregion Event Handlers
 }

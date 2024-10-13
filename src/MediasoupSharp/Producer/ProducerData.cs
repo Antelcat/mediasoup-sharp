@@ -1,4 +1,5 @@
-﻿using MediasoupSharp.RtpParameters;
+﻿using FlatBuffers.RtpParameters;
+using Type = FlatBuffers.RtpParameters.Type;
 
 namespace MediasoupSharp.Producer;
 
@@ -7,20 +8,20 @@ public class ProducerData
     /// <summary>
     /// Media kind.
     /// </summary>
-    public MediaKind Kind { get; set; }
+    public MediaKind Kind { get; init; }
 
     /// <summary>
     /// RTP parameters.
     /// </summary>
-    public RtpParameters.RtpParameters RtpParameters { get; set; }
+    public RtpParameters.RtpParameters RtpParameters { get; init; }
 
     /// <summary>
     /// Producer type.
     /// </summary>
-    public ProducerType Type { get; set; }
+    public Type Type { get; init; }
 
     /// <summary>
     /// Consumable RTP parameters.
     /// </summary>
-    public RtpParameters.RtpParameters ConsumableRtpParameters { get; set; }
+    public RtpParameters.RtpParameters ConsumableRtpParameters { get; init; }
 }

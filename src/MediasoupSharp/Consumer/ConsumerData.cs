@@ -1,8 +1,9 @@
-﻿using MediasoupSharp.RtpParameters;
+﻿using FlatBuffers.RtpParameters;
+using Type = FlatBuffers.RtpParameters.Type;
 
 namespace MediasoupSharp.Consumer;
 
-public record ConsumerData
+public class ConsumerData
 {
     /// <summary>
     /// Associated Producer id.
@@ -22,6 +23,5 @@ public record ConsumerData
     /// <summary>
     /// Consumer type.
     /// </summary>
-    public ConsumerType Type { get; set; }
-   
+    public Type Type { get; set; }
 }

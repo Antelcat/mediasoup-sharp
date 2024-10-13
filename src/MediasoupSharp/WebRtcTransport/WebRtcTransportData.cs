@@ -1,50 +1,25 @@
-﻿
+﻿using FlatBuffers.Transport;
+using FlatBuffers.WebRtcTransport;
+using MediasoupSharp.FlatBuffers.WebRtcTransport.T;
 using MediasoupSharp.Transport;
 
 namespace MediasoupSharp.WebRtcTransport;
 
-public interface IWebRtcTransportData
+public class WebRtcTransportData : TransportBaseData
 {
-    string IceRole { get; set; }
+    public string IceRole { get; set; }
 
-    IceParameters IceParameters { get; set; }
+    public IceParametersT IceParameters { get; set; }
 
-    List<IceCandidate> IceCandidates { get; set; } 
-
-    IceState IceState { get; set; }
-
-    TransportTuple? IceSelectedTuple { get; set; }
-
-    DtlsParameters DtlsParameters { get; set; }
-
-    DtlsState DtlsState { get; set; }
-
-    string? DtlsRemoteCert { get; set; }
-    
-    SctpParameters.SctpParameters? SctpParameters { get; set; }
-    
-    SctpState? SctpState { get; set; }
-}
-
-public record WebRtcTransportData : IWebRtcTransportData
-{
-    public string IceRole { get; set; } = "controlled";
-
-    public IceParameters IceParameters { get; set; }
-
-    public List<IceCandidate> IceCandidates { get; set; } = new();
+    public IceCandidateT[] IceCandidates { get; set; }
 
     public IceState IceState { get; set; }
 
-    public TransportTuple? IceSelectedTuple { get; set; }
+    public TupleT? IceSelectedTuple { get; set; }
 
-    public DtlsParameters DtlsParameters { get; set; }
+    public DtlsParametersT DtlsParameters { get; set; }
 
     public DtlsState DtlsState { get; set; }
 
     public string? DtlsRemoteCert { get; set; }
-
-    public SctpParameters.SctpParameters? SctpParameters { get; set; }
-
-    public SctpState? SctpState { get; set; }
 }

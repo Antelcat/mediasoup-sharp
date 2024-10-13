@@ -1,8 +1,8 @@
-﻿using MediasoupSharp.SctpParameters;
+﻿using MediasoupSharp.FlatBuffers.SctpParameters.T;
 
 namespace MediasoupSharp.DataProducer;
 
-public class DataProducerOptions<TDataProducerAppData>
+public class DataProducerOptions
 {
     /// <summary>
     /// DataProducer id (just for Router.pipeToRouter() method).
@@ -12,7 +12,7 @@ public class DataProducerOptions<TDataProducerAppData>
     /// <summary>
     /// SCTP parameters defining how the endpoint is sending the data.
     /// </summary>
-    public SctpStreamParameters? SctpStreamParameters { get; set; }
+    public SctpStreamParametersT? SctpStreamParameters { get; set; }
 
     /// <summary>
     /// A label which can be used to distinguish this DataChannel from others.
@@ -25,7 +25,12 @@ public class DataProducerOptions<TDataProducerAppData>
     public string? Protocol { get; set; }
 
     /// <summary>
+    /// Whether the data producer must start in paused mode. Default false.
+    /// </summary>
+    public bool Paused { get; set; }
+
+    /// <summary>
     /// Custom application data.
     /// </summary>
-    public TDataProducerAppData? AppData { get; set; }
+    public Dictionary<string, object>? AppData { get; set; }
 }

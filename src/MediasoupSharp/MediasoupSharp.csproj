@@ -1,28 +1,27 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net7.0</TargetFramework>
+        <TargetFrameworks>net7.0;net8.0;net9.0</TargetFrameworks>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <LangVersion>preview</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Google.FlatBuffers" Version="23.5.26" />
         <PackageReference Include="Libuv" Version="1.10.0"/>
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.1"/>
+        <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="6.0.26" />
+        <PackageReference Include="Microsoft.VisualStudio.Threading" Version="17.8.14" />
+        <PackageReference Include="DeepCloner" Version="0.10.4" />
     </ItemGroup>
-
 
     <ItemGroup>
         <InternalsVisibleTo Include="MediasoupSharp.Test"/>
     </ItemGroup>
 
-
-
-
-
     <ItemGroup>
       <ProjectReference Include="..\..\libuv-sharp\src\LibuvSharp\LibuvSharp.csproj" />
     </ItemGroup>
-
 
 </Project>

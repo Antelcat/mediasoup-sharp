@@ -1,128 +1,158 @@
-﻿using MediasoupSharp.Producer;
+using FlatBuffers.Notification;
+using FlatBuffers.Request;
+using MediasoupSharp.Extensions;
+using MediasoupSharp.Channel;
+using MediasoupSharp.Exceptions;
+using MediasoupSharp.FlatBuffers.RtpObserver.T;
 using Microsoft.Extensions.Logging;
+using Microsoft.VisualStudio.Threading;
 
 namespace MediasoupSharp.RtpObserver;
 
-public interface IRtpObserver
+public abstract class RtpObserver : EventEmitter.EventEmitter
 {
-    void RouterClosed();
-}
-
-internal abstract class RtpObserver<TRtpObserverAppData, TEvents> 
-    : EnhancedEventEmitter<TEvents> , IRtpObserver 
-    where TEvents : RtpObserverEvents
-{
-    private readonly ILogger? logger;
-    
     /// <summary>
-    /// Internal data.
+    /// Logger.
     /// </summary>
-    protected readonly RtpObserverObserverInternal Internal;
+    private readonly ILogger<RtpObserver> logger;
 
-    /// <summary>
-    /// Channel instance.
-    /// </summary>
-    protected readonly Channel.Channel Channel;
-
-    /// <summary>
-    /// PayloadChannel instance.
-    /// </summary>
-    protected readonly PayloadChannel.PayloadChannel PayloadChannel;
-
-    /// <summary>
-    /// App custom data.
-    /// </summary>
-    public TRtpObserverAppData? AppData { get; set; }
-
-    /// <summary>
-    /// Method to retrieve a Producer.
-    /// </summary>
-    protected readonly Func<string, IProducer?> GetProducerById;
-
-    /// <summary>
-    /// Observer instance.
-    /// </summary>
-    public EnhancedEventEmitter<RtpObserverObserverEvents> Observer { get; }
-
-
-    protected RtpObserver(
-        RtpObserverConstructorOptions<TRtpObserverAppData> args,
-        ILoggerFactory? loggerFactory
-    ) : base(loggerFactory)
-    {
-        logger          = loggerFactory?.CreateLogger(GetType());
-        Internal        = args.Internal;
-        Channel         = args.Channel;
-        PayloadChannel  = args.PayloadChannel;
-        AppData         = args.AppData ?? default;
-        GetProducerById = args.GetProducerById;
-        Observer        = new EnhancedEventEmitter<RtpObserverObserverEvents>();
-    }
-
-    public string Id => Internal.RtpObserverId;
-    
     /// <summary>
     /// Whether the Producer is closed.
     /// </summary>
-    public bool Closed { get; private set; }
+    private bool closed;
+
+    private readonly AsyncReaderWriterLock closeLock = new();
 
     /// <summary>
     /// Paused flag.
     /// </summary>
-    public bool Paused { get; private set; }
+    private bool paused;
+
+    private readonly AsyncAutoResetEvent pauseLock = new();
+
+    /// <summary>
+    /// Internal data.
+    /// </summary>
+    public RtpObserverInternal Internal { get; }
+
+    /// <summary>
+    /// Channel instance.
+    /// </summary>
+    protected readonly IChannel Channel;
+
+    /// <summary>
+    /// App custom data.
+    /// </summary>
+    public Dictionary<string, object>? AppData { get; }
+
+    /// <summary>
+    /// Method to retrieve a Producer.
+    /// </summary>
+    protected readonly Func<string, Task<Producer.Producer?>> GetProducerById;
+
+    /// <summary>
+    /// Observer instance.
+    /// </summary>
+    public EventEmitter.EventEmitter Observer { get; } = new();
+
+    /// <summary>
+    /// <para>Events:</para>
+    /// <para>@emits routerclose</para>
+    /// <para>@emits @close</para>
+    /// <para>Observer events:</para>
+    /// <para>@emits close</para>
+    /// <para>@emits pause</para>
+    /// <para>@emits resume</para>
+    /// <para>@emits addproducer - (producer: Producer)</para>
+    /// <para>@emits removeproducer - (producer: Producer)</para>
+    /// </summary>
+    protected RtpObserver(
+        ILoggerFactory loggerFactory,
+        RtpObserverInternal @internal,
+        IChannel channel,
+        Dictionary<string, object>? appData,
+        Func<string, Task<Producer.Producer?>> getProducerById
+    )
+    {
+        logger = loggerFactory.CreateLogger<RtpObserver>();
+
+        Internal        = @internal;
+        Channel         = channel;
+        AppData         = appData ?? new Dictionary<string, object>();
+        GetProducerById = getProducerById;
+        pauseLock.Set();
+
+        HandleWorkerNotifications();
+    }
 
     /// <summary>
     /// Close the RtpObserver.
     /// </summary>
-    public void Close()
+    public async Task CloseAsync()
     {
-        if (Closed)
+        logger.LogDebug("Close() | RtpObserverId:{RtpObserverId}", Internal.RtpObserverId);
+
+        await using (await closeLock.WriteLockAsync())
         {
-            return;
+            if (closed)
+            {
+                return;
+            }
+
+            closed = true;
+
+            // Remove notification subscriptions.
+            Channel.OnNotification -= OnNotificationHandle;
+
+            // Build Request
+            var bufferBuilder = Channel.BufferPool.Get();
+
+            var closeRtpObserverRequest = new global::FlatBuffers.Router.CloseRtpObserverRequestT
+            {
+                RtpObserverId = Internal.RtpObserverId,
+            };
+
+            var closeRtpObserverRequestOffset =
+                global::FlatBuffers.Router.CloseRtpObserverRequest.Pack(bufferBuilder, closeRtpObserverRequest);
+
+            // Fire and forget
+            Channel.RequestAsync(bufferBuilder, Method.ROUTER_CLOSE_RTPOBSERVER,
+                global::FlatBuffers.Request.Body.Router_CloseRtpObserverRequest,
+                closeRtpObserverRequestOffset.Value,
+                Internal.RouterId
+            ).ContinueWithOnFaultedHandleLog(logger);
+
+            Emit("@close");
+
+            // Emit observer event.
+            Observer.Emit("close");
         }
-
-        logger?.LogDebug("Close() | RtpObserver:{RtpObserverId}", Internal.RtpObserverId);
-
-        Closed = true;
-
-        // Remove notification subscriptions.
-        Channel.RemoveAllListeners(Internal.RtpObserverId);
-        PayloadChannel.RemoveAllListeners(Internal.RtpObserverId);
-
-        var reqData = new { rtpObserverId = Internal.RtpObserverId };
-
-        // Fire and forget
-        Channel.Request("router.closeRtpObserver", Internal.RouterId, reqData)
-            .ContinueWith((t) => { }, TaskContinuationOptions.OnlyOnFaulted);
-
-        _ = Emit("@close");
-
-        // Emit observer event.
-        _ = Observer.SafeEmit("close");
     }
 
     /// <summary>
     /// Router was closed.
     /// </summary>
-    public void RouterClosed()
+    public async Task RouterClosedAsync()
     {
-        if (Closed)
+        logger.LogDebug("RouterClosed() | RtpObserverId:{RtpObserverId}", Internal.RtpObserverId);
+
+        await using (await closeLock.WriteLockAsync())
         {
-            return;
+            if (closed)
+            {
+                return;
+            }
+
+            closed = true;
+
+            // Remove notification subscriptions.
+            Channel.OnNotification -= OnNotificationHandle;
+
+            Emit("routerclose");
+
+            // Emit observer event.
+            Observer.Emit("close");
         }
-
-        logger?.LogDebug("RouterClosed() | RtpObserver:{InternalRtpObserverId}", Internal.RtpObserverId);
-
-        Closed = true;
-
-        // Remove notification subscriptions.
-        Channel.RemoveAllListeners(Internal.RtpObserverId);
-        PayloadChannel.RemoveAllListeners(Internal.RtpObserverId);
-
-        _ = SafeEmit("routerclose");
-
-        // Emit observer event.
-        _ = Observer.SafeEmit("close");
     }
 
     /// <summary>
@@ -130,19 +160,46 @@ internal abstract class RtpObserver<TRtpObserverAppData, TEvents>
     /// </summary>
     public async Task PauseAsync()
     {
-        logger?.LogDebug("PauseAsync() | RtpObserver:{InternalRtpObserverId}", Internal.RtpObserverId);
+        logger.LogDebug("PauseAsync() | RtpObserverId:{RtpObserverId}", Internal.RtpObserverId);
 
-        var wasPaused = Paused;
-
-        // Fire and forget
-        await Channel.Request("rtpObserver.pause", Internal.RtpObserverId);
-
-        Paused = true;
-
-        // Emit observer event.
-        if (!wasPaused)
+        await using (await closeLock.ReadLockAsync())
         {
-            await Observer.SafeEmit("pause");
+            if (closed)
+            {
+                throw new InvalidStateException("PauseAsync()");
+            }
+
+            await pauseLock.WaitAsync();
+            try
+            {
+                var wasPaused = paused;
+
+                // Build Request
+                var bufferBuilder = Channel.BufferPool.Get();
+
+                // Fire and forget
+                Channel.RequestAsync(bufferBuilder, Method.RTPOBSERVER_PAUSE,
+                    null,
+                    null,
+                    Internal.RtpObserverId
+                ).ContinueWithOnFaultedHandleLog(logger);
+
+                paused = true;
+
+                // Emit observer event.
+                if (!wasPaused)
+                {
+                    Observer.Emit("pause");
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "PauseAsync()");
+            }
+            finally
+            {
+                pauseLock.Set();
+            }
         }
     }
 
@@ -151,18 +208,46 @@ internal abstract class RtpObserver<TRtpObserverAppData, TEvents>
     /// </summary>
     public async Task ResumeAsync()
     {
-        logger?.LogDebug("ResumeAsync() | RtpObserver:{InternalRtpObserverId}", Internal.RtpObserverId);
+        logger.LogDebug("ResumeAsync() | RtpObserverId:{RtpObserverId}", Internal.RtpObserverId);
 
-        var wasPaused = Paused;
-
-        await Channel.Request("rtpObserver.resume", Internal.RtpObserverId);
-
-        Paused = false;
-
-        // Emit observer event.
-        if (wasPaused)
+        await using (await closeLock.ReadLockAsync())
         {
-            await Observer.SafeEmit("resume");
+            if (closed)
+            {
+                throw new InvalidStateException("ResumeAsync()");
+            }
+
+            await pauseLock.WaitAsync();
+            try
+            {
+                var wasPaused = paused;
+
+                // Build Request
+                var bufferBuilder = Channel.BufferPool.Get();
+
+                // Fire and forget
+                Channel.RequestAsync(bufferBuilder, Method.RTPOBSERVER_RESUME,
+                    null,
+                    null,
+                    Internal.RtpObserverId
+                ).ContinueWithOnFaultedHandleLog(logger);
+
+                paused = false;
+
+                // Emit observer event.
+                if (wasPaused)
+                {
+                    Observer.Emit("resume");
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "ResumeAsync()");
+            }
+            finally
+            {
+                pauseLock.Set();
+            }
         }
     }
 
@@ -171,23 +256,43 @@ internal abstract class RtpObserver<TRtpObserverAppData, TEvents>
     /// </summary>
     public async Task AddProducerAsync(RtpObserverAddRemoveProducerOptions rtpObserverAddRemoveProducerOptions)
     {
-        var producerId = rtpObserverAddRemoveProducerOptions.ProducerId;
-            
-        logger?.LogDebug("AddProducerAsync() | RtpObserver:{InternalRtpObserverId}", producerId);
+        logger.LogDebug("AddProducerAsync() | RtpObserverId:{RtpObserverId} ProducerId:{ProducerId}",
+            Internal.RtpObserverId, rtpObserverAddRemoveProducerOptions.ProducerId);
 
-        var producer = GetProducerById(producerId);
-
-        if (producer == null)
+        await using (await closeLock.ReadLockAsync())
         {
-            throw new KeyNotFoundException($"Producer with id {producerId} not found");
+            if (closed)
+            {
+                throw new InvalidStateException("RepObserver closed");
+            }
+
+            var producer = await GetProducerById(rtpObserverAddRemoveProducerOptions.ProducerId);
+            if (producer == null)
+            {
+                return;
+            }
+
+            // Build Request
+            var bufferBuilder = Channel.BufferPool.Get();
+
+            var addProducerRequest = new AddProducerRequestT
+            {
+                ProducerId = rtpObserverAddRemoveProducerOptions.ProducerId
+            };
+
+            var addProducerRequestOffset =
+                global::FlatBuffers.RtpObserver.AddProducerRequest.Pack(bufferBuilder, addProducerRequest);
+
+            // Fire and forget
+            Channel.RequestAsync(bufferBuilder, Method.RTPOBSERVER_ADD_PRODUCER,
+                global::FlatBuffers.Request.Body.RtpObserver_AddProducerRequest,
+                addProducerRequestOffset.Value,
+                Internal.RtpObserverId
+            ).ContinueWithOnFaultedHandleLog(logger);
+
+            // Emit observer event.
+            Observer.Emit("addproducer", producer);
         }
-
-        var reqData = new { producerId };
-            
-        await Channel.Request("rtpObserver.addProducer", Internal.RtpObserverId, reqData);
-
-        // Emit observer event.
-        await Observer.SafeEmit("addproducer", producer);
     }
 
     /// <summary>
@@ -195,23 +300,54 @@ internal abstract class RtpObserver<TRtpObserverAppData, TEvents>
     /// </summary>
     public async Task RemoveProducerAsync(RtpObserverAddRemoveProducerOptions rtpObserverAddRemoveProducerOptions)
     {
-        var producerId = rtpObserverAddRemoveProducerOptions.ProducerId;
-            
-        logger?.LogDebug("RemoveProducerAsync() | RtpObserver:{InternalRtpObserverId}", Internal.RtpObserverId);
-            
-        var producer = GetProducerById(producerId);
-            
-        if (producer == null)
+        logger.LogDebug("RemoveProducerAsync() | RtpObserverId:{RtpObserverId}", Internal.RtpObserverId);
+
+        await using (await closeLock.ReadLockAsync())
         {
-            throw new KeyNotFoundException($"Producer with id {producerId} not found");
+            if (closed)
+            {
+                throw new InvalidStateException("RepObserver closed");
+            }
+
+            var producer = await GetProducerById(rtpObserverAddRemoveProducerOptions.ProducerId);
+            if (producer == null)
+            {
+                return;
+            }
+
+            // Build Request
+            var bufferBuilder = Channel.BufferPool.Get();
+
+            var removeProducerRequest = new RemoveProducerRequestT
+            {
+                ProducerId = rtpObserverAddRemoveProducerOptions.ProducerId
+            };
+
+            var removeProducerRequestOffset =
+                global::FlatBuffers.RtpObserver.RemoveProducerRequest.Pack(bufferBuilder, removeProducerRequest);
+
+            // Fire and forget
+            Channel.RequestAsync(bufferBuilder, Method.RTPOBSERVER_REMOVE_PRODUCER,
+                global::FlatBuffers.Request.Body.RtpObserver_RemoveProducerRequest,
+                removeProducerRequestOffset.Value,
+                Internal.RtpObserverId
+            ).ContinueWithOnFaultedHandleLog(logger);
+
+            // Emit observer event.
+            Observer.Emit("removeproducer", producer);
         }
-
-        var reqData = new { producerId };
-            
-        // Fire and forget
-        await Channel.Request("rtpObserver.removeProducer", Internal.RtpObserverId, reqData);
-
-        // Emit observer event.
-        await Observer.SafeEmit("removeproducer", producer);
     }
+
+    #region Event Handlers
+
+    private void HandleWorkerNotifications()
+    {
+        Channel.OnNotification += OnNotificationHandle;
+    }
+
+    protected virtual void OnNotificationHandle(string handlerId, Event @event, Notification notification)
+    {
+    }
+
+    #endregion Event Handlers
 }

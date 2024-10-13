@@ -2,7 +2,15 @@
 
 namespace MediasoupSharp.Producer;
 
-internal record ProducerInternal : TransportInternal
+public class ProducerInternal : TransportInternal
 {
-    public string ProducerId { get; set; }
+    /// <summary>
+    /// Producer id.
+    /// </summary>
+    public string ProducerId { get; }
+
+    public ProducerInternal(string routerId, string transportId, string producerId) : base(routerId, transportId)
+    {
+        ProducerId = producerId;
+    }
 }

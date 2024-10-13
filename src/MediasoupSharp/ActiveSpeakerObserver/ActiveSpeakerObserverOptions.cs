@@ -1,12 +1,14 @@
 ﻿namespace MediasoupSharp.ActiveSpeakerObserver;
 
-[Serializable]
-public class ActiveSpeakerObserverOptions<TActiveSpeakerObserverAppData>
+public class ActiveSpeakerObserverOptions
 {
-    public int? Interval { get; set; } = 300;
+    /// <summary>
+    /// Interval in ms for checking audio volumes. Default 300.
+    /// </summary>
+    public ushort Interval { get; set; } = 300;
 
     /// <summary>
     /// Custom application data.
     /// </summary>
-    public TActiveSpeakerObserverAppData? AppData { get; set; }
+    public Dictionary<string, object>? AppData { get; set; }
 }

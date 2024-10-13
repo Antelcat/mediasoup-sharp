@@ -1,29 +1,14 @@
-﻿using MediasoupSharp.Transport;
+﻿using FlatBuffers.SrtpParameters;
+using FlatBuffers.Transport;
+using MediasoupSharp.Transport;
 
 namespace MediasoupSharp.PipeTransport;
 
-public interface IPipeTransportData
+public class PipeTransportData : TransportBaseData
 {
-    TransportTuple Tuple { get; set; }
-
-    SctpParameters.SctpParameters? SctpParameters { get; set; }
-    
-    SctpState? SctpState { get; set; }
-
-    bool Rtx { get; set; }
-
-    SrtpParameters.SrtpParameters? SrtpParameters { get; set; }
-}
-
-public record PipeTransportData : IPipeTransportData
-{
-    public TransportTuple Tuple { get; set; }
-
-    public SctpParameters.SctpParameters? SctpParameters { get; set; }
-
-    public SctpState? SctpState { get; set; }
+    public TupleT Tuple { get; set; }
 
     public bool Rtx { get; set; }
 
-    public SrtpParameters.SrtpParameters? SrtpParameters { get; set; }
+    public SrtpParametersT? SrtpParameters { get; set; }
 }

@@ -1,206 +1,268 @@
-﻿using MediasoupSharp.RtpParameters;
+﻿using FlatBuffers.Notification;
+using FlatBuffers.Producer;
+using FlatBuffers.Request;
+using FlatBuffers.RtpStream;
+using Google.FlatBuffers;
+using MediasoupSharp.Extensions;
+using MediasoupSharp.Channel;
+using MediasoupSharp.Exceptions;
+using MediasoupSharp.FlatBuffers.Producer.T;
 using Microsoft.Extensions.Logging;
+using Microsoft.VisualStudio.Threading;
 
 namespace MediasoupSharp.Producer;
 
-public interface IProducer
+public class Producer : EventEmitter.EventEmitter
 {
-    string Id { get; }
-    
-    bool Closed { get; }
-    
-    bool Paused { get; }
-    
-    MediaKind Kind { get; }
-
-    ProducerType Type { get; }
-    
-
-
-    void Close();
-    
-    object AppData { get; set; }
-    
-    internal EnhancedEventEmitter Observer { get; } 
-    
-    internal RtpParameters.RtpParameters ConsumableRtpParameters { get; }
-
-    Task PauseAsync();
-
-    Task ResumeAsync();
-    
-    void TransportClosed();
-}
-
-
-public interface IProducer<TProducerAppData> : IProducer
-{
-}
-
-
-internal class Producer<TProducerAppData>  : EnhancedEventEmitter<ProducerEvents> ,IProducer<TProducerAppData>
-{
-    private readonly ILogger? logger;
     /// <summary>
-    /// Internal data.
+    /// Logger
     /// </summary>
-    private readonly ProducerInternal @internal;
-
-    /// <summary>
-    /// Producer data.
-    /// </summary>
-    private readonly ProducerData data;
-
-    /// <summary>
-    /// Channel instance.
-    /// </summary>
-    private readonly Channel.Channel channel;
-
-    /// <summary>
-    /// Channel instance.
-    /// </summary>
-    private readonly PayloadChannel.PayloadChannel payloadChannel;
+    private readonly ILogger<Producer> logger;
 
     /// <summary>
     /// Whether the Producer is closed.
     /// </summary>
     public bool Closed { get; private set; }
 
-    /// <summary>
-    /// App custom data.
-    /// </summary>
-    public object AppData
-    {
-        get => appData;
-        set => appData = (TProducerAppData)value;
-    }
-    private TProducerAppData? appData;
+    private readonly AsyncReaderWriterLock closeLock = new();
 
     /// <summary>
     /// Paused flag.
     /// </summary>
     public bool Paused { get; private set; }
 
-    /// <summary>
-    /// Current score.
-    /// </summary>
-    public List<ProducerScore> Score { get; private set; } = new();
+    private readonly AsyncAutoResetEvent pauseLock = new();
 
     /// <summary>
-    /// Observer instance.
+    /// Internal data.
     /// </summary>
-    public EnhancedEventEmitter Observer { get; }
-    
-    internal Producer(
-        ProducerInternal @internal,
-        ProducerData data,
-        Channel.Channel channel,
-        PayloadChannel.PayloadChannel payloadChannel,
-        TProducerAppData? appData,
-        bool paused,
-        ILoggerFactory? loggerFactory = null
-    ) : base(loggerFactory)
-    {
-        logger              = loggerFactory?.CreateLogger(GetType());
-        this.@internal      = @internal;
-        this.data           = data;
-        this.channel        = channel;
-        this.payloadChannel = payloadChannel;
-        AppData             = appData ?? typeof(TProducerAppData).New<TProducerAppData>()!;
-        Paused              = paused;
-        Observer            = new EnhancedEventEmitter<ProducerObserverEvents>(loggerFactory);
-        HandleWorkerNotifications();
-    }
+    private readonly ProducerInternal @internal;
+
+    private readonly bool isCheckConsumer = false;
+
+    private readonly Timer? checkConsumersTimer;
+
+#if DEBUG
+    private const int CheckConsumersTimeSeconds = 60 * 60 * 24;
+#else
+        private const int CheckConsumersTimeSeconds = 10;
+#endif
 
     /// <summary>
     /// Producer id.
     /// </summary>
-    public string Id => @internal.ProducerId;
+    public string ProducerId => @internal.ProducerId;
 
-    public MediaKind Kind => data.Kind;
+    /// <summary>
+    /// Producer data.
+    /// </summary>
+    public ProducerData Data { get; set; }
 
-    public RtpParameters.RtpParameters RtpParameters => data.RtpParameters;
+    /// <summary>
+    /// Channel instance.
+    /// </summary>
+    private readonly IChannel channel;
 
-    public ProducerType Type => data.Type;
+    /// <summary>
+    /// App custom data.
+    /// </summary>
+    public Dictionary<string, object> AppData { get; }
 
-    public RtpParameters.RtpParameters ConsumableRtpParameters => data.ConsumableRtpParameters;
+    /// <summary>
+    /// [扩展]Consumers
+    /// </summary>
+    private readonly Dictionary<string, Consumer.Consumer> consumers = new();
 
-    internal Channel.Channel ChannelForTesting => channel;
+    /// <summary>
+    /// [扩展]Source.
+    /// </summary>
+    public string? Source { get; set; }
 
+    /// <summary>
+    /// Current score.
+    /// </summary>
+    public List<ScoreT> Score = [];
+
+    /// <summary>
+    /// Observer instance.
+    /// </summary>
+    public EventEmitter.EventEmitter Observer { get; } = new();
+
+    /// <summary>
+    /// <para>Events:</para>
+    /// <para>@emits transportclose</para></para>
+    /// <para>@emits score - (score: ProducerScore[])</para>
+    /// <para>@emits videoorientationchange - (videoOrientation: ProducerVideoOrientation)</para>
+    /// <para>@emits trace - (trace: ProducerTraceEventData)</para>
+    /// <para>@emits @close</para>
+    /// <para>Observer events:</para>
+    /// <para>@emits close</para>
+    /// <para>@emits pause</para>
+    /// <para>@emits resume</para>
+    /// <para>@emits score - (score: ProducerScore[])</para>
+    /// <para>@emits videoorientationchange - (videoOrientation: ProducerVideoOrientation)</para>
+    /// <para>@emits trace - (trace: ProducerTraceEventData)</para>
+    /// </summary>
+    public Producer(
+        ILoggerFactory loggerFactory,
+        ProducerInternal @internal,
+        ProducerData data,
+        IChannel channel,
+        Dictionary<string, object>? appData,
+        bool paused
+    )
+    {
+        logger = loggerFactory.CreateLogger<Producer>();
+
+        Data           = data;
+        this.@internal = @internal;
+        this.channel   = channel;
+        AppData        = appData ?? new Dictionary<string, object>();
+        Paused         = paused;
+        pauseLock.Set();
+
+        if (isCheckConsumer)
+        {
+            checkConsumersTimer = new Timer(
+                CheckConsumers,
+                null,
+                TimeSpan.FromSeconds(CheckConsumersTimeSeconds),
+                TimeSpan.FromMilliseconds(-1)
+            );
+        }
+
+        HandleWorkerNotifications();
+    }
 
     /// <summary>
     /// Close the Producer.
     /// </summary>
-    public void Close()
+    public async Task CloseAsync()
+    {
+        logger.LogDebug("CloseAsync() | Producer:{ProducerId}", ProducerId);
+
+        await using (await closeLock.WriteLockAsync())
+        {
+            CloseInternal();
+        }
+    }
+
+    private void CloseInternal()
     {
         if (Closed)
         {
             return;
         }
 
-        logger?.LogDebug("CloseAsync() | Producer:{Id}", Id);
-
         Closed = true;
 
-        // Remove notification subscriptions.
-        channel.RemoveAllListeners(@internal.ProducerId);
-        payloadChannel.RemoveAllListeners(@internal.ProducerId);
+        checkConsumersTimer?.Dispose();
 
-        // TODO : Naming
-        var reqData = new { producerId = @internal.ProducerId };
+        // Remove notification subscriptions.
+        channel.OnNotification -= OnNotificationHandle;
+
+        // Build Request
+        var bufferBuilder = channel.BufferPool.Get();
+
+        var requestOffset = global::FlatBuffers.Transport.CloseProducerRequest.Pack(bufferBuilder,
+            new global::FlatBuffers.Transport.CloseProducerRequestT
+            {
+                ProducerId = @internal.ProducerId
+            });
 
         // Fire and forget
-        channel.Request("transport.closeProducer", @internal.TransportId, reqData)
-            .ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
+        channel.RequestAsync(bufferBuilder, Method.TRANSPORT_CLOSE_CONSUMER,
+                global::FlatBuffers.Request.Body.Transport_CloseConsumerRequest,
+                requestOffset.Value,
+                @internal.TransportId
+            )
+            .ContinueWithOnFaultedHandleLog(logger);
 
-        _ = Emit("@close");
+        Emit("@close");
 
         // Emit observer event.
-        _ = Observer.SafeEmit("close");
+        Observer.Emit("close");
     }
 
     /// <summary>
     /// Transport was closed.
     /// </summary>
-    public void TransportClosed()
+    public async Task TransportClosedAsync()
     {
-        if (Closed)
+        logger.LogDebug("TransportClosedAsync() | Producer:{ProducerId}", ProducerId);
+
+        await using (await closeLock.WriteLockAsync())
         {
-            return;
+            if (Closed)
+            {
+                return;
+            }
+
+            Closed = true;
+
+            if (checkConsumersTimer != null)
+            {
+                await checkConsumersTimer.DisposeAsync();
+            }
+
+            // Remove notification subscriptions.
+            channel.OnNotification -= OnNotificationHandle;
+
+            Emit("transportclose");
+
+            // Emit observer event.
+            Observer.Emit("close");
         }
-
-        logger?.LogDebug("CloseAsync() | Producer:{Id}", Id);
-
-        Closed = true;
-
-        // Remove notification subscriptions.
-        channel.RemoveAllListeners(@internal.ProducerId);
-        payloadChannel.RemoveAllListeners(@internal.ProducerId);
-
-        _ = SafeEmit("transportclose");
-
-        // Emit observer event.
-        _ = Observer.SafeEmit("close");
     }
 
     /// <summary>
-    /// Dump Producer.
+    /// Dump DataProducer.
     /// </summary>
-    public async Task<object> DumpAsync()
+    public async Task<DumpResponseT> DumpAsync()
     {
-        logger?.LogDebug("DumpAsync() | Producer:{Id}", Id);
+        logger.LogDebug("DumpAsync() | Producer:{ProducerId}", ProducerId);
 
-        return (await channel.Request("producer.dump", @internal.ProducerId))!;
+        await using (await closeLock.ReadLockAsync())
+        {
+            if (Closed)
+            {
+                throw new InvalidStateException("Producer closed");
+            }
+
+            // Build Request
+            var bufferBuilder = channel.BufferPool.Get();
+
+            var response =
+                await channel.RequestAsync(bufferBuilder, Method.PRODUCER_DUMP, null, null, @internal.ProducerId);
+            var data = response.Value.BodyAsProducer_DumpResponse().UnPack();
+
+            return data;
+        }
     }
 
     /// <summary>
     /// Get DataProducer stats.
     /// </summary>
-    public async Task<List<ProducerStat>> GetStatsAsync()
+    public async Task<List<StatsT>> GetStatsAsync()
     {
-        logger?.LogDebug("GetStatsAsync() | Producer:{Id}", Id);
+        logger.LogDebug("GetStatsAsync() | Producer:{ProducerId}", ProducerId);
 
-        return (await channel.Request("producer.getStats", @internal.ProducerId) as List<ProducerStat>)!;
+        await using (await closeLock.ReadLockAsync())
+        {
+            if (Closed)
+            {
+                throw new InvalidStateException("Producer closed");
+            }
+
+            // Build Request
+            var bufferBuilder = channel.BufferPool.Get();
+
+            var response = await channel.RequestAsync(bufferBuilder, Method.PRODUCER_GET_STATS, null, null,
+                @internal.ProducerId);
+            var stats = response.Value.BodyAsProducer_GetStatsResponse().UnPack().Stats;
+
+            return stats;
+        }
     }
 
     /// <summary>
@@ -208,18 +270,41 @@ internal class Producer<TProducerAppData>  : EnhancedEventEmitter<ProducerEvents
     /// </summary>
     public async Task PauseAsync()
     {
-        logger?.LogDebug("PauseAsync() | Producer:{Id}", Id);
+        logger.LogDebug("PauseAsync() | Producer:{ProducerId}", ProducerId);
 
-        var wasPaused = Paused;
-
-        await channel.Request("producer.pause", @internal.ProducerId);
-
-        Paused = true;
-
-        // Emit observer event.
-        if (!wasPaused)
+        await using (await closeLock.ReadLockAsync())
         {
-            await Observer.SafeEmit("pause");
+            if (Closed)
+            {
+                throw new InvalidStateException("Producer closed");
+            }
+
+            await pauseLock.WaitAsync();
+            try
+            {
+                var wasPaused = Paused;
+
+                // Build Request
+                var bufferBuilder = channel.BufferPool.Get();
+
+                await channel.RequestAsync(bufferBuilder, Method.PRODUCER_PAUSE, null, null, @internal.ProducerId);
+
+                Paused = true;
+
+                // Emit observer event.
+                if (!wasPaused)
+                {
+                    Observer.Emit("pause");
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "PauseAsync()");
+            }
+            finally
+            {
+                pauseLock.Set();
+            }
         }
     }
 
@@ -228,97 +313,226 @@ internal class Producer<TProducerAppData>  : EnhancedEventEmitter<ProducerEvents
     /// </summary>
     public async Task ResumeAsync()
     {
-        logger?.LogDebug("ResumeAsync() | Producer:{Id}", Id);
+        logger.LogDebug("ResumeAsync() | Producer:{ProducerId}", ProducerId);
 
-        var wasPaused = Paused;
-
-        await channel.Request("producer.resume", @internal.ProducerId);
-
-        Paused = false;
-
-        // Emit observer event.
-        if (wasPaused)
+        await using (await closeLock.ReadLockAsync())
         {
-            await Observer.Emit("resume");
+            if (Closed)
+            {
+                throw new InvalidStateException("Producer closed");
+            }
+
+            await pauseLock.WaitAsync();
+            try
+            {
+                var wasPaused = Paused;
+
+                // Build Request
+                var bufferBuilder = channel.BufferPool.Get();
+
+                await channel.RequestAsync(bufferBuilder, Method.PRODUCER_RESUME, null, null, @internal.ProducerId);
+
+                Paused = false;
+
+                // Emit observer event.
+                if (wasPaused)
+                {
+                    Observer.Emit("resume");
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "ResumeAsync()");
+            }
+            finally
+            {
+                pauseLock.Set();
+            }
         }
     }
 
     /// <summary>
     /// Enable 'trace' event.
     /// </summary>
-    public async Task EnableTraceEventAsync(ProducerTraceEventType[] types)
+    public async Task EnableTraceEventAsync(List<TraceEventType> types)
     {
-        logger?.LogDebug("EnableTraceEventAsync() | Producer:{Id}", Id);
+        logger.LogDebug("EnableTraceEventAsync() | Producer:{ProducerId}", ProducerId);
 
-        // TODO : Naming
-        var reqData = new { types };
+        await using (await closeLock.ReadLockAsync())
+        {
+            if (Closed)
+            {
+                throw new InvalidStateException("Producer closed");
+            }
 
-        await channel.Request("producer.enableTraceEvent", @internal.ProducerId, reqData);
+            // Build Request
+            var bufferBuilder = channel.BufferPool.Get();
+
+            var requestOffset = EnableTraceEventRequest.Pack(bufferBuilder, new EnableTraceEventRequestT
+            {
+                Events = types ?? []
+            });
+
+            // Fire and forget
+            channel.RequestAsync(bufferBuilder, Method.CONSUMER_ENABLE_TRACE_EVENT,
+                    global::FlatBuffers.Request.Body.Consumer_EnableTraceEventRequest,
+                    requestOffset.Value,
+                    @internal.ProducerId)
+                .ContinueWithOnFaultedHandleLog(logger);
+        }
     }
 
     /// <summary>
     /// Send RTP packet (just valid for Producers created on a DirectTransport).
     /// </summary>
-    /// <param name="rtpPacket"></param>
-    public void Send(byte[] rtpPacket)
+    public async Task SendAsync(byte[] rtpPacket)
     {
-        payloadChannel.Notify("producer.send", @internal.ProducerId, null, rtpPacket);
+        await using (await closeLock.ReadLockAsync())
+        {
+            if (Closed)
+            {
+                throw new InvalidStateException("Producer closed");
+            }
+
+            // Build Request
+            var bufferBuilder = new FlatBufferBuilder(1024 + rtpPacket.Length);
+
+            var dataOffset = SendNotification.CreateDataVectorBlock(
+                bufferBuilder,
+                rtpPacket
+            );
+
+            var notificationOffset = SendNotification.CreateSendNotification(bufferBuilder, dataOffset);
+
+            // Fire and forget
+            channel.NotifyAsync(bufferBuilder, Event.PRODUCER_SEND,
+                global::FlatBuffers.Notification.Body.Producer_SendNotification,
+                notificationOffset.Value,
+                @internal.ProducerId
+            ).ContinueWithOnFaultedHandleLog(logger);
+        }
     }
 
+    public async Task AddConsumerAsync(Consumer.Consumer consumer)
+    {
+        await using (await closeLock.ReadLockAsync())
+        {
+            if (Closed)
+            {
+                throw new InvalidStateException("Producer closed");
+            }
+
+            consumers[consumer.ConsumerId] = consumer;
+        }
+    }
+
+    public async Task RemoveConsumerAsync(string consumerId)
+    {
+        logger.LogDebug("RemoveConsumer() | Producer:{ProducerId} ConsumerId:{ConsumerId}", ProducerId, consumerId);
+
+        await using (await closeLock.ReadLockAsync())
+        {
+            // 关闭后也允许移除
+            consumers.Remove(consumerId);
+        }
+    }
+
+    #region Event Handlers
 
     private void HandleWorkerNotifications()
     {
-        channel.On(@internal.ProducerId, async args =>
-        {
-            var @event = args![0] as string;
-            var data = args[1];
-            switch (@event)
-            {
-                case "score":
-                {
-                    var score = (data as List<ProducerScore>)!;
-
-                    Score = score;
-
-                    await SafeEmit("score", score);
-
-                    // Emit observer event.
-                    await Observer.SafeEmit("score", score);
-
-                    break;
-                }
-
-                case "videoorientationchange":
-                {
-                    var videoOrientation = (data as ProducerVideoOrientation)!;
-
-                    await SafeEmit("videoorientationchange", videoOrientation);
-
-                    // Emit observer event.
-                    await Observer.SafeEmit("videoorientationchange", videoOrientation);
-
-                    break;
-                }
-
-                case "trace":
-                {
-                    var trace = (data as ProducerTraceEventData)!;
-
-                    await SafeEmit("trace", trace);
-
-                    // Emit observer event.
-                    await Observer.SafeEmit("trace", trace);
-
-                    break;
-                }
-
-                default:
-                {
-                    logger?.LogError("ignoring unknown event {E}", @event);
-                    break;
-                }
-            }
-        });
-       
+        channel.OnNotification += OnNotificationHandle;
     }
+
+    private void OnNotificationHandle(string handlerId, Event @event, Notification notification)
+    {
+        if (handlerId != ProducerId)
+        {
+            return;
+        }
+
+        switch (@event)
+        {
+            case Event.PRODUCER_SCORE:
+            {
+                var scoreNotification = notification.BodyAsProducer_ScoreNotification();
+                var score             = scoreNotification.UnPack().Scores;
+                Score = score;
+
+                Emit("score", score);
+
+                // Emit observer event.
+                Observer.Emit("score", score);
+
+                break;
+            }
+            case Event.PRODUCER_VIDEO_ORIENTATION_CHANGE:
+            {
+                var videoOrientationChangeNotification =
+                    notification.BodyAsProducer_VideoOrientationChangeNotification();
+                var videoOrientation = videoOrientationChangeNotification.UnPack();
+
+                Emit("videoorientationchange", videoOrientation);
+
+                // Emit observer event.
+                Observer.Emit("videoorientationchange", videoOrientation);
+
+                break;
+            }
+            case Event.PRODUCER_TRACE:
+            {
+                var traceNotification = notification.BodyAsProducer_TraceNotification();
+                var trace             = traceNotification.UnPack();
+
+                Emit("trace", trace);
+
+                // Emit observer event.
+                Observer.Emit("trace", trace);
+
+                break;
+            }
+            default:
+            {
+                logger.LogError("OnNotificationHandle() | Ignoring unknown event: {@event}", @event);
+                break;
+            }
+        }
+    }
+
+    #endregion Event Handlers
+
+    #region Private Methods
+
+#pragma warning disable VSTHRD100 // Avoid async void methods
+    private async void CheckConsumers(object? state)
+#pragma warning restore VSTHRD100 // Avoid async void methods
+    {
+        logger.LogDebug("CheckConsumer() | Producer:{ProducerId} ConsumerCount:{Count}", @internal.ProducerId,
+            consumers.Count);
+
+        // NOTE: 使用写锁
+        await using (await closeLock.WriteLockAsync())
+        {
+            if (Closed)
+            {
+                checkConsumersTimer?.Dispose();
+                return;
+            }
+
+            if (consumers.Count == 0)
+            {
+                CloseInternal();
+                checkConsumersTimer?.Dispose();
+            }
+            else
+            {
+                checkConsumersTimer?.Change(
+                    TimeSpan.FromSeconds(CheckConsumersTimeSeconds),
+                    TimeSpan.FromMilliseconds(-1)
+                );
+            }
+        }
+    }
+
+    #endregion Private Methods
 }

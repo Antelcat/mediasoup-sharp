@@ -2,11 +2,11 @@
 
 namespace MediasoupSharp.DataProducer;
 
-public record DataProducerInternal : TransportInternal
+public class DataProducerInternal(string routerId, string transportId, string dataProducerId)
+    : TransportInternal(routerId, transportId)
 {
     /// <summary>
     /// DataProducer id.
     /// </summary>
-    public string DataProducerId { get; set; }
- 
+    public string DataProducerId { get; } = dataProducerId;
 }

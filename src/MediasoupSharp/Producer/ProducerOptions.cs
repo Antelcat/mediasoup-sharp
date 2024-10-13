@@ -1,8 +1,8 @@
-﻿using MediasoupSharp.RtpParameters;
+﻿using FlatBuffers.RtpParameters;
 
 namespace MediasoupSharp.Producer;
 
-public class ProducerOptions<TProducerAppData>
+public class ProducerOptions
 {
     /// <summary>
     /// Producer id (just for Router.pipeToRouter() method).
@@ -22,16 +22,16 @@ public class ProducerOptions<TProducerAppData>
     /// <summary>
     /// Whether the producer must start in paused mode. Default false.
     /// </summary>
-    public bool? Paused { get; set; } = false;
+    public bool Paused { get; set; }
 
     /// <summary>
     /// Just for video. Time (in ms) before asking the sender for a new key frame
     /// after having asked a previous one. Default 0.
     /// </summary>
-    public int? KeyFrameRequestDelay { get; set; } = 0;
+    public uint KeyFrameRequestDelay { get; set; }
 
     /// <summary>
     /// Custom application data.
     /// </summary>
-    public TProducerAppData? AppData { get; set; }
+    public Dictionary<string, object>? AppData { get; set; }
 }

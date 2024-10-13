@@ -1,11 +1,12 @@
-﻿namespace MediasoupSharp.Channel;
+﻿using FlatBuffers.Response;
+
+namespace MediasoupSharp.Channel;
 
 public class Sent
 {
-    public uint Id { get; set; }
-        
-    public string Method { get; set; }
-    public Action<object?> Resolve { get; set; }
+    public RequestMessage RequestMessage { get; set; }
+
+    public Action<Response> Resolve { get; set; }
 
     public Action<Exception> Reject { get; set; }
 

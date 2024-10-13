@@ -1,291 +1,291 @@
-﻿using MediasoupSharp.Transport;
+﻿using FlatBuffers.Notification;
+using FlatBuffers.Request;
+using FlatBuffers.WebRtcTransport;
+using MediasoupSharp.Channel;
+using MediasoupSharp.Exceptions;
+using MediasoupSharp.FlatBuffers.WebRtcTransport.T;
+using MediasoupSharp.RtpParameters;
+using MediasoupSharp.Transport;
 using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.WebRtcTransport;
 
-public interface IWebRtcTransport : ITransport
+public class WebRtcTransport : Transport.Transport
 {
-    
-}
+    /// <summary>
+    /// Logger.
+    /// </summary>
+    private readonly ILogger<WebRtcTransport> logger;
 
+    public DumpResponseT Data { get; }
 
-internal class WebRtcTransport<TWebRtcTransportAppData>
-    : Transport<TWebRtcTransportAppData, WebRtcTransportEvents, WebRtcTransportObserverEvents> ,IWebRtcTransport
-{
-    private readonly ILogger? logger;
-    
-    private readonly WebRtcTransportData data;
-    
+    /// <summary>
+    /// <para>Events:</para>
+    /// <para>@emits icestatechange - (iceState: IceState)</para>
+    /// <para>@emits iceselectedtuplechange - (iceSelectedTuple: TransportTuple)</para>
+    /// <para>@emits dtlsstatechange - (dtlsState: DtlsState)</para>
+    /// <para>@emits sctpstatechange - (sctpState: SctpState)</para>
+    /// <para>@emits trace - (trace: TransportTraceEventData)</para>
+    /// <para>Observer events:</para>
+    /// <para>@emits close</para>
+    /// <para>@emits newproducer - (producer: Producer)</para>
+    /// <para>@emits newconsumer - (consumer: Consumer)</para>
+    /// <para>@emits newdataproducer - (dataProducer: DataProducer)</para>
+    /// <para>@emits newdataconsumer - (dataConsumer: DataConsumer)</para>
+    /// <para>@emits icestatechange - (iceState: IceState)</para>
+    /// <para>@emits iceselectedtuplechange - (iceSelectedTuple: TransportTuple)</para>
+    /// <para>@emits dtlsstatechange - (dtlsState: DtlsState)</para>
+    /// <para>@emits sctpstatechange - (sctpState: SctpState)</para>
+    /// <para>@emits trace - (trace: TransportTraceEventData)</para>
+    /// </summary>
     public WebRtcTransport(
-        WebRtcTransportConstructorOptions<TWebRtcTransportAppData> options,
-        ILoggerFactory? loggerFactory = null) 
-        : base(options,loggerFactory)
+        ILoggerFactory loggerFactory,
+        TransportInternal @internal,
+        DumpResponseT data,
+        IChannel channel,
+        Dictionary<string, object>? appData,
+        Func<RtpCapabilities> getRouterRtpCapabilities,
+        Func<string, Task<Producer.Producer?>> getProducerById,
+        Func<string, Task<DataProducer.DataProducer?>> getDataProducerById
+    )
+        : base(
+            loggerFactory,
+            @internal,
+            data.Base,
+            channel,
+            appData,
+            getRouterRtpCapabilities,
+            getProducerById,
+            getDataProducerById
+        )
     {
-        logger = loggerFactory?.CreateLogger(GetType());
-        
-        data = options.Data.DeepClone();
-        
+        logger = loggerFactory.CreateLogger<WebRtcTransport>();
+
+        Data = data;
+
         HandleWorkerNotifications();
     }
 
     /// <summary>
-    /// ICE role.
-    /// </summary>
-    public string IceRole => data.IceRole;
-
-    /// <summary>
-    /// ICE parameters.
-    /// </summary>
-    public IceParameters IceParameters => data.IceParameters;
-
-    /// <summary>
-    /// ICE candidates.
-    /// </summary>
-    public List<IceCandidate> IceCandidates => data.IceCandidates;
-
-    /// <summary>
-    /// ICE state.
-    /// </summary>
-    public IceState IceState => data.IceState;
-
-    /// <summary>
-    /// ICE selected tuple.
-    /// </summary>
-    public TransportTuple? IceSelectedTuple => data.IceSelectedTuple;
-
-    /// <summary>
-    /// DTLS parameters.
-    /// </summary>
-    public DtlsParameters DtlsParameters => data.DtlsParameters;
-
-    /// <summary>
-    /// DTLS state.
-    /// </summary>
-    /// <returns></returns>
-    public DtlsState DtlsState => data.DtlsState;
-
-    /// <summary>
-    /// Remote certificate in PEM format.
-    /// </summary>
-    public string? DtlsRemoteCert => data.DtlsRemoteCert;
-
-    /// <summary>
-    /// SCTP parameters.
-    /// </summary>
-    public SctpParameters.SctpParameters? SctpParameters => data.SctpParameters;
-
-    /// <summary>
-    /// SCTP state.
-    /// </summary>
-    public SctpState? SctpState => data.SctpState;
-    
-    
-    /// <summary>
     /// Close the WebRtcTransport.
     /// </summary>
-    public override void Close()
+    protected override Task OnCloseAsync()
     {
-        if (Closed)
-        {
-            return; 
-        }
-        
-        data.IceState = IceState.closed;
-        data.IceSelectedTuple = null;
-        data.DtlsState = DtlsState.closed;
+        Data.IceState         = IceState.DISCONNECTED; // CLOSED
+        Data.IceSelectedTuple = null;
+        Data.DtlsState        = DtlsState.CLOSED;
 
-        if (data.SctpState.HasValue)
+        if (Data.Base.SctpState.HasValue)
         {
-            data.SctpState = Transport.SctpState.closed;
+            Data.Base.SctpState = global::FlatBuffers.SctpAssociation.SctpState.CLOSED;
         }
 
-        base.Close();
+        return Task.CompletedTask;
     }
 
     /// <summary>
     /// Router was closed.
     /// </summary>
-    public override void RouterClosed()
+    protected override Task OnRouterClosedAsync()
     {
-        if (Closed)
-        {
-            return;
-        }
-
-        data.IceState = IceState.closed;
-        data.IceSelectedTuple = null;
-        data.DtlsState = DtlsState.closed;
-
-        if (data.SctpState.HasValue)
-        {
-            data.SctpState = Transport.SctpState.closed;
-        }
-
-        base.RouterClosed();
+        return OnCloseAsync();
     }
 
     /// <summary>
-    /// Called when closing the associated listenServer (WebRtcServer).
+    /// Dump Transport.
     /// </summary>
-    public override void ListenServerClosed()
+    protected override async Task<object> OnDumpAsync()
     {
-        if (Closed)
-        {
-            return;
-        }
+        // Build Request
+        var bufferBuilder = Channel.BufferPool.Get();
 
-        data.IceState = IceState.closed;
-        data.IceSelectedTuple = null;
-        data.DtlsState = DtlsState.closed;
+        var response =
+            await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_DUMP, null, null, Internal.TransportId);
+        var data = response.Value.BodyAsWebRtcTransport_DumpResponse().UnPack();
 
-        if (data.SctpState.HasValue)
-        {
-            data.SctpState = Transport.SctpState.closed;
-        }
-
-        base.ListenServerClosed();
+        return data;
     }
 
-
-    public new async Task<List<WebRtcTransportStat>> GetStatsAsync()
+    /// <summary>
+    /// Get Transport stats.
+    /// </summary>
+    protected override async Task<object[]> OnGetStatsAsync()
     {
-        logger?.LogDebug("getStats()");
+        // Build Request
+        var bufferBuilder = Channel.BufferPool.Get();
 
-        return (await Channel.Request("transport.getStats", Internal.TransportId)
-            as List<WebRtcTransportStat>)!;
+        var response =
+            await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_GET_STATS, null, null, Internal.TransportId);
+        var data = response.Value.BodyAsWebRtcTransport_GetStatsResponse().UnPack();
+
+        return [data];
     }
 
     /// <summary>
     /// Provide the WebRtcTransport remote parameters.
     /// </summary>
-    public override async Task ConnectAsync(dynamic arg)
+    protected override async Task OnConnectAsync(object parameters)
     {
-        var dtlsParameters = arg.dtlsParameters as DtlsParameters;
-        
-        logger?.LogDebug("ConnectAsync() | WebRtcTransport:{Id}", Id);
-        
-        var reqData = new { dtlsParameters };
+        logger.LogDebug("OnConnectAsync() | WebRtcTransportId:{WebRtcTransportId}", TransportId);
 
-        var data =
-            (await Channel.Request("transport.connect", Internal.TransportId, reqData) as dynamic)!;
-        
+        if (parameters is not ConnectRequestT connectRequestT)
+        {
+            throw new Exception($"{nameof(parameters)} type is not FBS.WebRtcTransport.ConnectRequestT");
+        }
+
+        // Build Request
+        var bufferBuilder = Channel.BufferPool.Get();
+
+        var connectRequestOffset = ConnectRequest.Pack(bufferBuilder, connectRequestT);
+
+        var response = await Channel.RequestAsync(bufferBuilder,
+            Method.WEBRTCTRANSPORT_CONNECT,
+            global::FlatBuffers.Request.Body.WebRtcTransport_ConnectRequest,
+            connectRequestOffset.Value,
+            Internal.TransportId);
+
+        /* Decode Response. */
+        var data = response.Value.BodyAsWebRtcTransport_ConnectResponse().UnPack();
+
         // Update data.
-        // TODO : Naming
-        this.data.DtlsParameters.Role = data.DtlsLocalRole;
+        Data.DtlsParameters.Role = data.DtlsLocalRole;
     }
-
-
 
     /// <summary>
     /// Restart ICE.
     /// </summary>
-    public async Task<IceParameters> RestartIceAsync()
+    public async Task<IceParametersT> RestartIceAsync()
     {
-        logger?.LogDebug("RestartIceAsync() | WebRtcTransport:{Id}", Id);
+        logger.LogDebug("RestartIceAsync() | WebRtcTransportId:{WebRtcTransportId}", TransportId);
 
-        // TODO : Naming
-        var data = (await Channel.Request("transport.restartIce", Internal.TransportId)
-            as dynamic)!;
+        await using (await CloseLock.ReadLockAsync())
+        {
+            if (Closed)
+            {
+                throw new InvalidStateException("Transport closed");
+            }
 
-        var iceParameters = data.IceParameters;
-        
-        // Update data.
-        data.IceParameters = iceParameters;
+            // Build Request
+            var bufferBuilder = Channel.BufferPool.Get();
 
-        return iceParameters;
+            var response = await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_RESTART_ICE,
+                null,
+                null,
+                Internal.TransportId);
+
+            /* Decode Response. */
+            var data = response.Value.BodyAsTransport_RestartIceResponse().UnPack();
+
+            // Update data.
+            Data.IceParameters = new IceParametersT
+            {
+                UsernameFragment = data.UsernameFragment,
+                Password         = data.Password,
+                IceLite          = data.IceLite,
+            };
+
+            return Data.IceParameters;
+        }
     }
+
+    #region Event Handlers
 
     private void HandleWorkerNotifications()
     {
-        Channel.On(Internal.TransportId, async args =>
-        {
-            var @event = args![0] as string;
-            var data = args[1] as dynamic;
-            switch (@event)
-            {
-                case "icestatechange":
-                {
-                    var iceState = (IceState)data.iceState;
-
-                    this.data.IceState = iceState;
-
-                    await SafeEmit("icestatechange", iceState);
-
-                    // Emit observer event.
-                    await Observer.SafeEmit("icestatechange", iceState);
-
-                    break;
-                }
-
-                case "iceselectedtuplechange":
-                {
-                    var iceSelectedTuple = (data.iceSelectedTuple as TransportTuple)!;
-
-                    this.data.IceSelectedTuple = iceSelectedTuple;
-
-                    await SafeEmit("iceselectedtuplechange", iceSelectedTuple);
-
-                    // Emit observer event.
-                    await Observer.SafeEmit("iceselectedtuplechange", iceSelectedTuple);
-
-                    break;
-                }
-
-                case "dtlsstatechange":
-                {
-                    var dtlsState = (DtlsState)data.dtlsState;
-                    var dtlsRemoteCert = (data.dtlsRemoteCert as string)!;
-
-                    this.data.DtlsState = dtlsState;
-
-                    if (dtlsState == DtlsState.connected)
-                    {
-                        this.data.DtlsRemoteCert = dtlsRemoteCert;
-                    }
-
-                    await SafeEmit("dtlsstatechange", dtlsState);
-
-                    // Emit observer event.
-                    await Observer.SafeEmit("dtlsstatechange", dtlsState);
-
-                    break;
-                }
-
-                case "sctpstatechange":
-                {
-                    var sctpState = (SctpState)data.sctpState;
-
-                    this.data.SctpState = sctpState;
-
-                    await SafeEmit("sctpstatechange", sctpState);
-
-                    // Emit observer event.
-                    await Observer.SafeEmit("sctpstatechange", sctpState);
-
-                    break;
-                }
-
-                case "trace":
-                {
-
-                    var trace = (data as TransportTraceEventData)!;
-
-                    await SafeEmit("trace", trace);
-
-                    // Emit observer event.
-                    await Observer.SafeEmit("trace", trace);
-
-                    break;
-                }
-
-                default:
-                {
-                    logger?.LogError("OnChannelMessage() | WebRtcTransport:{Id} Ignoring unknown event{Event}", Id,
-                        @event);
-
-                    break;
-                }
-            }
-        });
+        Channel.OnNotification += OnNotificationHandle;
     }
+
+    private void OnNotificationHandle(string handlerId, Event @event, Notification notification)
+    {
+        if (handlerId != Internal.TransportId)
+        {
+            return;
+        }
+
+        switch (@event)
+        {
+            case Event.WEBRTCTRANSPORT_ICE_STATE_CHANGE:
+            {
+                var iceStateChangeNotification =
+                    notification.BodyAsWebRtcTransport_IceStateChangeNotification().UnPack();
+
+                Data.IceState = iceStateChangeNotification.IceState;
+
+                Emit("icestatechange", Data.IceState);
+
+                // Emit observer event.
+                Observer.Emit("icestatechange", Data.IceState);
+
+                break;
+            }
+            case Event.WEBRTCTRANSPORT_ICE_SELECTED_TUPLE_CHANGE:
+            {
+                var iceSelectedTupleChangeNotification =
+                    notification.BodyAsWebRtcTransport_IceSelectedTupleChangeNotification().UnPack();
+
+                Data.IceSelectedTuple = iceSelectedTupleChangeNotification.Tuple;
+
+                Emit("iceselectedtuplechange", Data.IceSelectedTuple);
+
+                // Emit observer event.
+                Observer.Emit("iceselectedtuplechange", Data.IceSelectedTuple);
+
+                break;
+            }
+
+            case Event.WEBRTCTRANSPORT_DTLS_STATE_CHANGE:
+            {
+                var dtlsStateChangeNotification =
+                    notification.BodyAsWebRtcTransport_DtlsStateChangeNotification().UnPack();
+
+                Data.DtlsState = dtlsStateChangeNotification.DtlsState;
+
+                if (Data.DtlsState == DtlsState.CONNECTED)
+                {
+                    // TODO: DtlsRemoteCert donot exists.
+                    // Data.DtlsRemoteCert = dtlsStateChangeNotification.RemoteCert;
+                }
+
+                Emit("dtlsstatechange", Data.DtlsState);
+
+                // Emit observer event.
+                Observer.Emit("dtlsstatechange", Data.DtlsState);
+
+                break;
+            }
+            case Event.TRANSPORT_SCTP_STATE_CHANGE:
+            {
+                var sctpStateChangeNotification = notification.BodyAsTransport_SctpStateChangeNotification().UnPack();
+
+                Data.Base.SctpState = sctpStateChangeNotification.SctpState;
+
+                Emit("sctpstatechange", Data.Base.SctpState);
+
+                // Emit observer event.
+                Observer.Emit("sctpstatechange", Data.Base.SctpState);
+
+                break;
+            }
+            case Event.TRANSPORT_TRACE:
+            {
+                var traceNotification = notification.BodyAsTransport_TraceNotification().UnPack();
+
+                Emit("trace", traceNotification);
+
+                // Emit observer event.
+                Observer.Emit("trace", traceNotification);
+
+                break;
+            }
+            default:
+            {
+                logger.LogError(
+                    "OnNotificationHandle() | WebRtcTransport:{TransportId} Ignoring unknown event:{@event}",
+                    TransportId, @event);
+                break;
+            }
+        }
+    }
+
+    #endregion Event Handlers
 }

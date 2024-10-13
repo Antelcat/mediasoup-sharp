@@ -1,0 +1,101 @@
+﻿using FlatBuffers.SrtpParameters;
+using FlatBuffers.Transport;
+using FlatBuffers.WebRtcTransport;
+using MediasoupSharp.DataConsumer;
+using MediasoupSharp.FlatBuffers.Consumer.T;
+using MediasoupSharp.FlatBuffers.SctpParameters.T;
+using MediasoupSharp.FlatBuffers.WebRtcTransport.T;
+using MediasoupSharp.PipeTransport;
+using MediasoupSharp.PlainTransport;
+using MediasoupSharp.WebRtcTransport;
+
+namespace MediasoupSharp.Channel;
+
+public class RouterCreateWebRtcTransportResponseData : WebRtcTransportData;
+
+public class RouterCreatePlainTransportResponseData : PlainTransportData;
+
+public class RouterCreatePipeTransportResponseData : PipeTransportData;
+
+public class RouterCreateDirectTransportResponseData : PipeTransportData;
+
+public class TransportProduceResponseData
+{
+    /// <summary>
+    /// Producer donot support `pipe`
+    /// </summary>
+    public global::FlatBuffers.RtpParameters.Type Type { get; set; }
+}
+
+public class TransportConsumeResponseData
+{
+    public bool Paused { get; set; }
+
+    public bool ProducerPaused { get; set; }
+
+    public ConsumerScoreT Score { get; set; }
+
+    public ConsumerLayersT PreferredLayers { get; set; }
+}
+
+public class TransportDataProduceResponseData
+{
+    /// <summary>
+    /// DataProducer id (just for Router.pipeToRouter() method).
+    /// </summary>
+    public string? Id { get; set; }
+
+    /// <summary>
+    /// SCTP parameters defining how the endpoint is sending the data.
+    /// </summary>
+    public SctpStreamParametersT SctpStreamParameters { get; set; }
+
+    /// <summary>
+    /// A label which can be used to distinguish this DataChannel from others.
+    /// </summary>
+    public string? Label { get; set; }
+
+    /// <summary>
+    /// Name of the sub-protocol used by this DataChannel.
+    /// </summary>
+    public string? Protocol { get; set; }
+}
+
+public class TransportDataConsumeResponseData : DataConsumerData
+{
+}
+
+public class ConsumerSetPreferredLayersResponseData : ConsumerLayersT
+{
+}
+
+public class ConsumerSetOrUnsetPriorityResponseData
+{
+    public int Priority { get; set; }
+}
+
+public class WebRtcTransportConnectResponseData
+{
+    public DtlsRole? DtlsLocalRole { get; set; }
+}
+
+public class PipeTransportConnectResponseData
+{
+    public TupleT Tuple { get; set; }
+
+    public SrtpParametersT? SrtpParameters { get; set; }
+}
+
+public class PlainTransportConnectResponseData
+{
+    public TupleT Tuple { get; set; }
+
+    public TupleT? RtcpTuple { get; set; }
+
+    public SrtpParametersT? SrtpParameters { get; set; }
+}
+
+public class WebRtcTransportRestartIceResponseData
+{
+    public IceParametersT IceParameters { get; set; }
+}

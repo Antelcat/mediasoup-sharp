@@ -1,11 +1,11 @@
 ﻿namespace MediasoupSharp.DataConsumer;
 
-public class DataConsumerOptions<TDataConsumerAppData>
+public class DataConsumerOptions
 {
     /// <summary>
     /// The id of the DataProducer to consume.
     /// </summary>
-    public string DataProducerId { get; set; } = string.Empty;
+    public string DataProducerId { get; set; }
 
     /// <summary>
     /// Just if consuming over SCTP.
@@ -32,7 +32,20 @@ public class DataConsumerOptions<TDataConsumerAppData>
     public int? MaxRetransmits { get; set; }
 
     /// <summary>
+    /// Whether the data consumer must start in paused mode. Default false.
+    /// </summary>
+    /// <value></value>
+    public bool Paused { get; set; }
+
+    /**
+     * Subchannels this data consumer initially subscribes to.
+     * Only used in case this data consumer receives messages from a local data
+     * producer that specifies subchannel(s) when calling send().
+     */
+    public List<ushort>? Subchannels { get; set; }
+
+    /// <summary>
     /// Custom application data.
     /// </summary>
-    public TDataConsumerAppData? AppData { get; set; }
+    public Dictionary<string, object>? AppData { get; set; }
 }

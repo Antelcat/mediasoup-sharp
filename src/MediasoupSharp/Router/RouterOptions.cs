@@ -2,15 +2,15 @@
 
 namespace MediasoupSharp.Router;
 
-public class RouterOptions<TRouterAppData>
+public class RouterOptions
 {
     /// <summary>
     /// Router media codecs.
     /// </summary>
-    public List<RtpCodecCapability>? MediaCodecs { get; set; }
+    public RtpCodecCapability[] MediaCodecs { get; set; }
 
     /// <summary>
     /// Custom application data.
     /// </summary>
-    public TRouterAppData? AppData { get; set; }
+    public Dictionary<string, object>? AppData { get; set; }
 }

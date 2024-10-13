@@ -1,64 +1,78 @@
-﻿using MediasoupSharp.RtpObserver;
+﻿using FlatBuffers.Notification;
+using MediasoupSharp.Channel;
+using MediasoupSharp.RtpObserver;
 using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.ActiveSpeakerObserver;
 
-public interface IActiveSpeakerObserver : IRtpObserver
+public class ActiveSpeakerObserver : RtpObserver.RtpObserver
 {
-    
-}
+    /// <summary>
+    /// Logger.
+    /// </summary>
+    private readonly ILogger<ActiveSpeakerObserver> logger;
 
-internal class ActiveSpeakerObserver<TActiveSpeakerObserverAppData> :
-    RtpObserver<TActiveSpeakerObserverAppData, ActiveSpeakerObserverEvents>, IActiveSpeakerObserver
-{
-    private readonly ILogger? logger;
+    /// <summary>
+    /// <para>Events:</para>
+    /// <para>@emits volumes - (volumes: AudioLevelObserverVolume[])</para>
+    /// <para>@emits silence</para>
+    /// <para>Observer events:</para>
+    /// <para>@emits close</para>
+    /// <para>@emits pause</para>
+    /// <para>@emits resume</para>
+    /// <para>@emits addproducer - (producer: Producer)</para>
+    /// <para>@emits removeproducer - (producer: Producer)</para>
+    /// <para>@emits volumes - (volumes: AudioLevelObserverVolume[])</para>
+    /// <para>@emits silence</para>
+    /// </summary>
     public ActiveSpeakerObserver(
-        RtpObserverObserverConstructorOptions<TActiveSpeakerObserverAppData> args,
-        ILoggerFactory? loggerFactory = null
-    ) : base(args,loggerFactory)
+        ILoggerFactory loggerFactory,
+        RtpObserverInternal @internal,
+        IChannel channel,
+        Dictionary<string, object>? appData,
+        Func<string, Task<Producer.Producer?>> getProducerById
+    )
+        : base(loggerFactory, @internal, channel, appData, getProducerById)
     {
-        logger = loggerFactory?.CreateLogger(GetType());
-        
-        HandleWorkerNotifications();
+        logger = loggerFactory.CreateLogger<ActiveSpeakerObserver>();
     }
 
-    internal IEnhancedEventEmitter<ActiveSpeakerObserverObserverEvents> Observer =>
-        base.Observer as IEnhancedEventEmitter<ActiveSpeakerObserverObserverEvents>;
-
-
-    private void HandleWorkerNotifications()
+#pragma warning disable VSTHRD100 // Avoid async void methods
+    protected override async void OnNotificationHandle(string handlerId, Event @event, Notification notification)
+#pragma warning restore VSTHRD100 // Avoid async void methods
     {
-        Channel.On(Internal.RtpObserverId, async args =>
+        if(handlerId != Internal.RtpObserverId)
         {
-            var @event = args![0] as string;
-            var data = args.Length > 0 ? (dynamic)args[1] : null;
-            switch (@event)
-            {
-                case "dominantspeaker":
-                {
-                    var producer = GetProducerById(data!.producerId);
+            return;
+        }
 
-                    if (!producer)
+        switch(@event)
+        {
+            case Event.ACTIVESPEAKEROBSERVER_DOMINANT_SPEAKER:
+                {
+                    var dominantSpeakerNotification = notification.BodyAsActiveSpeakerObserver_DominantSpeakerNotification().UnPack();
+
+                    var producer = await GetProducerById(dominantSpeakerNotification.ProducerId);
+                    if (producer != null)
                     {
-                        break;
+                        var dominantSpeaker = new ActiveSpeakerObserverDominantSpeaker
+                        {
+                            Producer = await GetProducerById(dominantSpeakerNotification.ProducerId)
+                        };
+
+                        Emit("dominantspeaker", dominantSpeaker);
+
+                        // Emit observer event.
+                        Observer.Emit("dominantspeaker", dominantSpeaker);
                     }
 
-                    ActiveSpeakerObserverDominantSpeaker dominantSpeaker = new()
-                    {
-                        Producer = producer
-                    };
-
-                    await SafeEmit("dominantspeaker", dominantSpeaker);
-                    await Observer.SafeEmit("dominantspeaker", dominantSpeaker);
                     break;
                 }
-
-                default:
+            default:
                 {
-                    logger?.LogError("ignoring unknown event '{E}' ", @event);
+                    logger.LogError("OnNotificationHandle() | Ignoring unknown event: {Event}", @event);
                     break;
                 }
-            }
-        });
+        }
     }
 }

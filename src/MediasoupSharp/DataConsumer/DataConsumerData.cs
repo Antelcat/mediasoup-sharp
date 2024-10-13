@@ -1,4 +1,4 @@
-﻿using MediasoupSharp.SctpParameters;
+﻿using MediasoupSharp.FlatBuffers.SctpParameters.T;
 
 namespace MediasoupSharp.DataConsumer;
 
@@ -7,22 +7,24 @@ public class DataConsumerData
     /// <summary>
     /// Associated DataProducer id.
     /// </summary>
-    public string DataProducerId { get; set; } = string.Empty;
+    public string DataProducerId { get; init; }
 
-    public DataConsumerType Type { get; set; }
-    
+    public global::FlatBuffers.DataProducer.Type Type { get; set; }
+
     /// <summary>
     /// SCTP stream parameters.
     /// </summary>
-    public SctpStreamParameters? SctpStreamParameters { get; set; }
+    public SctpStreamParametersT? SctpStreamParameters { get; init; }
 
     /// <summary>
     /// DataChannel label.
     /// </summary>
-    public string Label { get; set; }
+    public string Label { get; init; }
 
     /// <summary>
     /// DataChannel protocol.
     /// </summary>
-    public string Protocol { get; set; }
+    public string Protocol { get; init; }
+
+    public uint BufferedAmountLowThreshold { get; set; }
 }

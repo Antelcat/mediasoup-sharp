@@ -1,27 +1,26 @@
-﻿using MediasoupSharp.SctpParameters;
-using MediasoupSharp.SrtpParameters;
-using MediasoupSharp.Transport;
+﻿using FlatBuffers.SrtpParameters;
+using MediasoupSharp.FlatBuffers.SctpParameters.T;
+using MediasoupSharp.FlatBuffers.Transport.T;
 
 namespace MediasoupSharp.PlainTransport;
 
-public record PlainTransportOptions<TPlainTransportAppData>
+public class PlainTransportOptions
 {
     /// <summary>
-    /// Listening IP address.
-    /// <see cref="TransportListenIp"/> or <see cref="string"/>
+    /// Listening information.
     /// </summary>
-    public object ListenIp { get; set; }
+    public ListenInfoT ListenInfo { get; set; }
 
     /// <summary>
-    /// Fixed port to listen on instead of selecting automatically from Worker's port
-    /// range.
+    /// RTCP listening information. If not given and rtcpPort is not false,
+    /// RTCP will use same listening info than RTP.
     /// </summary>
-    public ushort? Port { get; set; } = 0; // mediasoup-work needs >= 0
+    public ListenInfoT? RtcpListenInfo { get; set; }
 
     /// <summary>
     /// Use RTCP-mux (RTP and RTCP in the same port). Default true.
     /// </summary>
-    public bool? RtcpMux { get; set; } = true;
+    public bool RtcpMux { get; set; } = true;
 
     /// <summary>
     /// Whether remote IP:port should be auto-detected based on first RTP/RTCP
@@ -29,44 +28,44 @@ public record PlainTransportOptions<TPlainTransportAppData>
     /// SRTP is enabled. If so, it must be called with just remote SRTP parameters.
     /// Default false.
     /// </summary>
-    public bool? Comedia { get; set; } = false;
+    public bool Comedia { get; set; }
 
     /// <summary>
     /// Create a SCTP association. Default false.
     /// </summary>
-    public bool? EnableSctp { get; set; } = false;
+    public bool EnableSctp { get; set; }
 
     /// <summary>
     /// SCTP streams number.
     /// </summary>
-    public NumSctpStreams? NumSctpStreams { get; set; }
+    public NumSctpStreamsT? NumSctpStreams { get; set; }
 
     /// <summary>
     /// Maximum allowed size for SCTP messages sent by DataProducers.
     /// Default 262144.
     /// </summary>
-    public int? MaxSctpMessageSize { get; set; } = 262144;
+    public uint MaxSctpMessageSize { get; set; } = 262144;
 
     /// <summary>
     /// Maximum SCTP send buffer used by DataConsumers.
     /// Default 262144.
     /// </summary>
-    public int? SctpSendBufferSize { get; set; } = 262144;
+    public uint SctpSendBufferSize { get; set; } = 262144;
 
     /// <summary>
     /// Enable SRTP. For this to work, connect() must be called
     /// with remote SRTP parameters. Default false.
     /// </summary>
-    public bool? EnableSrtp { get; set; } = false;
+    public bool EnableSrtp { get; set; }
 
     /// <summary>
     /// The SRTP crypto suite to be used if enableSrtp is set. Default
     /// 'AES_CM_128_HMAC_SHA1_80'.
     /// </summary>
-    public SrtpCryptoSuite? SrtpCryptoSuite { get; set; } = SrtpParameters.SrtpCryptoSuite.AES_CM_128_HMAC_SHA1_80;
+    public SrtpCryptoSuite SrtpCryptoSuite { get; set; } = SrtpCryptoSuite.AES_CM_128_HMAC_SHA1_80;
 
     /// <summary>
     /// Custom application data.
     /// </summary>
-    public TPlainTransportAppData? AppData { get; set; }
+    public Dictionary<string, object>? AppData { get; set; }
 }

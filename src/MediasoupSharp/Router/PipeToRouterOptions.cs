@@ -1,5 +1,5 @@
-﻿using MediasoupSharp.SctpParameters;
-using MediasoupSharp.Transport;
+﻿using MediasoupSharp.FlatBuffers.SctpParameters.T;
+using MediasoupSharp.FlatBuffers.Transport.T;
 
 namespace MediasoupSharp.Router;
 
@@ -18,31 +18,30 @@ public class PipeToRouterOptions
     /// <summary>
     /// Target Router instance.
     /// </summary>
-    internal IRouter Router { get; set; }
+    public Router Router { get; set; }
 
     /// <summary>
-    /// IP used in the PipeTransport pair. Default '127.0.0.1'.
-    /// <see cref="TransportListenIp"/> or <see cref="string"/>
+    /// Listenning Infomation.
     /// </summary>
-    public object? ListenIp { get; set; }
+    public ListenInfoT ListenInfo { get; set; }
 
     /// <summary>
     /// Create a SCTP association. Default true.
     /// </summary>
-    public bool? EnableSctp { get; set; } = true;
+    public bool EnableSctp { get; set; } = true;
 
     /// <summary>
     /// SCTP streams number.
     /// </summary>
-    public NumSctpStreams? NumSctpStreams { get; set; }
+    public NumSctpStreamsT NumSctpStreams { get; set; } = new() { OS = 1024, MIS = 1024 };
 
     /// <summary>
     /// Enable RTX and NACK for RTP retransmission.
     /// </summary>
-    public bool? EnableRtx { get; set; } = false;
+    public bool EnableRtx { get; set; }
 
     /// <summary>
     /// Enable SRTP.
     /// </summary>
-    public bool? EnableSrtp { get; set; } = false;
+    public bool EnableSrtp { get; set; }
 }

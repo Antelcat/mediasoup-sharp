@@ -1,6 +1,8 @@
-﻿namespace MediasoupSharp.SctpParameters;
+﻿using MediasoupSharp.FlatBuffers.SctpParameters.T;
 
-public record SctpCapabilities
+namespace MediasoupSharp.SctpParameters;
+
+public class SctpCapabilities
 {
-    public NumSctpStreams NumStreams { get; set; }
+    public NumSctpStreamsT NumStreams { get; set; }
 }

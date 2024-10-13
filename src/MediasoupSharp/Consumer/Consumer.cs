@@ -1,470 +1,611 @@
-﻿using MediasoupSharp.RtpParameters;
+﻿using FlatBuffers.Consumer;
+using FlatBuffers.Notification;
+using FlatBuffers.Request;
+using FlatBuffers.RtpStream;
+using MediasoupSharp.Extensions;
+using MediasoupSharp.Channel;
+using MediasoupSharp.Exceptions;
+using MediasoupSharp.FlatBuffers.Consumer.T;
 using Microsoft.Extensions.Logging;
+using Microsoft.VisualStudio.Threading;
 
 namespace MediasoupSharp.Consumer;
 
-public interface IConsumer
+public class Consumer : EventEmitter.EventEmitter
 {
-	string Id     { get; }
-	bool   Closed { get; }
+    /// <summary>
+    /// Logger.
+    /// </summary>
+    private readonly ILogger<Consumer> logger;
 
-	bool Paused { get; }
+    /// <summary>
+    /// Whether the Consumer is closed.
+    /// </summary>
+    private bool closed;
 
-	bool ProducerPaused { get; }
+    private readonly AsyncReaderWriterLock closeLock = new();
 
-	MediaKind Kind { get; }
+    /// <summary>
+    /// Paused flag.
+    /// </summary>
+    private bool paused;
 
-	RtpParameters.RtpParameters RtpParameters { get; }
+    private readonly AsyncAutoResetEvent pauseLock = new();
 
-	ConsumerType Type { get; }
+    /// <summary>
+    /// Internal data.
+    /// </summary>
+    private readonly ConsumerInternal @internal;
 
-	void Close();
+    /// <summary>
+    /// Consumer id.
+    /// </summary>
+    public string ConsumerId => @internal.ConsumerId;
 
-	void TransportClosed();
+    /// <summary>
+    /// Consumer data.
+    /// </summary>
+    public ConsumerData Data { get; set; }
 
-	internal EnhancedEventEmitter Observer { get; }
+    /// <summary>
+    /// Producer id.
+    /// </summary>
+    public string ProducerId => Data.ProducerId;
+
+    /// <summary>
+    /// Channel instance.
+    /// </summary>
+    private readonly IChannel channel;
+
+    /// <summary>
+    /// App custom data.
+    /// </summary>
+    public Dictionary<string, object> AppData { get; }
+
+    /// <summary>
+    /// [扩展]Source.
+    /// </summary>
+    public string? Source { get; set; }
+
+    /// <summary>
+    /// Whether the associate Producer is paused.
+    /// </summary>
+    public bool ProducerPaused { get; private set; }
+
+    /// <summary>
+    /// Current priority.
+    /// </summary>
+    public int Priority { get; private set; } = 1;
+
+    /// <summary>
+    /// Current score.
+    /// </summary>
+    public ConsumerScoreT? Score;
+
+    /// <summary>
+    /// Preferred layers.
+    /// </summary>
+    public ConsumerLayersT? PreferredLayers { get; private set; }
+
+    /// <summary>
+    /// Curent layers.
+    /// </summary>
+    public ConsumerLayersT? CurrentLayers { get; private set; }
+
+    /// <summary>
+    /// Observer instance.
+    /// </summary>
+    public EventEmitter.EventEmitter Observer { get; } = new();
+
+    /// <summary>
+    /// <para>Events:</para>
+    /// <para>@emits transportclose</para>
+    /// <para>@emits producerclose</para>
+    /// <para>@emits producerpause</para>
+    /// <para>@emits producerresume</para>
+    /// <para>@emits score - (score: ConsumerScore)</para>
+    /// <para>@emits layerschange - (layers: ConsumerLayers | undefined)</para>
+    /// <para>@emits trace - (trace: ConsumerTraceEventData)</para>
+    /// <para>@emits @close</para>
+    /// <para>@emits @producerclose</para>
+    /// <para>Observer events:</para>
+    /// <para>@emits close</para>
+    /// <para>@emits pause</para>
+    /// <para>@emits resume</para>
+    /// <para>@emits score - (score: ConsumerScore)</para>
+    /// <para>@emits layerschange - (layers: ConsumerLayers | undefined)</para>
+    /// <para>@emits rtp - (packet: Buffer)</para>
+    /// <para>@emits trace - (trace: ConsumerTraceEventData)</para>
+    /// </summary>
+    public Consumer(
+        ILoggerFactory loggerFactory,
+        ConsumerInternal @internal,
+        ConsumerData data,
+        IChannel channel,
+        Dictionary<string, object>? appData,
+        bool paused,
+        bool producerPaused,
+        ConsumerScoreT? score,
+        ConsumerLayersT? preferredLayers
+    )
+    {
+        logger = loggerFactory.CreateLogger<Consumer>();
+
+        @internal       = @internal;
+        Data            = data;
+        this.channel    = channel;
+        AppData         = appData ?? new Dictionary<string, object>();
+        this.paused     = paused;
+        ProducerPaused  = producerPaused;
+        Score           = score;
+        PreferredLayers = preferredLayers;
+        pauseLock.Set();
+
+        HandleWorkerNotifications();
+    }
+
+    /// <summary>
+    /// Close the Producer.
+    /// </summary>
+    public async Task CloseAsync()
+    {
+        logger.LogDebug("CloseAsync() | Consumer:{ConsumerId}", ConsumerId);
+
+        await using(await closeLock.WriteLockAsync())
+        {
+            if(closed)
+            {
+                return;
+            }
+
+            closed = true;
+
+            // Remove notification subscriptions.
+            channel.OnNotification -= OnNotificationHandle;
+
+            // Build Request
+            var bufferBuilder = channel.BufferPool.Get();
+
+            var requestOffset = global::FlatBuffers.Transport.CloseConsumerRequest.Pack(bufferBuilder, new global::FlatBuffers.Transport.CloseConsumerRequestT
+            {
+                ConsumerId = @internal.ConsumerId
+            });
+
+            // Fire and forget
+            channel.RequestAsync(
+                    bufferBuilder,
+                    Method.TRANSPORT_CLOSE_CONSUMER,
+                    global::FlatBuffers.Request.Body.Transport_CloseConsumerRequest,
+                    requestOffset.Value,
+                    @internal.TransportId
+                )
+                .ContinueWithOnFaultedHandleLog(logger);
+
+            Emit("@close");
+
+            // Emit observer event.
+            Observer.Emit("close");
+        }
+    }
+
+    /// <summary>
+    /// Transport was closed.
+    /// </summary>
+    public async Task TransportClosedAsync()
+    {
+        logger.LogDebug("TransportClosed() | Consumer:{ConsumerId}", ConsumerId);
+
+        await using(await closeLock.WriteLockAsync())
+        {
+            if(closed)
+            {
+                return;
+            }
+
+            closed = true;
+
+            // Remove notification subscriptions.
+            channel.OnNotification -= OnNotificationHandle;
+
+            Emit("transportclose");
+
+            // Emit observer event.
+            Observer.Emit("close");
+        }
+    }
+
+    /// <summary>
+    /// Dump DataProducer.
+    /// </summary>
+    public async Task<DumpResponseT> DumpAsync()
+    {
+        logger.LogDebug("DumpAsync() | Consumer:{ConsumerId}", ConsumerId);
+
+        await using(await closeLock.ReadLockAsync())
+        {
+            if(closed)
+            {
+                throw new InvalidStateException("Consumer closed");
+            }
+
+            var bufferBuilder = channel.BufferPool.Get();
+            var response = await channel.RequestAsync(bufferBuilder, Method.CONSUMER_DUMP, null, null, @internal.ConsumerId);
+            var data = response.Value.BodyAsConsumer_DumpResponse().UnPack();
+            return data;
+        }
+    }
+
+    /// <summary>
+    /// Get DataProducer stats.
+    /// </summary>
+    public async Task<List<StatsT>> GetStatsAsync()
+    {
+        logger.LogDebug("GetStatsAsync() | Consumer:{ConsumerId}", ConsumerId);
+
+        await using(await closeLock.ReadLockAsync())
+        {
+            if(closed)
+            {
+                throw new InvalidStateException("Consumer closed");
+            }
+
+            var bufferBuilder = channel.BufferPool.Get();
+            var response = await channel.RequestAsync(bufferBuilder, Method.CONSUMER_GET_STATS, null, null, @internal.ConsumerId);
+            var stats = response.Value.BodyAsConsumer_GetStatsResponse().UnPack().Stats;
+            return stats;
+        }
+    }
+
+    /// <summary>
+    /// Pause the Consumer.
+    /// </summary>
+    public async Task PauseAsync()
+    {
+        logger.LogDebug("PauseAsync() | Consumer:{ConsumerId}", ConsumerId);
+
+        await using(await closeLock.ReadLockAsync())
+        {
+            if(closed)
+            {
+                throw new InvalidStateException("Consumer closed");
+            }
+
+            await pauseLock.WaitAsync();
+            try
+            {
+                var wasPaused = paused || ProducerPaused;
+
+                var bufferBuilder = channel.BufferPool.Get();
+
+                // Fire and forget
+                channel.RequestAsync(bufferBuilder, Method.CONSUMER_PAUSE, null, null, @internal.ConsumerId)
+                    .ContinueWithOnFaultedHandleLog(logger);
+
+                paused = true;
+
+                // Emit observer event.
+                if(!wasPaused)
+                {
+                    Observer.Emit("pause");
+                }
+            }
+            catch(Exception ex)
+            {
+                logger.LogError(ex, "PauseAsync()");
+            }
+            finally
+            {
+                pauseLock.Set();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Resume the Consumer.
+    /// </summary>
+    public async Task ResumeAsync()
+    {
+        logger.LogDebug("ResumeAsync() | Consumer:{ConsumerId}", ConsumerId);
+
+        await using(await closeLock.ReadLockAsync())
+        {
+            if(closed)
+            {
+                throw new InvalidStateException("Consumer closed");
+            }
+
+            await pauseLock.WaitAsync();
+            try
+            {
+                var wasPaused = paused || ProducerPaused;
+
+                var bufferBuilder = channel.BufferPool.Get();
+
+                // Fire and forget
+                channel.RequestAsync(bufferBuilder, Method.CONSUMER_RESUME, null, null, @internal.ConsumerId)
+                    .ContinueWithOnFaultedHandleLog(logger);
+
+                paused = false;
+
+                // Emit observer event.
+                if(wasPaused && !ProducerPaused)
+                {
+                    Observer.Emit("resume");
+                }
+            }
+            catch(Exception ex)
+            {
+                logger.LogError(ex, "ResumeAsync()");
+            }
+            finally
+            {
+                pauseLock.Set();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Set preferred video layers.
+    /// </summary>
+    public async Task SetPreferredLayersAsync(SetPreferredLayersRequestT setPreferredLayersRequest)
+    {
+        logger.LogDebug("SetPreferredLayersAsync() | Consumer:{ConsumerId}", ConsumerId);
+
+        await using(await closeLock.ReadLockAsync())
+        {
+            if(closed)
+            {
+                throw new InvalidStateException("Consumer closed");
+            }
+
+            // Build Request
+            var bufferBuilder = channel.BufferPool.Get();
+
+            var setPreferredLayersRequestOffset = SetPreferredLayersRequest.Pack(bufferBuilder, setPreferredLayersRequest);
+
+            var response = await channel.RequestAsync(
+                bufferBuilder,
+                Method.CONSUMER_SET_PREFERRED_LAYERS,
+                global::FlatBuffers.Request.Body.Consumer_SetPreferredLayersRequest,
+                setPreferredLayersRequestOffset.Value,
+                @internal.ConsumerId);
+            var preferredLayers = response.Value.BodyAsConsumer_SetPreferredLayersResponse().UnPack().PreferredLayers;
+
+            PreferredLayers = preferredLayers;
+        }
+    }
+
+    /// <summary>
+    /// Set priority.
+    /// </summary>
+    public async Task SetPriorityAsync(SetPriorityRequestT setPriorityRequest)
+    {
+        logger.LogDebug("SetPriorityAsync() | Consumer:{ConsumerId}", ConsumerId);
+
+        await using(await closeLock.ReadLockAsync())
+        {
+            if(closed)
+            {
+                throw new InvalidStateException("Consumer closed");
+            }
+
+            var bufferBuilder = channel.BufferPool.Get();
+
+            var setPriorityRequestOffset = SetPriorityRequest.Pack(bufferBuilder, setPriorityRequest);
+
+            var response = await channel.RequestAsync(
+                bufferBuilder,
+                Method.CONSUMER_SET_PRIORITY,
+                global::FlatBuffers.Request.Body.Consumer_SetPriorityRequest,
+                setPriorityRequestOffset.Value,
+                @internal.ConsumerId);
+
+            var priorityResponse = response.Value.BodyAsConsumer_SetPriorityResponse().UnPack().Priority;
+
+            Priority = priorityResponse;
+        }
+    }
+
+    /// <summary>
+    /// Unset priority.
+    /// </summary>
+    public Task UnsetPriorityAsync()
+    {
+        logger.LogDebug("UnsetPriorityAsync() | Consumer:{ConsumerId}", ConsumerId);
+
+        return SetPriorityAsync(new SetPriorityRequestT
+        {
+            Priority = 1,
+        });
+    }
+
+    /// <summary>
+    /// Request a key frame to the Producer.
+    /// </summary>
+    public async Task RequestKeyFrameAsync()
+    {
+        logger.LogDebug("RequestKeyFrameAsync() | Consumer:{ConsumerId}", ConsumerId);
+
+        await using(await closeLock.ReadLockAsync())
+        {
+            if(closed)
+            {
+                throw new InvalidStateException("Consumer closed");
+            }
+
+            // Build Request
+            var bufferBuilder = channel.BufferPool.Get();
+
+            await channel.RequestAsync(bufferBuilder, Method.CONSUMER_REQUEST_KEY_FRAME,
+                null,
+                null,
+                @internal.ConsumerId);
+        }
+    }
+
+    /// <summary>
+    /// Enable 'trace' event.
+    /// </summary>
+    public async Task EnableTraceEventAsync(List<TraceEventType> types)
+    {
+        logger.LogDebug("EnableTraceEventAsync() | Consumer:{ConsumerId}", ConsumerId);
+
+        await using(await closeLock.ReadLockAsync())
+        {
+            if(closed)
+            {
+                throw new InvalidStateException("Consumer closed");
+            }
+
+            // Build Request
+            var bufferBuilder = channel.BufferPool.Get();
+
+            var request = new EnableTraceEventRequestT
+            {
+                Events = types ?? new List<TraceEventType>(0)
+            };
+
+            var requestOffset = global::FlatBuffers.Consumer.EnableTraceEventRequest.Pack(bufferBuilder, request);
+
+            // Fire and forget
+            channel.RequestAsync(
+                    bufferBuilder,
+                    Method.CONSUMER_ENABLE_TRACE_EVENT,
+                    global::FlatBuffers.Request.Body.Consumer_EnableTraceEventRequest,
+                    requestOffset.Value,
+                    @internal.ConsumerId)
+                .ContinueWithOnFaultedHandleLog(logger);
+        }
+    }
+
+    #region Event Handlers
+
+    private void HandleWorkerNotifications()
+    {
+        channel.OnNotification += OnNotificationHandle;
+    }
+
+#pragma warning disable VSTHRD100 // Avoid async void methods
+    private async void OnNotificationHandle(string handlerId, Event @event, Notification notification)
+#pragma warning restore VSTHRD100 // Avoid async void methods
+    {
+        if(handlerId != ConsumerId)
+        {
+            return;
+        }
+
+        switch(@event)
+        {
+            case Event.CONSUMER_PRODUCER_CLOSE:
+                {
+                    await using(await closeLock.WriteLockAsync())
+                    {
+                        if(closed)
+                        {
+                            break;
+                        }
+
+                        closed = true;
+
+                        // Remove notification subscriptions.
+                        channel.OnNotification -= OnNotificationHandle;
+
+                        Emit("@producerclose");
+                        Emit("producerclose");
+
+                        // Emit observer event.
+                        Observer.Emit("close");
+                    }
+
+                    break;
+                }
+            case Event.CONSUMER_PRODUCER_PAUSE:
+                {
+                    if(ProducerPaused)
+                    {
+                        break;
+                    }
+
+                    var wasPaused = paused || ProducerPaused;
+
+                    ProducerPaused = true;
+
+                    Emit("producerpause");
+
+                    // Emit observer event.
+                    if(!wasPaused)
+                    {
+                        Observer.Emit("pause");
+                    }
+
+                    break;
+                }
+            case Event.CONSUMER_PRODUCER_RESUME:
+                {
+                    if(!ProducerPaused)
+                    {
+                        break;
+                    }
+
+                    var wasPaused = paused || ProducerPaused;
+
+                    ProducerPaused = false;
+
+                    Emit("producerresume");
+
+                    // Emit observer event.
+                    if(wasPaused && !paused)
+                    {
+                        Observer.Emit("resume");
+                    }
+
+                    break;
+                }
+            case Event.CONSUMER_SCORE:
+                {
+                    var scoreNotification = notification.BodyAsConsumer_ScoreNotification();
+                    var score             = scoreNotification.Score!.Value.UnPack();
+                    Score = score;
+
+                    Emit("score", Score);
+
+                    // Emit observer event.
+                    Observer.Emit("score", Score);
+
+                    break;
+                }
+            case Event.CONSUMER_LAYERS_CHANGE:
+                {
+                    var layersChangeNotification = notification.BodyAsConsumer_LayersChangeNotification();
+                    var currentLayers            = layersChangeNotification.Layers!.Value.UnPack();
+                    CurrentLayers = currentLayers;
+
+                    Emit("layerschange", CurrentLayers);
+
+                    // Emit observer event.
+                    Observer.Emit("layersChange", CurrentLayers);
+
+                    break;
+                }
+            case Event.CONSUMER_TRACE:
+                {
+                    var traceNotification = notification.BodyAsConsumer_TraceNotification();
+                    var trace             = traceNotification.UnPack();
+
+                    Emit("trace", trace);
+
+                    // Emit observer event.
+                    Observer.Emit("trace", trace);
+
+                    break;
+                }
+            default:
+                {
+                    logger.LogError("OnNotificationHandle() | Ignoring unknown event{@event}", @event);
+                    break;
+                }
+        }
+    }
 }
 
-
-internal class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents>, IConsumer
-{
-	private readonly ILogger? logger;
-
-	/// <summary>
-	/// Internal data.
-	/// </summary>
-	private readonly ConsumerInternal @internal;
-
-	/// <summary>
-	/// Consumer data.
-	/// </summary>
-	private readonly ConsumerData data;
-
-	/// <summary>
-	/// Channel instance.
-	/// </summary>
-	private readonly Channel.Channel channel;
-
-	/// <summary>
-	/// PayloadChannel instance.
-	/// </summary>
-	private PayloadChannel.PayloadChannel PayloadChannel { get; set; }
-
-	public bool Closed { get; private set; }
-
-	/// <summary>
-	/// App custom data.
-	/// </summary>
-	public object AppData { get; protected set; }
-
-	public bool Paused { get; private set; }
-
-	/// <summary>
-	/// Whether the associate Producer is paused.
-	/// </summary>
-	public bool ProducerPaused { get; private set; }
-
-	/// <summary>
-	/// Current priority.
-	/// </summary>
-	public int Priority { get; private set; } = 1;
-
-	/// <summary>
-	/// Current score.
-	/// </summary>
-	public ConsumerScore Score { get; private set; }
-
-	/// <summary>
-	/// Preferred layers.
-	/// </summary>
-	public ConsumerLayers? PreferredLayers { get; private set; }
-
-	/// <summary>
-	/// Curent layers.
-	/// </summary>
-	public ConsumerLayers? CurrentLayers { get; private set; }
-
-	/// <summary>
-	/// Observer instance.
-	/// </summary>
-	public EnhancedEventEmitter Observer { get; }
-
-	public Consumer(
-		ConsumerInternal @internal,
-		ConsumerData data,
-		Channel.Channel channel,
-		PayloadChannel.PayloadChannel payloadChannel,
-		TConsumerAppData? appData,
-		bool paused,
-		bool producerPaused,
-		ConsumerScore? score = null,
-		ConsumerLayers? preferredLayers = null,
-		ILoggerFactory? loggerFactory = null
-	) : base(loggerFactory)
-	{
-		logger          = loggerFactory?.CreateLogger(GetType());
-		this.@internal  = @internal;
-		this.data       = data;
-		this.channel    = channel;
-		PayloadChannel  = payloadChannel;
-		AppData         = appData ?? typeof(TConsumerAppData).New<TConsumerAppData>()!;
-		Paused          = paused;
-		ProducerPaused  = producerPaused;
-		Score           = score!;
-		PreferredLayers = preferredLayers;
-		Observer        = new EnhancedEventEmitter<ConsumerObserverEvents>(loggerFactory);
-
-		HandleWorkerNotifications();
-	}
-
-	public string Id => @internal.ConsumerId;
-
-	public string ProducerId => data.ProducerId;
-
-	public MediaKind Kind => data.Kind;
-
-	public RtpParameters.RtpParameters RtpParameters => data.RtpParameters;
-
-	public ConsumerType Type => data.Type;
-
-	internal Channel.Channel ChannelForTesting => channel;
-
-	/// <summary>
-	/// Close the Producer.
-	/// </summary>
-	public void Close()
-	{
-		if (Closed)
-		{
-			return;
-		}
-
-		logger?.LogDebug("CloseAsync() | Consumer:{Id}", Id);
-
-		Closed = true;
-
-		// Remove notification subscriptions.
-		channel.RemoveAllListeners(@internal.ConsumerId);
-		PayloadChannel.RemoveAllListeners(@internal.ConsumerId);
-
-		//TODO : Check Naming
-		var reqData = new { consumerId = @internal.ConsumerId };
-
-		// Fire and forget
-		channel.Request("transport.closeConsumer", @internal.TransportId, reqData)
-			.ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
-
-		_ = Emit("@close");
-
-		// Emit observer event.
-		_ = Observer.SafeEmit("close");
-	}
-
-	/// <summary>
-	/// Transport was closed.
-	/// </summary>
-	public void TransportClosed()
-	{
-		if (Closed)
-		{
-			return;
-		}
-
-		logger?.LogDebug("TransportClosed() | Consumer:{Id}", Id);
-
-		Closed = true;
-
-		// Remove notification subscriptions.
-		channel.RemoveAllListeners(@internal.ConsumerId);
-		PayloadChannel.RemoveAllListeners(@internal.ConsumerId);
-
-		_ = SafeEmit("transportclose");
-
-		// Emit observer event.
-		_ = Observer.SafeEmit("close");
-	}
-
-	/// <summary>
-	/// Dump DataProducer.
-	/// </summary>
-	public async Task<object> DumpAsync()
-	{
-		logger?.LogDebug("DumpAsync() | Consumer:{Id}", Id);
-
-		return (await channel.Request("consumer.dump", @internal.ConsumerId))!;
-	}
-
-	/// <summary>
-	/// Get DataProducer stats.
-	/// </summary>
-	public async Task<List<object>> GetStatsAsync()
-	{
-		logger?.LogDebug("GetStatsAsync() | Consumer:{Id}", Id);
-
-		return (await channel.Request("consumer.getStats", @internal.ConsumerId) as List<object>)!;
-	}
-
-	/// <summary>
-	/// Pause the Consumer.
-	/// </summary>
-	public async Task PauseAsync()
-	{
-		logger?.LogDebug("PauseAsync() | Consumer:{Id}", Id);
-
-		var wasPaused = Paused || ProducerPaused;
-
-		// Fire and forget
-		await channel.Request("consumer.pause", @internal.ConsumerId);
-
-		Paused = true;
-
-		// Emit observer event.
-		if (!wasPaused)
-		{
-			_ = Observer.SafeEmit("pause");
-		}
-	}
-
-	/// <summary>
-	/// Resume the Consumer.
-	/// </summary>
-	public async Task ResumeAsync()
-	{
-		logger?.LogDebug("ResumeAsync() | Consumer:{Id}", Id);
-
-		var wasPaused = Paused || ProducerPaused;
-
-		// Fire and forget
-		await channel.Request("consumer.resume", @internal.ConsumerId);
-
-		Paused = false;
-
-		// Emit observer event.
-		if (wasPaused && !ProducerPaused)
-		{
-			_ = Observer.SafeEmit("resume");
-		}
-	}
-
-	/// <summary>
-	/// Set preferred video layers.
-	/// </summary>
-	public async Task SetPreferredLayersAsync(ConsumerLayers consumerLayers)
-	{
-		logger?.LogDebug("SetPreferredLayersAsync() | Consumer:{Id}", Id);
-
-		//TODO : Naming
-		var reqData = new { spatialLayer = consumerLayers.SpatialLayer, temporalLayer = consumerLayers.TemporalLayer };
-
-		var data = await channel.Request("consumer.setPreferredLayers", @internal.ConsumerId, reqData);
-		PreferredLayers = data as ConsumerLayers;
-	}
-
-	/// <summary>
-	/// Set priority.
-	/// </summary>
-	public async Task SetPriorityAsync(int priority)
-	{
-		logger?.LogDebug("SetPriorityAsync() | Consumer:{Id}", Id);
-
-		//TODO : Check Naming
-		var reqData = new { Priority = priority };
-		var data    = await channel.Request("consumer.setPriority", @internal.ConsumerId, reqData);
-		Priority = ((dynamic)data!).priority;
-	}
-
-	/// <summary>
-	/// Unset priority.
-	/// </summary>
-	public async Task UnsetPriorityAsync()
-	{
-		logger?.LogDebug("UnsetPriorityAsync() | Consumer:{Id}", Id);
-
-		//TODO : Check Naming
-		var reqData = new { Priority = 1 };
-		var data    = await channel.Request("consumer.setPriority", @internal.ConsumerId, reqData);
-
-		Priority = ((dynamic)data!).priority;
-	}
-
-	/// <summary>
-	/// Request a key frame to the Producer.
-	/// </summary>
-	public async Task RequestKeyFrameAsync()
-	{
-		logger?.LogDebug("RequestKeyFrameAsync() | Consumer:{Id}", Id);
-
-		await channel.Request("consumer.requestKeyFrame", @internal.ConsumerId);
-	}
-
-	/// <summary>
-	/// Enable "trace" event.
-	/// </summary>
-	public async Task EnableTraceEventAsync(ConsumerTraceEventType[] types)
-	{
-		logger?.LogDebug("EnableTraceEventAsync() | Consumer:{Id}", Id);
-
-		var reqData = new
-		{
-			Types = types
-		};
-
-		// Fire and forget
-		await channel.Request("consumer.enableTraceEvent", @internal.ConsumerId, reqData);
-	}
-
-
-	private void HandleWorkerNotifications()
-	{
-		channel.On(@internal.ConsumerId, async args =>
-		{
-			var @event = args![0];
-			var data   = args[1];
-			switch (@event)
-			{
-				case "producerclose":
-				{
-					if (Closed)
-					{
-						break;
-					}
-
-					Closed = true;
-
-					// Remove notification subscriptions.
-					channel.RemoveAllListeners(@internal.ConsumerId);
-					PayloadChannel.RemoveAllListeners(@internal.ConsumerId);
-
-					await Emit("@producerclose");
-					await SafeEmit("producerclose");
-
-					// Emit observer event.
-					await Observer.SafeEmit("close");
-
-					break;
-				}
-
-				case "producerpause":
-				{
-					if (ProducerPaused)
-					{
-						break;
-					}
-
-					var wasPaused = Paused || ProducerPaused;
-
-					ProducerPaused = true;
-
-					await SafeEmit("producerpause");
-
-					// Emit observer event.
-					if (!wasPaused)
-					{
-						await Observer.SafeEmit("pause");
-					}
-
-					break;
-				}
-
-				case "producerresume":
-				{
-					if (!ProducerPaused)
-					{
-						break;
-					}
-
-					var wasPaused = Paused || ProducerPaused;
-
-					ProducerPaused = false;
-
-					await SafeEmit("producerresume");
-
-					// Emit observer event.
-					if (wasPaused && !Paused)
-					{
-						await Observer.SafeEmit("resume");
-					}
-
-					break;
-				}
-
-				case "score":
-				{
-					var score = (data as ConsumerScore)!;
-
-					Score = score;
-
-					await SafeEmit("score", score);
-
-					// Emit observer event.
-					await SafeEmit("score", score);
-
-					break;
-				}
-
-				case "layerschange":
-				{
-					var layers = (data as ConsumerLayers)!;
-
-					CurrentLayers = layers;
-
-					await SafeEmit("layerschange", layers);
-
-					// Emit observer event.
-					await Observer.SafeEmit("layerschange", layers);
-
-					break;
-				}
-
-				case "trace":
-				{
-					var trace = data as ConsumerTraceEventData;
-
-					_ = SafeEmit("trace", trace);
-
-					// Emit observer event.
-					_ = Observer.SafeEmit("trace", trace);
-
-					break;
-				}
-
-				default:
-				{
-					logger?.LogError("ignoring unknown event  ' %s'", @event);
-					break;
-				}
-			}
-		});
-
-		PayloadChannel.On(@internal.ConsumerId, async args =>
-		{
-			var @event  = (string)args![0];
-			var data    = args[1];
-			var payload = (byte[])args[2];
-			switch (@event)
-			{
-				case "rtp":
-				{
-					if (Closed)
-					{
-						break;
-					}
-
-					var packet = payload;
-
-					await SafeEmit("rtp", packet);
-
-					break;
-				}
-
-				default:
-				{
-					logger?.LogError("ignoring unknown event {E}", @event);
-					break;
-				}
-			}
-		});
-	}
-
-}
-
+#endregion Event Handlers

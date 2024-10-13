@@ -1,15 +1,15 @@
-﻿using MediasoupSharp.SctpParameters;
+﻿using MediasoupSharp.FlatBuffers.SctpParameters.T;
 
 namespace MediasoupSharp.DataProducer;
 
-public record DataProducerData
+public class DataProducerData
 {
-    public DataProducerType Type { get; set; }
-    
+    public global::FlatBuffers.DataProducer.Type Type { get; set; }
+
     /// <summary>
     /// SCTP stream parameters.
     /// </summary>
-    public SctpStreamParameters? SctpStreamParameters { get; init; }
+    public SctpStreamParametersT? SctpStreamParameters { get; init; }
 
     /// <summary>
     /// DataChannel label.

@@ -2,10 +2,15 @@
 
 namespace MediasoupSharp.Transport;
 
-public record TransportInternal : RouterInternal
+public class TransportInternal : RouterInternal
 {
     /// <summary>
-    /// TransportId id.
+    /// Trannsport id.
     /// </summary>
-    public string TransportId { get; set; }
+    public string TransportId { get; }
+
+    public TransportInternal(string routerId, string transportId) : base(routerId)
+    {
+        TransportId = transportId;
+    }
 }

@@ -1,74 +1,91 @@
-﻿using MediasoupSharp.RtpObserver;
+﻿using FlatBuffers.Notification;
+using MediasoupSharp.Channel;
+using MediasoupSharp.RtpObserver;
 using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.AudioLevelObserver;
 
-
-public interface IAudioLevelObserver : IRtpObserver
+public class AudioLevelObserver : RtpObserver.RtpObserver
 {
-    internal EnhancedEventEmitter<AudioLevelObserverObserverEvents> Observer { get; }
-}
+    /// <summary>
+    /// Logger.
+    /// </summary>
+    private readonly ILogger<AudioLevelObserver> logger;
 
-internal class AudioLevelObserver<TAudioLevelObserverAppData>
-    : RtpObserver<TAudioLevelObserverAppData, AudioLevelObserverEvents>
-{
-    private readonly ILogger? logger;
-
+    /// <summary>
+    /// <para>Events:</para>
+    /// <para>@emits volumes - (volumes: AudioLevelObserverVolume[])</para>
+    /// <para>@emits silence</para>
+    /// <para>Observer events:</para>
+    /// <para>@emits close</para>
+    /// <para>@emits pause</para>
+    /// <para>@emits resume</para>
+    /// <para>@emits addproducer - (producer: Producer)</para>
+    /// <para>@emits removeproducer - (producer: Producer)</para>
+    /// <para>@emits volumes - (volumes: AudioLevelObserverVolume[])</para>
+    /// <para>@emits silence</para>
+    /// </summary>
     public AudioLevelObserver(
-        AudioLevelObserverConstructorOptions<TAudioLevelObserverAppData> args,
-        ILoggerFactory? loggerFactory = null
-    ) : base(args, loggerFactory)
+        ILoggerFactory loggerFactory,
+        RtpObserverInternal @internal,
+        IChannel channel,
+        Dictionary<string, object>? appData,
+        Func<string, Task<Producer.Producer?>> getProducerById
+    )
+        : base(loggerFactory, @internal, channel, appData, getProducerById)
     {
-        logger = loggerFactory?.CreateLogger(GetType());
+        logger = loggerFactory.CreateLogger<AudioLevelObserver>();
     }
 
-    internal IEnhancedEventEmitter<AudioLevelObserverObserverEvents> Observer =>
-        base.Observer as IEnhancedEventEmitter<AudioLevelObserverObserverEvents>;
-
-    private void HandleWorkerNotifications()
+#pragma warning disable VSTHRD100 // Avoid async void methods
+    protected override async void OnNotificationHandle(string handlerId, Event @event, Notification data)
+#pragma warning restore VSTHRD100 // Avoid async void methods
     {
-        Channel.On(Internal.RtpObserverId, async args =>
+        if(handlerId != Internal.RtpObserverId)
         {
-            var @event = args![0] as string;
-            var data = args.Length > 0 ? (dynamic)args[1] : null;
-            switch (@event)
-            {
-                case "volumes":
-                {
-                    var volumes = ((List<dynamic>)data!)
-                        .Select(x =>
-                            new AudioLevelObserverVolume
-                            {
-                                Producer = GetProducerById(x.producerId),
-                                Volume = x.volume
-                            }
-                        ).DistinctBy(x => x.Producer);
+            return;
+        }
 
-                    if (volumes.Any())
+        switch(@event)
+        {
+            case Event.AUDIOLEVELOBSERVER_VOLUMES:
+                {
+                    var volumesNotification = data.BodyAsAudioLevelObserver_VolumesNotification().UnPack();
+
+                    var volumes = new List<AudioLevelObserverVolume>();
+                    foreach(var item in volumesNotification.Volumes)
                     {
-                        await Emit(nameof(volumes), volumes);
+                        var producer = await GetProducerById(item.ProducerId);
+                        if(producer != null)
+                        {
+                            volumes.Add(new AudioLevelObserverVolume { Producer = producer, Volume = item.Volume_, });
+                        }
+                    }
+
+                    if(volumes.Count > 0)
+                    {
+                        Emit("volumes", volumes);
 
                         // Emit observer event.
-                        await Observer.SafeEmit(nameof(volumes), volumes);
+                        Observer.Emit("volumes", volumes);
                     }
 
                     break;
                 }
-                case "silence":
+            case Event.AUDIOLEVELOBSERVER_SILENCE:
                 {
-                    await SafeEmit("silence");
+                    Emit("silence");
 
                     // Emit observer event.
-                    await Observer.SafeEmit("silence");
+                    Observer.Emit("silence");
 
                     break;
                 }
-                default:
+            default:
                 {
-                    logger?.LogError("OnChannelMessage() | Ignoring unknown event '{Event}' ", @event);
+                    logger.LogError("OnNotificationHandle() | Ignoring unknown event: {@event}", @event);
                     break;
                 }
-            }
-        });
+        }
     }
 }

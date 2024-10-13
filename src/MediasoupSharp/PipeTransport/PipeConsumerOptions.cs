@@ -1,16 +1,7 @@
-﻿namespace MediasoupSharp.PipeTransport;
+﻿using MediasoupSharp.Consumer;
 
-public record PipeConsumerOptions<TConsumerAppData>
+namespace MediasoupSharp.PipeTransport;
+
+public class PipeConsumerOptions : ConsumerOptionsBase
 {
-    /// <summary>
-    /// The id of the Producer to consume.
-    /// </summary>
-    /// <returns></returns>
-    public string ProducerId { get; set; }
-
-    /// <summary>
-    /// Custom application data.
-    /// </summary>
-    /// <returns></returns>
-    public TConsumerAppData? AppData { get; set; }
 }

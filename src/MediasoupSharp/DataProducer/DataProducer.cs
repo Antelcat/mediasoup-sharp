@@ -1,198 +1,291 @@
-﻿using MediasoupSharp.SctpParameters;
+﻿using System.Text;
+using FlatBuffers.DataProducer;
+using FlatBuffers.Notification;
+using FlatBuffers.Request;
+using MediasoupSharp.Extensions;
+using MediasoupSharp.Channel;
+using MediasoupSharp.Exceptions;
+using MediasoupSharp.FlatBuffers.DataProducer.T;
 using Microsoft.Extensions.Logging;
+using Microsoft.VisualStudio.Threading;
 
 namespace MediasoupSharp.DataProducer;
 
-public interface IDataProducer
+public class DataProducer : EventEmitter.EventEmitter
 {
-    string Id { get; }
+    /// <summary>
+    /// Logger.
+    /// </summary>
+    private readonly ILogger<DataProducer> logger;
 
-    object AppData { get; set; }
+    /// <summary>
+    /// Close flag.
+    /// </summary>
+    private bool closed;
 
-    internal EnhancedEventEmitter Observer { get; }
+    private readonly AsyncReaderWriterLock closeLock = new();
 
-    DataProducerType Type { get; }
+    /// <summary>
+    /// Paused flag.
+    /// </summary>
+    private bool paused;
 
-    SctpStreamParameters? SctpStreamParameters { get; }
-    
-    string Label { get; }
-    
-    string Protocol { get; }
-
-    void Close();
-
-    void TransportClosed();
-}
-
-internal class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataProducerEvents> , IDataProducer
-{
-    private readonly ILogger? logger;
-    
     /// <summary>
     /// Internal data.
     /// </summary>
     private readonly DataProducerInternal @internal;
 
     /// <summary>
+    /// DataProducer id.
+    /// </summary>
+    public string DataProducerId => @internal.DataProducerId;
+
+    /// <summary>
     /// DataProducer data.
     /// </summary>
-    private readonly DataProducerData data;
+    public DataProducerData Data { get; }
 
     /// <summary>
     /// Channel instance.
     /// </summary>
-    private readonly Channel.Channel channel;
-
-    /// <summary>
-    /// PayloadChannel instance.
-    /// </summary>
-    private readonly PayloadChannel.PayloadChannel payloadChannel;
-
-    /// <summary>
-    /// Whether the DataProducer is closed.
-    /// </summary>
-    public bool Closed { get; private set; }
+    private readonly IChannel channel;
 
     /// <summary>
     /// App custom data.
     /// </summary>
-    public object AppData
-    {
-        get => appData;
-        set => appData = (TDataProducerAppData)value;
-    }
-
-    private TDataProducerAppData? appData;
+    public Dictionary<string, object> AppData { get; }
 
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EnhancedEventEmitter Observer { get; }
-
+    public EventEmitter.EventEmitter Observer { get; } = new();
 
     /// <summary>
-    /// 
+    /// <para>Events:</para>
+    /// <para>@emits transportclose</para>
+    /// <para>@emits @close</para>
+    /// <para>Observer events:</para>
+    /// <para>@emits close</para>
     /// </summary>
-    /// <param name="internal"></param>
-    /// <param name="data"></param>
-    /// <param name="channel"></param>
-    /// <param name="payloadChannel"></param>
-    /// <param name="appData"></param>
-    /// <param name="loggerFactory"></param>
     public DataProducer(
+        ILoggerFactory loggerFactory,
         DataProducerInternal @internal,
         DataProducerData data,
-        Channel.Channel channel,
-        PayloadChannel.PayloadChannel payloadChannel,
-        TDataProducerAppData? appData,
-        ILoggerFactory? loggerFactory = null
+        IChannel channel,
+        bool paused,
+        Dictionary<string, object>? appData
     )
     {
-        logger              = loggerFactory?.CreateLogger(GetType());
-        this.@internal      = @internal;
-        this.data           = data;
-        this.channel        = channel;
-        this.payloadChannel = payloadChannel;
-        AppData             = appData ?? typeof(TDataProducerAppData).New<TDataProducerAppData>()!;
-        Observer            = new EnhancedEventEmitter<DataProducerObserverEvents>(loggerFactory);
+        logger = loggerFactory.CreateLogger<DataProducer>();
+
+        this.@internal = @internal;
+        Data           = data;
+        this.channel   = channel;
+        this.paused    = paused;
+        AppData        = appData ?? [];
 
         HandleWorkerNotifications();
     }
 
-    public string Id => @internal.DataProducerId;
-
-    public DataProducerType Type => data.Type;
-
-    public SctpStreamParameters? SctpStreamParameters => data.SctpStreamParameters;
-
-    public string Label => data.Label;
-
-    public string Protocol => data.Protocol;
-
-
     /// <summary>
     /// Close the DataProducer.
     /// </summary>
-    public void Close()
+    public async Task CloseAsync()
     {
-        if (Closed)
+        logger.LogDebug("CloseAsync() | DataProducer:{DataProducerId}", DataProducerId);
+
+        await using(await closeLock.WriteLockAsync())
         {
-            return;
+            if(closed)
+            {
+                return;
+            }
+
+            closed = true;
+
+            // Remove notification subscriptions.
+            //_channel.OnNotification -= OnNotificationHandle;
+
+            // Build Request
+            var bufferBuilder = channel.BufferPool.Get();
+
+            var closeDataProducerRequest = new global::FlatBuffers.Transport.CloseDataProducerRequestT
+            {
+                DataProducerId = @internal.DataProducerId,
+            };
+
+            var closeDataProducerRequestOffset = global::FlatBuffers.Transport.CloseDataProducerRequest.Pack(bufferBuilder, closeDataProducerRequest);
+
+            // Fire and forget
+            channel.RequestAsync(bufferBuilder, Method.TRANSPORT_CLOSE_DATAPRODUCER,
+                global::FlatBuffers.Request.Body.Transport_CloseDataProducerRequest,
+                closeDataProducerRequestOffset.Value,
+                @internal.TransportId
+            ).ContinueWithOnFaultedHandleLog(logger);
+
+            Emit("close");
+
+            // Emit observer event.
+            Observer.Emit("close");
         }
-
-        logger?.LogDebug("CloseAsync() | DataProducer:{Id}", Id);
-
-        Closed = true;
-
-        // Remove notification subscriptions.
-        channel.RemoveAllListeners(@internal.DataProducerId);
-        payloadChannel.RemoveAllListeners(@internal.DataProducerId);
-
-        // TODO : Naming
-        var reqData = new { dataProducerId = @internal.DataProducerId };
-
-        // Fire and forget
-        channel.Request("transport.closeDataProducer", @internal.TransportId, reqData)
-            .ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
-
-        _ = Emit("@close");
-
-        // Emit observer event.
-        _ = Observer.SafeEmit("close");
-
     }
 
     /// <summary>
     /// Transport was closed.
     /// </summary>
-    public void TransportClosed()
+    public async Task TransportClosedAsync()
     {
-        if (Closed)
+        logger.LogDebug("TransportClosedAsync() | DataProducer:{DataProducerId}", DataProducerId);
+
+        await using(await closeLock.WriteLockAsync())
         {
-            return;
+            if(closed)
+            {
+                return;
+            }
+
+            closed = true;
+
+            // Remove notification subscriptions.
+            //_channel.OnNotification -= OnNotificationHandle;
+
+            Emit("transportclose");
+
+            // Emit observer event.
+            Observer.Emit("close");
         }
-
-        logger?.LogDebug("TransportClosedAsync() | DataProducer:{Id}", Id);
-
-        Closed = true;
-
-        // Remove notification subscriptions.
-        channel.RemoveAllListeners(@internal.DataProducerId);
-        payloadChannel.RemoveAllListeners(@internal.DataProducerId);
-
-        _ = Emit("transportclose");
-
-        // Emit observer event.
-        _ = Observer.SafeEmit("close");
     }
 
     /// <summary>
     /// Dump DataProducer.
     /// </summary>
-    public async Task<object> DumpAsync()
+    public async Task<DumpResponseT> DumpAsync()
     {
-        logger?.LogDebug("DumpAsync() | DataProducer:{Id}", Id);
+        logger.LogDebug("DumpAsync() | DataProducer:{DataProducerId}", DataProducerId);
 
-        return (await channel.Request("dataProducer.dump", @internal.DataProducerId))!;
+        await using(await closeLock.ReadLockAsync())
+        {
+            if(closed)
+            {
+                throw new InvalidStateException("DataProducer closed");
+            }
+
+            // Build Request
+            var bufferBuilder = channel.BufferPool.Get();
+
+            var response = await channel.RequestAsync(bufferBuilder, Method.DATAPRODUCER_DUMP,
+                null,
+                null,
+                @internal.DataProducerId);
+
+            /* Decode Response. */
+            var data = response.Value.BodyAsDataProducer_DumpResponse().UnPack();
+            return data;
+        }
     }
 
     /// <summary>
     /// Get DataProducer stats. Return: DataProducerStat[]
     /// </summary>
-    public async Task<List<DataProducerStat>> GetStatsAsync()
+    public async Task<GetStatsResponseT[]> GetStatsAsync()
     {
-        logger?.LogDebug("GetStatsAsync() | DataProducer:{Id}", Id);
+        logger.LogDebug("GetStatsAsync() | DataProducer:{DataProducerId}", DataProducerId);
 
-        return (await channel.Request("dataProducer.getStats", @internal.DataProducerId) as List<DataProducerStat>)!;
+        await using(await closeLock.ReadLockAsync())
+        {
+            if(closed)
+            {
+                throw new InvalidStateException("DataProducer closed");
+            }
+
+            // Build Request
+            var bufferBuilder = channel.BufferPool.Get();
+
+            var response = await channel.RequestAsync(bufferBuilder, Method.DATAPRODUCER_GET_STATS,
+                null,
+                null,
+                @internal.DataProducerId);
+
+            /* Decode Response. */
+            var data = response.Value.BodyAsDataProducer_GetStatsResponse().UnPack();
+            return [data];
+        }
     }
 
-    public async Task SendAsync(object message, int? ppid)
+    /// <summary>
+    /// Pause the DataProducer.
+    /// </summary>
+    public async Task PauseAsync()
     {
-        if (message is not (string or byte[]))
-        {
-            throw new TypeError("message must be a string or a Buffer");
-        }
+        logger.LogDebug("PauseAsync() | DataProducer:{DataProducerId}", DataProducerId);
 
+        await using(await closeLock.ReadLockAsync())
+        {
+            if(closed)
+            {
+                throw new InvalidStateException("DataProducer closed");
+            }
+
+            // Build Request
+            var bufferBuilder = channel.BufferPool.Get();
+
+            await channel.RequestAsync(bufferBuilder, Method.DATACONSUMER_PAUSE,
+                null,
+                null,
+                @internal.DataProducerId);
+
+            var wasPaused = paused;
+
+            paused = true;
+
+            // Emit observer event.
+            if(!wasPaused)
+            {
+                Observer.Emit("pause");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Resume the DataProducer.
+    /// </summary>
+    public async Task ResumeAsync()
+    {
+        logger.LogDebug("ResumeAsync() | DataProducer:{DataProducerId}", DataProducerId);
+
+        await using(await closeLock.ReadLockAsync())
+        {
+            if(closed)
+            {
+                throw new InvalidStateException("DataConsumer closed");
+            }
+
+            // Build Request
+            var bufferBuilder = channel.BufferPool.Get();
+
+            await channel.RequestAsync(bufferBuilder, Method.DATACONSUMER_RESUME,
+                null,
+                null,
+                @internal.DataProducerId);
+
+            var wasPaused = paused;
+
+            paused = false;
+
+            // Emit observer event.
+            if(wasPaused)
+            {
+                Observer.Emit("resume");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Send data (just valid for DataProducers created on a DirectTransport).
+    /// </summary>
+    public async Task SendAsync(string message, uint? ppid, List<ushort>? subchannels, ushort? requiredSubchannel)
+    {
+        logger.LogDebug("SendAsync() | DataProducer:{DataProducerId}", DataProducerId);
 
         /*
          * +-------------------------------+----------+
@@ -210,25 +303,72 @@ internal class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataPro
          * +-------------------------------+----------+
          */
 
-        ppid ??= message is string str
-            ? str.Length > 0 ? 51 : 56
-            : ((byte[])message).Length > 0 ? 53 : 57;
-        
+        ppid ??= !message.IsNullOrEmpty() ? 51u : 56u;
+
         // Ensure we honor PPIDs.
-        message = ppid switch
+        if(ppid == 56)
         {
-            56 => " ",
-            57 => new byte[1],
-            _ => message
-        };
+            message = " ";
+        }
 
-        var notifData = ppid.Value.ToString();
-
-        await payloadChannel.Request("dataProducer.send", @internal.DataProducerId, notifData, message);
+        await SendInternalAsync(Encoding.UTF8.GetBytes(message), ppid.Value, subchannels, requiredSubchannel);
     }
-    
-    private void HandleWorkerNotifications()
+
+    /// <summary>
+    /// Send data (just valid for DataProducers created on a DirectTransport).
+    /// </summary>
+    public async Task SendAsync(byte[] message, uint? ppid, List<ushort>? subchannels, ushort? requiredSubchannel)
+    {
+        logger.LogDebug("SendAsync() | DataProducer:{DataProducerId}", DataProducerId);
+
+        ppid ??= !message.IsNullOrEmpty() ? 53u : 57u;
+
+        // Ensure we honor PPIDs.
+        if(ppid == 57)
+        {
+            message = new byte[1];
+        }
+
+        await SendInternalAsync(message, ppid.Value, subchannels, requiredSubchannel);
+    }
+
+    private async Task SendInternalAsync(byte[] data, uint ppid, List<ushort>? subchannels, ushort? requiredSubchannel)
+    {
+        await using(await closeLock.ReadLockAsync())
+        {
+            if(closed)
+            {
+                throw new InvalidStateException("DataProducer closed");
+            }
+
+            // Build Request
+            var bufferBuilder = channel.BufferPool.Get();
+
+            var sendNotification = new SendNotificationT
+            {
+                Ppid               = ppid,
+                Data               = data,
+                Subchannels        = subchannels ?? [],
+                RequiredSubchannel = requiredSubchannel,
+            };
+
+            var sendNotificationOffset = SendNotification.Pack(bufferBuilder, sendNotification);
+
+            // Fire and forget
+            channel.NotifyAsync(bufferBuilder, Event.PRODUCER_SEND,
+                global::FlatBuffers.Notification.Body.DataProducer_SendNotification,
+                sendNotificationOffset.Value,
+                @internal.DataProducerId
+            ).ContinueWithOnFaultedHandleLog(logger);
+        }
+    }
+
+    #region Event Handlers
+
+    private static void HandleWorkerNotifications()
     {
         // No need to subscribe to any event.
     }
+
+    #endregion Event Handlers
 }
