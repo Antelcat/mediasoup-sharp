@@ -1,5 +1,5 @@
-﻿using FlatBuffers.SrtpParameters;
-using FlatBuffers.Transport;
+﻿using FBS.SrtpParameters;
+using FBS.Transport;
 using MediasoupSharp.Transport;
 
 namespace MediasoupSharp.PipeTransport;

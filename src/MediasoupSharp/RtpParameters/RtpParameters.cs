@@ -1,4 +1,4 @@
-﻿using MediasoupSharp.FlatBuffers.RtpParameters.T;
+﻿using FBS.RtpParameters;
 
 namespace MediasoupSharp.RtpParameters;
 

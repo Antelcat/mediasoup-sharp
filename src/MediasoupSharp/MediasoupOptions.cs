@@ -1,8 +1,6 @@
-﻿using System.Reflection;
-using FlatBuffers.RtpParameters;
-using FlatBuffers.Transport;
+﻿using FBS.RtpParameters;
+using FBS.Transport;
 using MediasoupSharp.Constants;
-using MediasoupSharp.FlatBuffers.Transport.T;
 using MediasoupSharp.RtpParameters;
 using MediasoupSharp.Settings;
 
@@ -19,29 +17,29 @@ public class MediasoupOptions
         MediasoupStartupSettings = new MediasoupStartupSettings
         {
             WorkerPath       = "mediasoup-worker",
-            MediasoupVersion = typeof(MediasoupOptions).Assembly.ImageRuntimeVersion,
+            MediasoupVersion = "0.0.1",
             NumberOfWorkers  = Environment.ProcessorCount,
         },
         MediasoupSettings = new MediasoupSettings
         {
             WorkerSettings = new WorkerSettings
             {
-                LogLevel = WorkerLogLevel.warn,
+                LogLevel = WorkerLogLevel.Warn,
                 LogTags =
                 [
-                    WorkerLogTag.info,
-                    WorkerLogTag.ice,
-                    WorkerLogTag.dtls,
-                    WorkerLogTag.rtp,
-                    WorkerLogTag.srtp,
-                    WorkerLogTag.rtcp,
-                    WorkerLogTag.rtx,
-                    WorkerLogTag.bwe,
-                    WorkerLogTag.score,
-                    WorkerLogTag.simulcast,
-                    WorkerLogTag.svc,
-                    WorkerLogTag.sctp,
-                    WorkerLogTag.message
+                    WorkerLogTag.Info,
+                    WorkerLogTag.Ice,
+                    WorkerLogTag.Dtls,
+                    WorkerLogTag.Rtp,
+                    WorkerLogTag.Srtp,
+                    WorkerLogTag.Rtcp,
+                    WorkerLogTag.Rtx,
+                    WorkerLogTag.Bwe,
+                    WorkerLogTag.Score,
+                    WorkerLogTag.Simulcast,
+                    WorkerLogTag.Svc,
+                    WorkerLogTag.Sctp,
+                    WorkerLogTag.Message
                 ],
                 RtcMinPort = 10000,
                 RtcMaxPort = 59999,
@@ -52,56 +50,52 @@ public class MediasoupOptions
                 [
                     new RtpCodecCapability
                     {
-                        Kind      = MediaKind.audio,
+                        Kind      = MediaKind.AUDIO,
                         MimeType  = "audio/opus",
                         ClockRate = 48000,
                         Channels  = 2
                     },
-                    new RtpCodecCapability
-                    {
-                        Kind      = MediaKind.video,
+                    new RtpCodecCapability {
+                        Kind      = MediaKind.VIDEO,
                         MimeType  = "video/VP8",
                         ClockRate = 90000,
                         Parameters = new Dictionary<string, object>
                         {
-                            { "x-google-start-bitrate", 1000 }
+                            { "x-google-start-bitrate" , 1000 }
                         }
                     },
-                    new RtpCodecCapability
-                    {
-                        Kind      = MediaKind.video,
+                    new RtpCodecCapability {
+                        Kind      = MediaKind.VIDEO,
                         MimeType  = "video/VP9",
                         ClockRate = 90000,
                         Parameters = new Dictionary<string, object>
                         {
-                            { "profile-id", 2 },
-                            { "x-google-start-bitrate", 1000 }
+                            { "profile-id"             , 2 },
+                            { "x-google-start-bitrate" , 1000 }
                         }
                     },
-                    new RtpCodecCapability
-                    {
-                        Kind      = MediaKind.video,
+                    new RtpCodecCapability {
+                        Kind      = MediaKind.VIDEO,
                         MimeType  = "video/h264",
                         ClockRate = 90000,
                         Parameters = new Dictionary<string, object>
                         {
-                            { "packetization-mode", 1 },
-                            { "profile-level-id", "4d0032" },
-                            { "level-asymmetry-allowed", 1 },
-                            { "x-google-start-bitrate", 1000 }
+                            { "packetization-mode"      , 1 },
+                            { "profile-level-id"        , "4d0032" },
+                            { "level-asymmetry-allowed" , 1 },
+                            { "x-google-start-bitrate"  , 1000 }
                         }
                     },
-                    new RtpCodecCapability
-                    {
-                        Kind      = MediaKind.video,
+                    new RtpCodecCapability {
+                        Kind      = MediaKind.VIDEO,
                         MimeType  = "video/h264",
                         ClockRate = 90000,
                         Parameters = new Dictionary<string, object>
                         {
-                            { "packetization-mode", 1 },
-                            { "profile-level-id", "42e01f" },
-                            { "level-asymmetry-allowed", 1 },
-                            { "x-google-start-bitrate", 1000 }
+                            { "packetization-mode"      , 1 },
+                            { "profile-level-id"        , "42e01f" },
+                            { "level-asymmetry-allowed" , 1 },
+                            { "x-google-start-bitrate"  , 1000 }
                         }
                     }
                 ],
@@ -112,16 +106,16 @@ public class MediasoupOptions
                 [
                     new ListenInfoT
                     {
-                        Protocol    = Protocol.UDP,
-                        Ip          = "0.0.0.0",
-                        AnnouncedIp = null,
-                        Port        = 44444,
+                        Protocol         = Protocol.UDP,
+                        Ip               = "0.0.0.0",
+                        AnnouncedAddress = null,
+                        Port             = 44444,
                     },
                     new ListenInfoT
                     {
                         Protocol    = Protocol.TCP,
                         Ip          = "0.0.0.0",
-                        AnnouncedIp = null,
+                        AnnouncedAddress = null,
                         Port        = 44444,
                     }
                 ]
@@ -130,7 +124,7 @@ public class MediasoupOptions
             {
                 ListenInfos =
                 [
-                    new ListenInfoT { Ip = "0.0.0.0", AnnouncedIp = null }
+                    new ListenInfoT { Ip = "0.0.0.0",  AnnouncedAddress = null }
                 ],
                 InitialAvailableOutgoingBitrate = 1_000_000,
                 MinimumAvailableOutgoingBitrate = 600_000,
@@ -139,7 +133,7 @@ public class MediasoupOptions
             },
             PlainTransportSettings = new PlainTransportSettings
             {
-                ListenInfo         = new ListenInfoT { Ip = "0.0.0.0", AnnouncedIp = null },
+                ListenInfo         = new ListenInfoT { Ip = "0.0.0.0", AnnouncedAddress = null },
                 MaxSctpMessageSize = 256 * 1024,
             }
         }

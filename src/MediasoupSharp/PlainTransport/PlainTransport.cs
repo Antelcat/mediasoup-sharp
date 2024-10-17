@@ -1,8 +1,7 @@
-﻿using FlatBuffers.Notification;
-using FlatBuffers.PlainTransport;
-using FlatBuffers.Request;
+﻿using FBS.Notification;
+using FBS.PlainTransport;
+using FBS.Request;
 using MediasoupSharp.Channel;
-using MediasoupSharp.FlatBuffers.PlainTransport.T;
 using MediasoupSharp.RtpParameters;
 using MediasoupSharp.Transport;
 using Microsoft.Extensions.Logging;
@@ -73,7 +72,7 @@ public class PlainTransport : Transport.Transport
     {
         if(Data.Base.SctpState.HasValue)
         {
-            Data.Base.SctpState = global::FlatBuffers.SctpAssociation.SctpState.CLOSED;
+            Data.Base.SctpState = FBS.SctpAssociation.SctpState.CLOSED;
         }
 
         return Task.CompletedTask;
@@ -96,7 +95,7 @@ public class PlainTransport : Transport.Transport
         var bufferBuilder = Channel.BufferPool.Get();
 
         var response = await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_DUMP, null, null, Internal.TransportId);
-        var data     = response.Value.BodyAsPlainTransport_DumpResponse().UnPack();
+        var data = response.Value.BodyAsPlainTransport_DumpResponse().UnPack();
 
         return data;
     }
@@ -110,7 +109,7 @@ public class PlainTransport : Transport.Transport
         var bufferBuilder = Channel.BufferPool.Get();
 
         var response = await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_GET_STATS, null, null, Internal.TransportId);
-        var data     = response.Value.BodyAsPlainTransport_GetStatsResponse().UnPack();
+        var data = response.Value.BodyAsPlainTransport_GetStatsResponse().UnPack();
 
         return [data];
     }
@@ -133,7 +132,7 @@ public class PlainTransport : Transport.Transport
         var connectRequestOffset = ConnectRequest.Pack(bufferBuilder, connectRequestT);
 
         var response = await Channel.RequestAsync(bufferBuilder, Method.PLAINTRANSPORT_CONNECT,
-            global::FlatBuffers.Request.Body.PlainTransport_ConnectRequest,
+            FBS.Request.Body.PlainTransport_ConnectRequest,
             connectRequestOffset.Value,
             Internal.TransportId);
 
@@ -171,60 +170,60 @@ public class PlainTransport : Transport.Transport
         switch(@event)
         {
             case Event.PLAINTRANSPORT_TUPLE:
-                {
-                    var tupleNotification = notification.BodyAsPlainTransport_TupleNotification().UnPack();
+            {
+                var tupleNotification = notification.BodyAsPlainTransport_TupleNotification().UnPack();
 
-                    Data.Tuple = tupleNotification.Tuple;
+                Data.Tuple = tupleNotification.Tuple;
 
-                    Emit("tuple", Data.Tuple);
+                Emit("tuple", Data.Tuple);
 
-                    // Emit observer event.
-                    Observer.Emit("tuple", Data.Tuple);
+                // Emit observer event.
+                Observer.Emit("tuple", Data.Tuple);
 
-                    break;
-                }
+                break;
+            }
             case Event.PLAINTRANSPORT_RTCP_TUPLE:
-                {
-                    var rtcpTupleNotification = notification.BodyAsPlainTransport_RtcpTupleNotification().UnPack();
+            {
+                var rtcpTupleNotification = notification.BodyAsPlainTransport_RtcpTupleNotification().UnPack();
 
-                    Data.RtcpTuple = rtcpTupleNotification.Tuple;
+                Data.RtcpTuple = rtcpTupleNotification.Tuple;
 
-                    Emit("rtcptuple", Data.RtcpTuple);
+                Emit("rtcptuple", Data.RtcpTuple);
 
-                    // Emit observer event.
-                    Observer.Emit("rtcptuple", Data.RtcpTuple);
+                // Emit observer event.
+                Observer.Emit("rtcptuple", Data.RtcpTuple);
 
-                    break;
-                }
+                break;
+            }
             case Event.TRANSPORT_SCTP_STATE_CHANGE:
-                {
-                    var sctpStateChangeNotification = notification.BodyAsTransport_SctpStateChangeNotification().UnPack();
+            {
+                var sctpStateChangeNotification = notification.BodyAsTransport_SctpStateChangeNotification().UnPack();
 
-                    Data.Base.SctpState = sctpStateChangeNotification.SctpState;
+                Data.Base.SctpState = sctpStateChangeNotification.SctpState;
 
-                    Emit("sctpstatechange", Data.Base.SctpState);
+                Emit("sctpstatechange", Data.Base.SctpState);
 
-                    // Emit observer event.
-                    Observer.Emit("sctpstatechange", Data.Base.SctpState);
+                // Emit observer event.
+                Observer.Emit("sctpstatechange", Data.Base.SctpState);
 
-                    break;
-                }
+                break;
+            }
             case Event.TRANSPORT_TRACE:
-                {
-                    var traceNotification = notification.BodyAsTransport_TraceNotification().UnPack();
+            {
+                var traceNotification = notification.BodyAsTransport_TraceNotification().UnPack();
 
-                    Emit("trace", traceNotification);
+                Emit("trace", traceNotification);
 
-                    // Emit observer event.
-                    Observer.Emit("trace", traceNotification);
+                // Emit observer event.
+                Observer.Emit("trace", traceNotification);
 
-                    break;
-                }
+                break;
+            }
             default:
-                {
-                    logger.LogError("OnNotificationHandle() | PlainTransport:{TransportId} Ignoring unknown event:{@event}", TransportId, @event);
-                    break;
-                }
+            {
+                logger.LogError("OnNotificationHandle() | PlainTransport:{TransportId} Ignoring unknown event:{@event}", TransportId, @event);
+                break;
+            }
         }
     }
 

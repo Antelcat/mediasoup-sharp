@@ -1,11 +1,9 @@
-﻿using FlatBuffers.Consumer;
-using FlatBuffers.Notification;
-using FlatBuffers.Request;
-using FlatBuffers.RtpStream;
-using MediasoupSharp.Extensions;
+﻿using FBS.Consumer;
+using FBS.Notification;
+using FBS.Request;
+using FBS.RtpStream;
 using MediasoupSharp.Channel;
 using MediasoupSharp.Exceptions;
-using MediasoupSharp.FlatBuffers.Consumer.T;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
 
@@ -131,7 +129,7 @@ public class Consumer : EventEmitter.EventEmitter
     {
         logger = loggerFactory.CreateLogger<Consumer>();
 
-        @internal       = @internal;
+        this.@internal       = @internal;
         Data            = data;
         this.channel    = channel;
         AppData         = appData ?? new Dictionary<string, object>();
@@ -166,7 +164,7 @@ public class Consumer : EventEmitter.EventEmitter
             // Build Request
             var bufferBuilder = channel.BufferPool.Get();
 
-            var requestOffset = global::FlatBuffers.Transport.CloseConsumerRequest.Pack(bufferBuilder, new global::FlatBuffers.Transport.CloseConsumerRequestT
+            var requestOffset = FBS.Transport.CloseConsumerRequest.Pack(bufferBuilder, new FBS.Transport.CloseConsumerRequestT
             {
                 ConsumerId = @internal.ConsumerId
             });
@@ -175,7 +173,7 @@ public class Consumer : EventEmitter.EventEmitter
             channel.RequestAsync(
                     bufferBuilder,
                     Method.TRANSPORT_CLOSE_CONSUMER,
-                    global::FlatBuffers.Request.Body.Transport_CloseConsumerRequest,
+                    FBS.Request.Body.Transport_CloseConsumerRequest,
                     requestOffset.Value,
                     @internal.TransportId
                 )
@@ -366,7 +364,7 @@ public class Consumer : EventEmitter.EventEmitter
             var response = await channel.RequestAsync(
                 bufferBuilder,
                 Method.CONSUMER_SET_PREFERRED_LAYERS,
-                global::FlatBuffers.Request.Body.Consumer_SetPreferredLayersRequest,
+                FBS.Request.Body.Consumer_SetPreferredLayersRequest,
                 setPreferredLayersRequestOffset.Value,
                 @internal.ConsumerId);
             var preferredLayers = response.Value.BodyAsConsumer_SetPreferredLayersResponse().UnPack().PreferredLayers;
@@ -396,7 +394,7 @@ public class Consumer : EventEmitter.EventEmitter
             var response = await channel.RequestAsync(
                 bufferBuilder,
                 Method.CONSUMER_SET_PRIORITY,
-                global::FlatBuffers.Request.Body.Consumer_SetPriorityRequest,
+                FBS.Request.Body.Consumer_SetPriorityRequest,
                 setPriorityRequestOffset.Value,
                 @internal.ConsumerId);
 
@@ -462,16 +460,16 @@ public class Consumer : EventEmitter.EventEmitter
 
             var request = new EnableTraceEventRequestT
             {
-                Events = types ?? new List<TraceEventType>(0)
+                Events = types ?? []
             };
 
-            var requestOffset = global::FlatBuffers.Consumer.EnableTraceEventRequest.Pack(bufferBuilder, request);
+            var requestOffset = EnableTraceEventRequest.Pack(bufferBuilder, request);
 
             // Fire and forget
             channel.RequestAsync(
                     bufferBuilder,
                     Method.CONSUMER_ENABLE_TRACE_EVENT,
-                    global::FlatBuffers.Request.Body.Consumer_EnableTraceEventRequest,
+                    FBS.Request.Body.Consumer_EnableTraceEventRequest,
                     requestOffset.Value,
                     @internal.ConsumerId)
                 .ContinueWithOnFaultedHandleLog(logger);
@@ -497,113 +495,113 @@ public class Consumer : EventEmitter.EventEmitter
         switch(@event)
         {
             case Event.CONSUMER_PRODUCER_CLOSE:
+            {
+                await using(await closeLock.WriteLockAsync())
                 {
-                    await using(await closeLock.WriteLockAsync())
+                    if(closed)
                     {
-                        if(closed)
-                        {
-                            break;
-                        }
-
-                        closed = true;
-
-                        // Remove notification subscriptions.
-                        channel.OnNotification -= OnNotificationHandle;
-
-                        Emit("@producerclose");
-                        Emit("producerclose");
-
-                        // Emit observer event.
-                        Observer.Emit("close");
+                        break;
                     }
 
-                    break;
+                    closed = true;
+
+                    // Remove notification subscriptions.
+                    channel.OnNotification -= OnNotificationHandle;
+
+                    Emit("@producerclose");
+                    Emit("producerclose");
+
+                    // Emit observer event.
+                    Observer.Emit("close");
                 }
+
+                break;
+            }
             case Event.CONSUMER_PRODUCER_PAUSE:
+            {
+                if(ProducerPaused)
                 {
-                    if(ProducerPaused)
-                    {
-                        break;
-                    }
-
-                    var wasPaused = paused || ProducerPaused;
-
-                    ProducerPaused = true;
-
-                    Emit("producerpause");
-
-                    // Emit observer event.
-                    if(!wasPaused)
-                    {
-                        Observer.Emit("pause");
-                    }
-
                     break;
                 }
+
+                var wasPaused = paused || ProducerPaused;
+
+                ProducerPaused = true;
+
+                Emit("producerpause");
+
+                // Emit observer event.
+                if(!wasPaused)
+                {
+                    Observer.Emit("pause");
+                }
+
+                break;
+            }
             case Event.CONSUMER_PRODUCER_RESUME:
+            {
+                if(!ProducerPaused)
                 {
-                    if(!ProducerPaused)
-                    {
-                        break;
-                    }
-
-                    var wasPaused = paused || ProducerPaused;
-
-                    ProducerPaused = false;
-
-                    Emit("producerresume");
-
-                    // Emit observer event.
-                    if(wasPaused && !paused)
-                    {
-                        Observer.Emit("resume");
-                    }
-
                     break;
                 }
+
+                var wasPaused = paused || ProducerPaused;
+
+                ProducerPaused = false;
+
+                Emit("producerresume");
+
+                // Emit observer event.
+                if(wasPaused && !paused)
+                {
+                    Observer.Emit("resume");
+                }
+
+                break;
+            }
             case Event.CONSUMER_SCORE:
-                {
-                    var scoreNotification = notification.BodyAsConsumer_ScoreNotification();
-                    var score             = scoreNotification.Score!.Value.UnPack();
-                    Score = score;
+            {
+                var scoreNotification = notification.BodyAsConsumer_ScoreNotification();
+                var score             = scoreNotification.Score!.Value.UnPack();
+                Score = score;
 
-                    Emit("score", Score);
+                Emit("score", Score);
 
-                    // Emit observer event.
-                    Observer.Emit("score", Score);
+                // Emit observer event.
+                Observer.Emit("score", Score);
 
-                    break;
-                }
+                break;
+            }
             case Event.CONSUMER_LAYERS_CHANGE:
-                {
-                    var layersChangeNotification = notification.BodyAsConsumer_LayersChangeNotification();
-                    var currentLayers            = layersChangeNotification.Layers!.Value.UnPack();
-                    CurrentLayers = currentLayers;
+            {
+                var layersChangeNotification = notification.BodyAsConsumer_LayersChangeNotification();
+                var currentLayers            = layersChangeNotification.Layers!.Value.UnPack();
+                CurrentLayers = currentLayers;
 
-                    Emit("layerschange", CurrentLayers);
+                Emit("layerschange", CurrentLayers);
 
-                    // Emit observer event.
-                    Observer.Emit("layersChange", CurrentLayers);
+                // Emit observer event.
+                Observer.Emit("layersChange", CurrentLayers);
 
-                    break;
-                }
+                break;
+            }
             case Event.CONSUMER_TRACE:
-                {
-                    var traceNotification = notification.BodyAsConsumer_TraceNotification();
-                    var trace             = traceNotification.UnPack();
+            {
+                var traceNotification = notification.BodyAsConsumer_TraceNotification();
+                var trace             = traceNotification.UnPack();
 
-                    Emit("trace", trace);
+                Emit("trace", trace);
 
-                    // Emit observer event.
-                    Observer.Emit("trace", trace);
+                // Emit observer event.
+                Observer.Emit("trace", trace);
 
-                    break;
-                }
+                break;
+            }
             default:
-                {
-                    logger.LogError("OnNotificationHandle() | Ignoring unknown event{@event}", @event);
-                    break;
-                }
+            {
+                logger.LogError("OnNotificationHandle() | Ignoring unknown event{@event}", @event);
+                break;
+            }
         }
     }
 }

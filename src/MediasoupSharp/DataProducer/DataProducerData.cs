@@ -1,10 +1,10 @@
-﻿using MediasoupSharp.FlatBuffers.SctpParameters.T;
+﻿using FBS.SctpParameters;
 
 namespace MediasoupSharp.DataProducer;
 
 public class DataProducerData
 {
-    public global::FlatBuffers.DataProducer.Type Type { get; set; }
+    public FBS.DataProducer.Type Type { get; set; }
 
     /// <summary>
     /// SCTP stream parameters.

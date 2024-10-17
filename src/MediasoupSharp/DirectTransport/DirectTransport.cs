@@ -1,12 +1,10 @@
-﻿using FlatBuffers.Notification;
-using FlatBuffers.Request;
-using FlatBuffers.Transport;
-using MediasoupSharp.Extensions;
+﻿using FBS.DirectTransport;
+using FBS.Notification;
+using FBS.Request;
+using FBS.Transport;
 using MediasoupSharp.Channel;
 using MediasoupSharp.Consumer;
 using MediasoupSharp.Exceptions;
-using MediasoupSharp.FlatBuffers.DirectTransport.T;
-using MediasoupSharp.FlatBuffers.Transport.T;
 using MediasoupSharp.Producer;
 using MediasoupSharp.RtpParameters;
 using MediasoupSharp.Transport;
@@ -84,7 +82,7 @@ public class DirectTransport : Transport.Transport
         var bufferBuilder = Channel.BufferPool.Get();
 
         var response = await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_DUMP, null, null, Internal.TransportId);
-        var data     = response.Value.BodyAsDirectTransport_DumpResponse().UnPack();
+        var data = response.Value.BodyAsDirectTransport_DumpResponse().UnPack();
 
         return data;
     }
@@ -98,14 +96,17 @@ public class DirectTransport : Transport.Transport
         var bufferBuilder = Channel.BufferPool.Get();
 
         var response = await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_GET_STATS, null, null, Internal.TransportId);
-        var data     = response.Value.BodyAsDirectTransport_GetStatsResponse().UnPack();
+        var data = response.Value.BodyAsDirectTransport_GetStatsResponse().UnPack();
         return [data];
     }
 
     /// <summary>
     /// NO-OP method in DirectTransport.
     /// </summary>
-    protected override Task OnConnectAsync(object parameters) => Task.CompletedTask;
+    protected override Task OnConnectAsync(object parameters)
+    {
+        return Task.CompletedTask;
+    }
 
     /// <summary>
     /// Set maximum incoming bitrate for receiving media.
@@ -166,14 +167,14 @@ public class DirectTransport : Transport.Transport
 
             var sendRtcpNotification = new SendRtcpNotificationT
             {
-                Data = rtcpPacket
+                Data = rtcpPacket.ToList()
             };
 
             var sendRtcpNotificationOffset = SendRtcpNotification.Pack(bufferBuilder, sendRtcpNotification);
 
             // Fire and forget
             Channel.NotifyAsync(bufferBuilder, Event.TRANSPORT_SEND_RTCP,
-                global::FlatBuffers.Notification.Body.Transport_SendRtcpNotification,
+                FBS.Notification.Body.Transport_SendRtcpNotification,
                 sendRtcpNotificationOffset.Value,
                 Internal.TransportId
             ).ContinueWithOnFaultedHandleLog(logger);
@@ -197,21 +198,21 @@ public class DirectTransport : Transport.Transport
         switch(@event)
         {
             case Event.TRANSPORT_TRACE:
-                {
-                    var traceNotification = notification.BodyAsTransport_TraceNotification().UnPack();
+            {
+                var traceNotification = notification.BodyAsTransport_TraceNotification().UnPack();
 
-                    Emit("trace", traceNotification);
+                Emit("trace", traceNotification);
 
-                    // Emit observer event.
-                    Observer.Emit("trace", traceNotification);
+                // Emit observer event.
+                Observer.Emit("trace", traceNotification);
 
-                    break;
-                }
+                break;
+            }
             default:
-                {
-                    logger.LogError("OnNotificationHandle() | DiectTransport:{TransportId} Ignoring unknown event:{@event}", TransportId, @event);
-                    break;
-                }
+            {
+                logger.LogError("OnNotificationHandle() | DiectTransport:{TransportId} Ignoring unknown event:{@event}", TransportId, @event);
+                break;
+            }
         }
     }
 

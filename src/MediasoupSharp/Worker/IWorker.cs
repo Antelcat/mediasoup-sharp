@@ -1,5 +1,5 @@
-﻿using MediasoupSharp.EventEmitter;
-using MediasoupSharp.FlatBuffers.Worker.T;
+﻿using FBS.Worker;
+using MediasoupSharp.EventEmitter;
 using MediasoupSharp.Router;
 using MediasoupSharp.Settings;
 

@@ -1,5 +1,4 @@
-﻿using FlatBuffers.RtpParameters;
-using MediasoupSharp.FlatBuffers.RtpParameters.T;
+﻿using FBS.RtpParameters;
 
 namespace MediasoupSharp.RtpParameters;
 
@@ -33,7 +32,7 @@ public class RtpCapabilities
             [
                 new()
                 {
-                    Kind      = MediaKind.audio,
+                    Kind      = MediaKind.AUDIO,
                     MimeType  = "audio/opus",
                     ClockRate = 48000,
                     Channels  = 2,
@@ -54,7 +53,7 @@ public class RtpCapabilities
 
                 new()
                 {
-                    Kind      = MediaKind.audio,
+                    Kind      = MediaKind.AUDIO,
                     MimeType  = "audio/multiopus",
                     ClockRate = 48000,
                     Channels  = 4,
@@ -82,7 +81,7 @@ public class RtpCapabilities
 
                 new()
                 {
-                    Kind      = MediaKind.audio,
+                    Kind      = MediaKind.AUDIO,
                     MimeType  = "audio/multiopus",
                     ClockRate = 48000,
                     Channels  = 6,
@@ -110,7 +109,7 @@ public class RtpCapabilities
 
                 new()
                 {
-                    Kind      = MediaKind.audio,
+                    Kind      = MediaKind.AUDIO,
                     MimeType  = "audio/multiopus",
                     ClockRate = 48000,
                     Channels  = 8,
@@ -138,7 +137,7 @@ public class RtpCapabilities
 
                 new()
                 {
-                    Kind                 = MediaKind.audio,
+                    Kind                 = MediaKind.AUDIO,
                     MimeType             = "audio/PCMU",
                     PreferredPayloadType = 0,
                     ClockRate            = 8000,
@@ -154,7 +153,7 @@ public class RtpCapabilities
 
                 new()
                 {
-                    Kind                 = MediaKind.audio,
+                    Kind                 = MediaKind.AUDIO,
                     MimeType             = "audio/PCMA",
                     PreferredPayloadType = 8,
                     ClockRate            = 8000,
@@ -170,7 +169,7 @@ public class RtpCapabilities
 
                 new()
                 {
-                    Kind      = MediaKind.audio,
+                    Kind      = MediaKind.AUDIO,
                     MimeType  = "audio/ISAC",
                     ClockRate = 32000,
                     RtcpFeedback =
@@ -185,7 +184,7 @@ public class RtpCapabilities
 
                 new()
                 {
-                    Kind      = MediaKind.audio,
+                    Kind      = MediaKind.AUDIO,
                     MimeType  = "audio/ISAC",
                     ClockRate = 16000,
                     RtcpFeedback =
@@ -200,7 +199,7 @@ public class RtpCapabilities
 
                 new()
                 {
-                    Kind                 = MediaKind.audio,
+                    Kind                 = MediaKind.AUDIO,
                     MimeType             = "audio/G722",
                     PreferredPayloadType = 9,
                     ClockRate            = 8000,
@@ -216,7 +215,7 @@ public class RtpCapabilities
 
                 new()
                 {
-                    Kind      = MediaKind.audio,
+                    Kind      = MediaKind.AUDIO,
                     MimeType  = "audio/iLBC",
                     ClockRate = 8000,
                     RtcpFeedback =
@@ -231,7 +230,7 @@ public class RtpCapabilities
 
                 new()
                 {
-                    Kind      = MediaKind.audio,
+                    Kind      = MediaKind.AUDIO,
                     MimeType  = "audio/SILK",
                     ClockRate = 24000,
                     RtcpFeedback =
@@ -246,7 +245,7 @@ public class RtpCapabilities
 
                 new()
                 {
-                    Kind      = MediaKind.audio,
+                    Kind      = MediaKind.AUDIO,
                     MimeType  = "audio/SILK",
                     ClockRate = 16000,
                     RtcpFeedback =
@@ -261,7 +260,7 @@ public class RtpCapabilities
 
                 new()
                 {
-                    Kind      = MediaKind.audio,
+                    Kind      = MediaKind.AUDIO,
                     MimeType  = "audio/SILK",
                     ClockRate = 12000,
                     RtcpFeedback =
@@ -276,7 +275,7 @@ public class RtpCapabilities
 
                 new()
                 {
-                    Kind      = MediaKind.audio,
+                    Kind      = MediaKind.AUDIO,
                     MimeType  = "audio/SILK",
                     ClockRate = 8000,
                     RtcpFeedback =
@@ -291,7 +290,7 @@ public class RtpCapabilities
 
                 new()
                 {
-                    Kind                 = MediaKind.audio,
+                    Kind                 = MediaKind.AUDIO,
                     MimeType             = "audio/CN",
                     PreferredPayloadType = 13,
                     ClockRate            = 32000
@@ -299,7 +298,7 @@ public class RtpCapabilities
 
                 new()
                 {
-                    Kind                 = MediaKind.audio,
+                    Kind                 = MediaKind.AUDIO,
                     MimeType             = "audio/CN",
                     PreferredPayloadType = 13,
                     ClockRate            = 16000
@@ -307,7 +306,7 @@ public class RtpCapabilities
 
                 new()
                 {
-                    Kind                 = MediaKind.audio,
+                    Kind                 = MediaKind.AUDIO,
                     MimeType             = "audio/CN",
                     PreferredPayloadType = 13,
                     ClockRate            = 8000
@@ -315,35 +314,35 @@ public class RtpCapabilities
 
                 new()
                 {
-                    Kind      = MediaKind.audio,
+                    Kind      = MediaKind.AUDIO,
                     MimeType  = "audio/telephone-event",
                     ClockRate = 48000
                 },
 
                 new()
                 {
-                    Kind      = MediaKind.audio,
+                    Kind      = MediaKind.AUDIO,
                     MimeType  = "audio/telephone-event",
                     ClockRate = 32000
                 },
 
                 new()
                 {
-                    Kind      = MediaKind.audio,
+                    Kind      = MediaKind.AUDIO,
                     MimeType  = "audio/telephone-event",
                     ClockRate = 16000
                 },
 
                 new()
                 {
-                    Kind      = MediaKind.audio,
+                    Kind      = MediaKind.AUDIO,
                     MimeType  = "audio/telephone-event",
                     ClockRate = 8000
                 },
 
                 new()
                 {
-                    Kind      = MediaKind.video,
+                    Kind      = MediaKind.VIDEO,
                     MimeType  = "video/VP8",
                     ClockRate = 90000,
                     RtcpFeedback =
@@ -378,7 +377,7 @@ public class RtpCapabilities
 
                 new()
                 {
-                    Kind      = MediaKind.video,
+                    Kind      = MediaKind.VIDEO,
                     MimeType  = "video/VP9",
                     ClockRate = 90000,
                     RtcpFeedback =
@@ -413,7 +412,7 @@ public class RtpCapabilities
 
                 new()
                 {
-                    Kind      = MediaKind.video,
+                    Kind      = MediaKind.VIDEO,
                     MimeType  = "video/H264",
                     ClockRate = 90000,
                     Parameters = new Dictionary<string, object>
@@ -452,7 +451,7 @@ public class RtpCapabilities
 
                 new()
                 {
-                    Kind      = MediaKind.video,
+                    Kind      = MediaKind.VIDEO,
                     MimeType  = "video/H264-SVC",
                     ClockRate = 90000,
                     Parameters = new Dictionary<string, object>
@@ -491,7 +490,7 @@ public class RtpCapabilities
 
                 new()
                 {
-                    Kind      = MediaKind.video,
+                    Kind      = MediaKind.VIDEO,
                     MimeType  = "video/H265",
                     ClockRate = 90000,
                     Parameters = new Dictionary<string, object>
@@ -531,42 +530,42 @@ public class RtpCapabilities
             HeaderExtensions =
             [
                 new () {
-                    Kind             = MediaKind.audio,
+                    Kind             = MediaKind.AUDIO,
                     Uri              =  RtpHeaderExtensionUri.Mid,
                     PreferredId      = 1,
                     PreferredEncrypt = false,
                     Direction        = RtpHeaderExtensionDirection.SendReceive
                 },
                 new () {
-                    Kind             = MediaKind.video,
+                    Kind             = MediaKind.VIDEO,
                     Uri              = RtpHeaderExtensionUri.Mid,
                     PreferredId      = 1,
                     PreferredEncrypt = false,
                     Direction        = RtpHeaderExtensionDirection.SendReceive
                 },
                 new () {
-                    Kind             = MediaKind.video,
+                    Kind             = MediaKind.VIDEO,
                     Uri              = RtpHeaderExtensionUri.RtpStreamId,
                     PreferredId      = 2,
                     PreferredEncrypt = false,
                     Direction        = RtpHeaderExtensionDirection.ReceiveOnly
                 },
                 new () {
-                    Kind             = MediaKind.video,
+                    Kind             = MediaKind.VIDEO,
                     Uri              = RtpHeaderExtensionUri.RepairRtpStreamId,
                     PreferredId      = 3,
                     PreferredEncrypt = false,
                     Direction        = RtpHeaderExtensionDirection.ReceiveOnly
                 },
                 new () {
-                    Kind             = MediaKind.audio,
+                    Kind             = MediaKind.AUDIO,
                     Uri              = RtpHeaderExtensionUri.AbsSendTime,
                     PreferredId      = 4,
                     PreferredEncrypt = false,
                     Direction        = RtpHeaderExtensionDirection.SendReceive
                 },
                 new () {
-                    Kind             = MediaKind.video,
+                    Kind             = MediaKind.VIDEO,
                     Uri              = RtpHeaderExtensionUri.AbsSendTime,
                     PreferredId      = 4,
                     PreferredEncrypt = false,
@@ -574,14 +573,14 @@ public class RtpCapabilities
                 },
                 // NOTE: For audio we just enable transport-wide-cc-01 when receiving media.
                 new () {
-                    Kind             = MediaKind.audio,
+                    Kind             = MediaKind.AUDIO,
                     Uri              = RtpHeaderExtensionUri.TransportWideCcDraft01,
                     PreferredId      = 5,
                     PreferredEncrypt = false,
                     Direction        = RtpHeaderExtensionDirection.ReceiveOnly,
                 },
                 new () {
-                    Kind             = MediaKind.video,
+                    Kind             = MediaKind.VIDEO,
                     Uri              = RtpHeaderExtensionUri.TransportWideCcDraft01,
                     PreferredId      = 5,
                     PreferredEncrypt = false,
@@ -589,49 +588,49 @@ public class RtpCapabilities
                 },
                 // NOTE: Remove this once framemarking draft becomes RFC.
                 new () {
-                    Kind             = MediaKind.video,
+                    Kind             = MediaKind.VIDEO,
                     Uri              = RtpHeaderExtensionUri.FrameMarkingDraft07,
                     PreferredId      = 6,
                     PreferredEncrypt = false,
                     Direction        = RtpHeaderExtensionDirection.SendReceive
                 },
                 new () {
-                    Kind             = MediaKind.video,
+                    Kind             = MediaKind.VIDEO,
                     Uri              = RtpHeaderExtensionUri.FrameMarking,
                     PreferredId      = 7,
                     PreferredEncrypt = false,
                     Direction        = RtpHeaderExtensionDirection.SendReceive
                 },
                 new () {
-                    Kind             = MediaKind.audio,
+                    Kind             = MediaKind.AUDIO,
                     Uri              = RtpHeaderExtensionUri.AudioLevel,
                     PreferredId      = 10,
                     PreferredEncrypt = false,
                     Direction        = RtpHeaderExtensionDirection.SendReceive
                 },
                 new () {
-                    Kind             = MediaKind.video,
+                    Kind             = MediaKind.VIDEO,
                     Uri              = RtpHeaderExtensionUri.VideoOrientation,
                     PreferredId      = 11,
                     PreferredEncrypt = false,
                     Direction        = RtpHeaderExtensionDirection.SendReceive
                 },
                 new () {
-                    Kind             = MediaKind.video,
+                    Kind             = MediaKind.VIDEO,
                     Uri              = RtpHeaderExtensionUri.TimeOffset,
                     PreferredId      = 12,
                     PreferredEncrypt = false,
                     Direction        = RtpHeaderExtensionDirection.SendReceive
                 },
                 new () {
-                    Kind             = MediaKind.audio,
+                    Kind             = MediaKind.AUDIO,
                     Uri              = RtpHeaderExtensionUri.AbsCaptureTime,
                     PreferredId      = 13,
                     PreferredEncrypt = false,
                     Direction        = RtpHeaderExtensionDirection.SendReceive
                 },
                 new () {
-                    Kind             = MediaKind.video,
+                    Kind             = MediaKind.VIDEO,
                     Uri              = RtpHeaderExtensionUri.AbsCaptureTime,
                     PreferredId      = 13,
                     PreferredEncrypt = false,

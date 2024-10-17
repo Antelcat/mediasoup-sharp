@@ -1,11 +1,10 @@
 ﻿using System.Collections.Concurrent;
-using FlatBuffers.Log;
-using FlatBuffers.Message;
-using FlatBuffers.Notification;
-using FlatBuffers.Request;
-using FlatBuffers.Response;
+using FBS.Log;
+using FBS.Message;
+using FBS.Notification;
+using FBS.Request;
+using FBS.Response;
 using Google.FlatBuffers;
-using MediasoupSharp.Extensions;
 using MediasoupSharp.Exceptions;
 using MediasoupSharp.PooledObjectPolicies;
 using Microsoft.Extensions.Logging;
@@ -85,9 +84,9 @@ public abstract class ChannelBase : IChannel
     {
         Logger.LogDebug("CloseAsync() | Worker[{WorkId}]", WorkerId);
 
-        await using (await CloseLock.WriteLockAsync())
+        await using(await CloseLock.WriteLockAsync())
         {
-            if (Closed)
+            if(Closed)
             {
                 return;
             }
@@ -108,45 +107,38 @@ public abstract class ChannelBase : IChannel
                 value.Close();
             }
         }
-        catch (Exception ex)
+        catch(Exception ex)
         {
             Logger.LogError(ex, "Cleanup() | Worker[{WorkId}] _sents.Values.ForEach(m => m.Close.Invoke())", WorkerId);
         }
     }
 
-    public async Task NotifyAsync(FlatBufferBuilder bufferBuilder, Event @event,
-                                  global::FlatBuffers.Notification.Body? bodyType, 
-                                  int? bodyOffset, 
-                                  string? handlerId)
+    public async Task NotifyAsync(FlatBufferBuilder bufferBuilder, Event @event, FBS.Notification.Body? bodyType, int? bodyOffset, string? handlerId)
     {
         Logger.LogDebug("NotifyAsync() | Worker[{WorkId}] Event:{Event}", WorkerId, @event);
 
-        await using (await CloseLock.ReadLockAsync())
+        await using(await CloseLock.ReadLockAsync())
         {
-            if (Closed)
+            if(Closed)
             {
                 BufferPool.Return(bufferBuilder);
                 throw new InvalidStateException("Channel closed");
             }
 
-            var notificationRequestMessage =
-                CreateNotificationRequestMessage(bufferBuilder, @event, bodyType, bodyOffset, handlerId);
+            var notificationRequestMessage = CreateNotificationRequestMessage(bufferBuilder, @event, bodyType, bodyOffset, handlerId);
             SendNotification(notificationRequestMessage);
         }
     }
 
     protected abstract void SendNotification(RequestMessage requestMessage);
 
-    public async Task<Response?> RequestAsync(FlatBufferBuilder bufferBuilder, Method method,
-                                              global::FlatBuffers.Request.Body? bodyType = null, 
-                                              int? bodyOffset = null,
-                                              string? handlerId = null)
+    public async Task<Response?> RequestAsync(FlatBufferBuilder bufferBuilder, Method method, FBS.Request.Body? bodyType = null, int? bodyOffset = null, string? handlerId = null)
     {
         Logger.LogDebug("RequestAsync() | Worker[{WorkId}] Method:{Method}", WorkerId, method);
 
-        await using (await CloseLock.ReadLockAsync())
+        await using(await CloseLock.ReadLockAsync())
         {
-            if (Closed)
+            if(Closed)
             {
                 BufferPool.Return(bufferBuilder);
                 throw new InvalidStateException("Channel closed");
@@ -160,7 +152,7 @@ public abstract class ChannelBase : IChannel
                 RequestMessage = requestMessage,
                 Resolve = data =>
                 {
-                    if (!Sents.TryRemove(requestMessage.Id!.Value, out _))
+                    if(!Sents.TryRemove(requestMessage.Id!.Value, out _))
                     {
                         tcs.TrySetException(
                             new Exception($"Received response does not match any sent request [id:{requestMessage.Id}]")
@@ -172,7 +164,7 @@ public abstract class ChannelBase : IChannel
                 },
                 Reject = e =>
                 {
-                    if (!Sents.TryRemove(requestMessage.Id!.Value, out _))
+                    if(!Sents.TryRemove(requestMessage.Id!.Value, out _))
                     {
                         tcs.TrySetException(
                             new Exception($"Received response does not match any sent request [id:{requestMessage.Id}]")
@@ -184,13 +176,13 @@ public abstract class ChannelBase : IChannel
                 },
                 Close = () => tcs.TrySetException(new InvalidStateException("Channel closed"))
             };
-            if (!Sents.TryAdd(requestMessage.Id!.Value, sent))
+            if(!Sents.TryAdd(requestMessage.Id!.Value, sent))
             {
                 throw new Exception($"Error add sent request [id:{requestMessage.Id}]");
             }
 
             tcs.WithTimeout(
-                TimeSpan.FromSeconds(15 + 0.1 * Sents.Count),
+                TimeSpan.FromSeconds(15 + (0.1 * Sents.Count)),
                 () => Sents.TryRemove(requestMessage.Id!.Value, out _)
             );
 
@@ -208,23 +200,23 @@ public abstract class ChannelBase : IChannel
     {
         try
         {
-            switch (message.DataType)
+            switch(message.DataType)
             {
-                case global::FlatBuffers.Message.Body.Response:
+                case FBS.Message.Body.Response:
                     ThreadPool.QueueUserWorkItem(_ =>
                     {
                         var response = message.DataAsResponse();
                         ProcessResponse(response);
                     });
                     break;
-                case global::FlatBuffers.Message.Body.Notification:
+                case FBS.Message.Body.Notification:
                     ThreadPool.QueueUserWorkItem(_ =>
                     {
                         var notification = message.DataAsNotification();
                         ProcessNotification(notification);
                     });
                     break;
-                case global::FlatBuffers.Message.Body.Log:
+                case FBS.Message.Body.Log:
                     ThreadPool.QueueUserWorkItem(_ =>
                     {
                         var log = message.DataAsLog();
@@ -238,17 +230,16 @@ public abstract class ChannelBase : IChannel
                     break;
             }
         }
-        catch (Exception ex)
+        catch(Exception ex)
         {
-            Logger.LogError(ex,
-                "ProcessMessage() | Worker[{WorkerId}] Received invalid message from the worker process", WorkerId);
+            Logger.LogError(ex, "ProcessMessage() | Worker[{WorkerId}] Received invalid message from the worker process", WorkerId);
             return;
         }
     }
 
     private void ProcessResponse(Response response)
     {
-        if (!Sents.TryGetValue(response.Id, out var sent))
+        if(!Sents.TryGetValue(response.Id, out var sent))
         {
             Logger.LogError(
                 "ProcessResponse() | Worker[{WorkerId}] Received response does not match any sent request [id:{Id}]",
@@ -258,7 +249,7 @@ public abstract class ChannelBase : IChannel
             return;
         }
 
-        if (response.Accepted)
+        if(response.Accepted)
         {
             Logger.LogDebug(
                 "ProcessResponse() | Worker[{WorkerId}] Request succeed [method:{Method}, id:{Id}]",
@@ -268,7 +259,7 @@ public abstract class ChannelBase : IChannel
             );
             sent.Resolve(response);
         }
-        else if (!response.Error.IsNullOrWhiteSpace())
+        else if(!response.Error.IsNullOrWhiteSpace())
         {
             // 在 Node.js 实现中，error 的值可能是 "Error" 或 "TypeError"。
             Logger.LogWarning(
@@ -310,8 +301,8 @@ public abstract class ChannelBase : IChannel
     private void ProcessLog(Log log)
     {
         var logData = log.Data;
-
-        switch (logData[0])
+        if(logData is null) return;
+        switch(logData[0])
         {
             // 'D' (a debug log).
             case 'D':
@@ -353,7 +344,7 @@ public abstract class ChannelBase : IChannel
     private RequestMessage CreateRequestRequestMessage(
         FlatBufferBuilder bufferBuilder,
         Method method,
-        global::FlatBuffers.Request.Body? bodyType,
+        FBS.Request.Body? bodyType,
         int? bodyOffset,
         string? handlerId
     )
@@ -364,7 +355,7 @@ public abstract class ChannelBase : IChannel
 
         Offset<Request> requestOffset;
 
-        if (bodyType.HasValue && bodyOffset.HasValue)
+        if(bodyType.HasValue && bodyOffset.HasValue)
         {
             requestOffset = Request.CreateRequest(
                 bufferBuilder,
@@ -377,26 +368,23 @@ public abstract class ChannelBase : IChannel
         }
         else
         {
-            requestOffset = Request.CreateRequest(bufferBuilder, id, method, handlerIdOffset,
-                global::FlatBuffers.Request.Body.NONE, 0);
+            requestOffset = Request.CreateRequest(bufferBuilder, id, method, handlerIdOffset, FBS.Request.Body.NONE, 0);
         }
 
-        var messageOffset =
-            Message.CreateMessage(bufferBuilder, global::FlatBuffers.Message.Body.Request, requestOffset.Value);
+        var messageOffset = Message.CreateMessage(bufferBuilder, FBS.Message.Body.Request, requestOffset.Value);
 
         // Finalizes the buffer and adds a 4 byte prefix with the size of the buffer.
         bufferBuilder.FinishSizePrefixed(messageOffset.Value);
 
         // Zero copy.
-        var buffer = bufferBuilder.DataBuffer.ToArraySegment(bufferBuilder.DataBuffer.Position,
-            bufferBuilder.DataBuffer.Length - bufferBuilder.DataBuffer.Position);
+        var buffer = bufferBuilder.DataBuffer.ToArraySegment(bufferBuilder.DataBuffer.Position, bufferBuilder.DataBuffer.Length - bufferBuilder.DataBuffer.Position);
 
         // Clear the buffer builder so it's reused for the next request.
         bufferBuilder.Clear();
 
         BufferPool.Return(bufferBuilder);
 
-        if (buffer.Count > MessageMaxLen)
+        if(buffer.Count > MessageMaxLen)
         {
             throw new Exception($"request too big [method:{method}]");
         }
@@ -414,7 +402,7 @@ public abstract class ChannelBase : IChannel
     private RequestMessage CreateNotificationRequestMessage(
         FlatBufferBuilder bufferBuilder,
         Event @event,
-        global::FlatBuffers.Notification.Body? bodyType,
+        FBS.Notification.Body? bodyType,
         int? bodyOffset,
         string? handlerId
     )
@@ -423,7 +411,7 @@ public abstract class ChannelBase : IChannel
 
         Offset<Notification> notificationOffset;
 
-        if (bodyType.HasValue && bodyOffset.HasValue)
+        if(bodyType.HasValue && bodyOffset.HasValue)
         {
             notificationOffset = Notification.CreateNotification(
                 bufferBuilder,
@@ -439,27 +427,25 @@ public abstract class ChannelBase : IChannel
                 bufferBuilder,
                 handlerIdOffset,
                 @event,
-                global::FlatBuffers.Notification.Body.NONE,
+                FBS.Notification.Body.NONE,
                 0
             );
         }
 
-        var messageOffset = Message.CreateMessage(bufferBuilder, global::FlatBuffers.Message.Body.Notification,
-            notificationOffset.Value);
+        var messageOffset = Message.CreateMessage(bufferBuilder, FBS.Message.Body.Notification, notificationOffset.Value);
 
         // Finalizes the buffer and adds a 4 byte prefix with the size of the buffer.
         bufferBuilder.FinishSizePrefixed(messageOffset.Value);
 
         // Zero copy.
-        var buffer = bufferBuilder.DataBuffer.ToArraySegment(bufferBuilder.DataBuffer.Position,
-            bufferBuilder.DataBuffer.Length - bufferBuilder.DataBuffer.Position);
+        var buffer = bufferBuilder.DataBuffer.ToArraySegment(bufferBuilder.DataBuffer.Position, bufferBuilder.DataBuffer.Length - bufferBuilder.DataBuffer.Position);
 
         // Clear the buffer builder so it's reused for the next request.
         bufferBuilder.Clear();
 
         BufferPool.Return(bufferBuilder);
 
-        if (buffer.Count > MessageMaxLen)
+        if(buffer.Count > MessageMaxLen)
         {
             throw new Exception($"notification too big [event:{@event}]");
         }

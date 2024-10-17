@@ -1,6 +1,5 @@
 ﻿using System.Runtime.InteropServices;
-using FlatBuffers.Notification;
-using MediasoupSharp.Extensions;
+using FBS.Notification;
 using MediasoupSharp.Channel;
 using Microsoft.Extensions.Logging;
 
@@ -12,7 +11,7 @@ public class WorkerNative : WorkerBase
 
     private readonly string version;
 
-    private readonly IntPtr channelPtr;
+    private readonly IntPtr channlPtr;
 
     public WorkerNative(ILoggerFactory loggerFactory, MediasoupOptions mediasoupOptions)
         : base(loggerFactory, mediasoupOptions)
@@ -25,12 +24,15 @@ public class WorkerNative : WorkerBase
 
         if(workerSettings.LogLevel.HasValue)
         {
-            args.Add($"--logLevel={workerSettings.LogLevel.Value.ToString()}");
+            args.Add($"--logLevel={workerSettings.LogLevel.Value.GetEnumMemberValue()}");
         }
 
         if(!workerSettings.LogTags.IsNullOrEmpty())
         {
-            args.AddRange(from tag in workerSettings.LogTags ?? [] select $"--logTag={tag.ToString()}");
+            foreach (var logTag in workerSettings.LogTags)
+            {
+                args.Add($"--logTag={logTag.GetEnumMemberValue()}");
+            }
         }
 
         if(workerSettings.RtcMinPort.HasValue)
@@ -61,14 +63,14 @@ public class WorkerNative : WorkerBase
         args.Add(null);
 #pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
 
-        argv    = args.ToArray();
+        this.argv    = args.ToArray();
         version = mediasoupOptions.MediasoupStartupSettings.MediasoupVersion;
 
         var threadId = Environment.CurrentManagedThreadId;
 
         Channel                =  new ChannelNative(LoggerFactory.CreateLogger<ChannelNative>(), threadId);
         Channel.OnNotification += OnNotificationHandle;
-        channelPtr              =  GCHandle.ToIntPtr(GCHandle.Alloc(Channel, GCHandleType.Normal));
+        channlPtr              =  GCHandle.ToIntPtr(GCHandle.Alloc(Channel, GCHandleType.Normal));
     }
 
     public void Run()
@@ -82,27 +84,27 @@ public class WorkerNative : WorkerBase
             0,
             0,
             ChannelNative.OnChannelRead,
-            channelPtr,
+            channlPtr,
             ChannelNative.OnChannelWrite,
-            channelPtr
+            channlPtr
         );
 
         void OnExit()
         {
-            switch (workerRunResult)
+            if(workerRunResult == 42)
             {
-                case 42:
-                    Logger.LogError("OnExit() | Worker run failed due to wrong settings");
-                    Emit("@failure", new Exception("Worker run failed due to wrong settings"));
-                    break;
-                case 0:
-                    Logger.LogError("OnExit() | Worker died unexpectedly");
-                    Emit("died", new Exception("Worker died unexpectedly"));
-                    break;
-                default:
-                    Logger.LogError("OnExit() | Worker run failed unexpectedly");
-                    Emit("@failure", new Exception("Worker run failed unexpectedly"));
-                    break;
+                Logger.LogError("OnExit() | Worker run failed due to wrong settings");
+                Emit("@failure", new Exception("Worker run failed due to wrong settings"));
+            }
+            else if(workerRunResult == 0)
+            {
+                Logger.LogError("OnExit() | Worker died unexpectedly");
+                Emit("died", new Exception("Worker died unexpectedly"));
+            }
+            else
+            {
+                Logger.LogError("OnExit() | Worker run failed unexpectedly");
+                Emit("@failure", new Exception("Worker run failed unexpectedly"));
             }
         }
 
@@ -114,10 +116,10 @@ public class WorkerNative : WorkerBase
         throw new NotImplementedException();
     }
 
-    protected override void DestroyUnmanaged()
+    protected override void DestoryUnmanaged()
     {
-        if (channelPtr == IntPtr.Zero) return;
-        var handle = GCHandle.FromIntPtr(channelPtr);
+        if (channlPtr == IntPtr.Zero) return;
+        var handle = GCHandle.FromIntPtr(channlPtr);
         if(handle.IsAllocated)
         {
             handle.Free();

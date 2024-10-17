@@ -6,7 +6,7 @@ namespace MediasoupSharp.RtpParameters;
 /// <summary>
 /// Direction of RTP header extension.
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter))]
+[JsonConverter(typeof(JsonStringEnumMemberConverter))]
 public enum RtpHeaderExtensionDirection
 {
     [EnumMember(Value = "sendrecv")]

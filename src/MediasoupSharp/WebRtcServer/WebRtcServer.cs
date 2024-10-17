@@ -1,11 +1,10 @@
-﻿using FlatBuffers.Request;
+﻿using FBS.Request;
+using FBS.WebRtcServer;
 using MediasoupSharp.Extensions;
 using MediasoupSharp.Channel;
 using MediasoupSharp.Exceptions;
-using MediasoupSharp.FlatBuffers.Worker.T;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
-using DumpResponseT = MediasoupSharp.FlatBuffers.WebRtcServer.T.DumpResponseT;
 
 namespace MediasoupSharp.WebRtcServer;
 
@@ -32,7 +31,7 @@ public class WebRtcServer : EventEmitter.EventEmitter
     /// <summary>
     /// Closed flag.
     /// </summary>
-    private bool closed = false;
+    private bool closed;
 
     /// <summary>
     /// Close locker.
@@ -95,12 +94,12 @@ public class WebRtcServer : EventEmitter.EventEmitter
             // Build Request
             var bufferBuilder = channel.BufferPool.Get();
 
-            var closeWebRtcServerRequest = new CloseWebRtcServerRequestT
+            var closeWebRtcServerRequest = new FBS.Worker.CloseWebRtcServerRequestT
             {
                 WebRtcServerId = @internal.WebRtcServerId,
             };
 
-            var closeWebRtcServerRequestOffset = global::FlatBuffers.Worker.CloseWebRtcServerRequest.Pack(bufferBuilder, closeWebRtcServerRequest);
+            var closeWebRtcServerRequestOffset = FBS.Worker.CloseWebRtcServerRequest.Pack(bufferBuilder, closeWebRtcServerRequest);
 
             // Fire and forget
             channel.RequestAsync(bufferBuilder, Method.WORKER_WEBRTCSERVER_CLOSE,

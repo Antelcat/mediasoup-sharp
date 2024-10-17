@@ -1,4 +1,4 @@
-﻿using FlatBuffers.Message;
+﻿using FBS.Message;
 using Google.FlatBuffers;
 using LibuvSharp;
 using Microsoft.Extensions.Logging;
@@ -192,6 +192,7 @@ public class Channel : ChannelBase
         catch(Exception ex)
         {
             Logger.LogError(ex, "ConsumerSocketOnData() | Worker[{WorkerId}] Invalid data received from the worker process.", WorkerId);
+            return;
         }
     }
 

@@ -30,14 +30,14 @@ public static class Utils
     /// </summary>
     /// <param name="str">profile-level-id value as a string of 3 hex bytes.</param>
     /// <returns>ProfileLevelId</returns>
-    public static ProfileLevelId? ParseProfileLevelId(string? str)
+    public static ProfileLevelId? ParseProfileLevelId(string str)
     {
         // For level_idc=11 and profile_idc=0x42, 0x4D, or 0x58, the constraint set3
         // flag specifies if level 1b or level 1.1 is used.
         const int constraintSet3Flag = 0x10;
 
         // The string should consist of 3 bytes in hexadecimal format.
-        if(str is not { Length: 6 })
+        if(str == null || str.Length != 6)
         {
             return null;
         }
@@ -59,42 +59,42 @@ public static class Utils
 
         switch(levelIdc)
         {
-            case Level.L1_1:
-                {
-                    level = (profileIop & constraintSet3Flag) != 0
-                        ? Level.L1_b
-                        : Level.L1_1;
+            case Level.L11:
+            {
+                level = (profileIop & constraintSet3Flag) != 0
+                    ? Level.L1B
+                    : Level.L11;
 
-                    break;
-                }
+                break;
+            }
 
             case Level.L1:
-            case Level.L1_2:
-            case Level.L1_3:
+            case Level.L12:
+            case Level.L13:
             case Level.L2:
-            case Level.L2_1:
-            case Level.L2_2:
+            case Level.L21:
+            case Level.L22:
             case Level.L3:
-            case Level.L3_1:
-            case Level.L3_2:
+            case Level.L31:
+            case Level.L32:
             case Level.L4:
-            case Level.L4_1:
-            case Level.L4_2:
+            case Level.L41:
+            case Level.L42:
             case Level.L5:
-            case Level.L5_1:
-            case Level.L5_2:
-                {
-                    level = levelIdc;
+            case Level.L51:
+            case Level.L52:
+            {
+                level = levelIdc;
 
-                    break;
-                }
+                break;
+            }
             // Unrecognized level_idc.
             default:
-                {
-                    // NOTE: For testing.
-                    //debug("ParseProfileLevelId() | Unrecognized level_idc:%s", level_idc);
-                    return null;
-                }
+            {
+                // NOTE: For testing.
+                //debug("ParseProfileLevelId() | Unrecognized level_idc:%s", level_idc);
+                return null;
+            }
         }
 
         // Parse profile_idc/profile_iop into a Profile enum.
@@ -118,58 +118,73 @@ public static class Utils
     public static string? ProfileLevelIdToString(ProfileLevelId profileLevelId)
     {
         // Handle special case level == 1b.
-        if(profileLevelId.Level == Level.L1_b)
+        if(profileLevelId.Level == Level.L1B)
         {
-            return profileLevelId.Profile switch
+            switch(profileLevelId.Profile)
             {
-                Profile.ConstrainedBaseline => "42f00b",
-                Profile.Baseline            => "42100b",
-                Profile.Main                => "4d100b",
-                _                           => null
-            };
+                case Profile.ConstrainedBaseline:
+                {
+                    return "42f00b";
+                }
+                case Profile.Baseline:
+                {
+                    return "42100b";
+                }
+                case Profile.Main:
+                {
+                    return "4d100b";
+                }
+                // Level 1_b is not allowed for other profiles.
+                default:
+                {
+                    // NOTE: For testing.
+                    //debug("ProfileLevelIdToString() | Level 1_b not is allowed for profile:%s", profileLevelId.profile);
+                    return null;
+                }
+            }
         }
 
-        string profile_idc_iop_string;
+        string profileIdcIopString;
 
         switch(profileLevelId.Profile)
         {
             case Profile.ConstrainedBaseline:
-                {
-                    profile_idc_iop_string = "42e0";
-                    break;
-                }
+            {
+                profileIdcIopString = "42e0";
+                break;
+            }
             case Profile.Baseline:
-                {
-                    profile_idc_iop_string = "4200";
-                    break;
-                }
+            {
+                profileIdcIopString = "4200";
+                break;
+            }
             case Profile.Main:
-                {
-                    profile_idc_iop_string = "4d00";
-                    break;
-                }
+            {
+                profileIdcIopString = "4d00";
+                break;
+            }
             case Profile.ConstrainedHigh:
-                {
-                    profile_idc_iop_string = "640c";
-                    break;
-                }
+            {
+                profileIdcIopString = "640c";
+                break;
+            }
             case Profile.High:
-                {
-                    profile_idc_iop_string = "6400";
-                    break;
-                }
+            {
+                profileIdcIopString = "6400";
+                break;
+            }
             case Profile.PredictiveHigh444:
-                {
-                    profile_idc_iop_string = "f400";
+            {
+                profileIdcIopString = "f400";
 
-                    break;
-                }
+                break;
+            }
             default:
-                {
-                    // NOTE: For testing.
-                    //debug("ProfileLevelIdToString() | Unrecognized profile:%s", profileLevelId.profile);
-                    return null;
-                }
+            {
+                // NOTE: For testing.
+                //debug("ProfileLevelIdToString() | Unrecognized profile:%s", profileLevelId.profile);
+                return null;
+            }
         }
 
         var levelStr = Convert.ToString((int)profileLevelId.Level, 16);
@@ -179,7 +194,7 @@ public static class Utils
             levelStr = levelStr.PadLeft(2, '0');
         }
 
-        return $"{profile_idc_iop_string}{levelStr}";
+        return $"{profileIdcIopString}{levelStr}";
     }
 
     /// <summary>
@@ -198,7 +213,7 @@ public static class Utils
         // Level.L1_b => 1.b
         // Level.L1 => 1
         // Level.L1_1 => 1.1
-        if(level == Level.L1_b)
+        if(level == Level.L1B)
         {
             return "1b";
         }
@@ -215,8 +230,8 @@ public static class Utils
     /// </summary>
     public static ProfileLevelId? ParseSdpProfileLevelId(IDictionary<string, object> parameters)
     {
-        return parameters.TryGetValue("profile-level-id", out var profile_level_id)
-            ? ParseProfileLevelId(profile_level_id.ToString()!)
+        return parameters.TryGetValue("profile-level-id", out var profileLevelId)
+            ? ParseProfileLevelId(profileLevelId.ToString()!)
             : ProfileLevelId.DefaultProfileLevelId;
     }
 
@@ -254,11 +269,11 @@ public static class Utils
     /// negotiating are the level part of profile-level-id and level-asymmetry-allowed.
     /// </para>
     /// </summary>
-    public static string? GenerateProfileLevelIdForAnswer(IDictionary<string, object> local_supported_params, IDictionary<string, object> remote_offered_params)
+    public static string? GenerateProfileLevelIdForAnswer(IDictionary<string, object> localSupportedParams, IDictionary<string, object> remoteOfferedParams)
     {
         // If both local and remote params do not contain profile-level-id, they are
         // both using the default profile. In this case, don"t return anything.
-        if(!local_supported_params.TryGetValue("profile-level-id", out _) && !remote_offered_params.TryGetValue("profile-level-id", out _))
+        if(!localSupportedParams.TryGetValue("profile-level-id", out _) && !remoteOfferedParams.TryGetValue("profile-level-id", out _))
         {
             // NOTE: For testing.
             //debug("GenerateProfileLevelIdForAnswer() | No profile-level-id in local and remote params");
@@ -266,8 +281,8 @@ public static class Utils
         }
 
         // Parse profile-level-ids.
-        var localProfileLevelId  = ParseSdpProfileLevelId(local_supported_params);
-        var remoteProfileLevelId = ParseSdpProfileLevelId(remote_offered_params);
+        var localProfileLevelId  = ParseSdpProfileLevelId(localSupportedParams);
+        var remoteProfileLevelId = ParseSdpProfileLevelId(remoteOfferedParams);
 
         // The local and remote codec must have valid and equal H264 Profiles.
         if(localProfileLevelId == null)
@@ -286,7 +301,7 @@ public static class Utils
         }
 
         // Parse level information.
-        var levelAsymmetryAllowed = IsLevelAsymmetryAllowed(local_supported_params) && IsLevelAsymmetryAllowed(remote_offered_params);
+        var levelAsymmetryAllowed = IsLevelAsymmetryAllowed(localSupportedParams) && IsLevelAsymmetryAllowed(remoteOfferedParams);
 
         var localLevel  = localProfileLevelId.Level;
         var remoteLevel = remoteProfileLevelId.Level;
@@ -308,18 +323,28 @@ public static class Utils
     // Compare H264 levels and handle the level 1b case.
     private static bool IsLessLevel(Level a, Level b)
     {
-        return a == Level.L1_b
-            ? b != Level.L1 && b != Level.L1_b
-            : b     == Level.L1_b
-                ? a != Level.L1
-                : a < b;
+        if(a == Level.L1B)
+        {
+            return b != Level.L1 && b != Level.L1B;
+        }
+
+        if(b == Level.L1B)
+        {
+            return a != Level.L1;
+        }
+
+        return a < b;
     }
 
-    private static Level MinLevel(Level a, Level b) => IsLessLevel(a, b) ? a : b;
+    private static Level MinLevel(Level a, Level b)
+    {
+        return IsLessLevel(a, b) ? a : b;
+    }
 
-    private static bool IsLevelAsymmetryAllowed(IDictionary<string, object> parameters) =>
-        parameters.TryGetValue("level-asymmetry-allowed", out var levelAsymmetryAllowed) &&
-        levelAsymmetryAllowed.ToString() == "1";
+    private static bool IsLevelAsymmetryAllowed(IDictionary<string, object> parameters)
+    {
+        return parameters.TryGetValue("level-asymmetry-allowed", out var levelAsymmetryAllowed) && levelAsymmetryAllowed.ToString() == "1";
+    }
 
     #endregion Private Methods
 }

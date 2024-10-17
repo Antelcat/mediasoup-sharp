@@ -1,12 +1,10 @@
-﻿using FlatBuffers.Notification;
-using FlatBuffers.Producer;
-using FlatBuffers.Request;
-using FlatBuffers.RtpStream;
+﻿using FBS.Notification;
+using FBS.Producer;
+using FBS.Request;
+using FBS.RtpStream;
 using Google.FlatBuffers;
-using MediasoupSharp.Extensions;
 using MediasoupSharp.Channel;
 using MediasoupSharp.Exceptions;
-using MediasoupSharp.FlatBuffers.Producer.T;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
 
@@ -114,14 +112,14 @@ public class Producer : EventEmitter.EventEmitter
     {
         logger = loggerFactory.CreateLogger<Producer>();
 
-        Data           = data;
-        this.@internal = @internal;
-        this.channel   = channel;
-        AppData        = appData ?? new Dictionary<string, object>();
-        Paused         = paused;
+        this.@internal    = @internal;
+        Data         = data;
+        this.channel = channel;
+        AppData      = appData ?? new Dictionary<string, object>();
+        Paused       = paused;
         pauseLock.Set();
 
-        if (isCheckConsumer)
+        if(isCheckConsumer)
         {
             checkConsumersTimer = new Timer(
                 CheckConsumers,
@@ -141,7 +139,7 @@ public class Producer : EventEmitter.EventEmitter
     {
         logger.LogDebug("CloseAsync() | Producer:{ProducerId}", ProducerId);
 
-        await using (await closeLock.WriteLockAsync())
+        await using(await closeLock.WriteLockAsync())
         {
             CloseInternal();
         }
@@ -149,7 +147,7 @@ public class Producer : EventEmitter.EventEmitter
 
     private void CloseInternal()
     {
-        if (Closed)
+        if(Closed)
         {
             return;
         }
@@ -164,15 +162,14 @@ public class Producer : EventEmitter.EventEmitter
         // Build Request
         var bufferBuilder = channel.BufferPool.Get();
 
-        var requestOffset = global::FlatBuffers.Transport.CloseProducerRequest.Pack(bufferBuilder,
-            new global::FlatBuffers.Transport.CloseProducerRequestT
-            {
-                ProducerId = @internal.ProducerId
-            });
+        var requestOffset = FBS.Transport.CloseProducerRequest.Pack(bufferBuilder, new FBS.Transport.CloseProducerRequestT
+        {
+            ProducerId = @internal.ProducerId
+        });
 
         // Fire and forget
         channel.RequestAsync(bufferBuilder, Method.TRANSPORT_CLOSE_CONSUMER,
-                global::FlatBuffers.Request.Body.Transport_CloseConsumerRequest,
+                FBS.Request.Body.Transport_CloseConsumerRequest,
                 requestOffset.Value,
                 @internal.TransportId
             )
@@ -191,16 +188,16 @@ public class Producer : EventEmitter.EventEmitter
     {
         logger.LogDebug("TransportClosedAsync() | Producer:{ProducerId}", ProducerId);
 
-        await using (await closeLock.WriteLockAsync())
+        await using(await closeLock.WriteLockAsync())
         {
-            if (Closed)
+            if(Closed)
             {
                 return;
             }
 
             Closed = true;
 
-            if (checkConsumersTimer != null)
+            if(checkConsumersTimer != null)
             {
                 await checkConsumersTimer.DisposeAsync();
             }
@@ -222,9 +219,9 @@ public class Producer : EventEmitter.EventEmitter
     {
         logger.LogDebug("DumpAsync() | Producer:{ProducerId}", ProducerId);
 
-        await using (await closeLock.ReadLockAsync())
+        await using(await closeLock.ReadLockAsync())
         {
-            if (Closed)
+            if(Closed)
             {
                 throw new InvalidStateException("Producer closed");
             }
@@ -232,8 +229,7 @@ public class Producer : EventEmitter.EventEmitter
             // Build Request
             var bufferBuilder = channel.BufferPool.Get();
 
-            var response =
-                await channel.RequestAsync(bufferBuilder, Method.PRODUCER_DUMP, null, null, @internal.ProducerId);
+            var response = await channel.RequestAsync(bufferBuilder, Method.PRODUCER_DUMP, null, null, @internal.ProducerId);
             var data = response.Value.BodyAsProducer_DumpResponse().UnPack();
 
             return data;
@@ -247,9 +243,9 @@ public class Producer : EventEmitter.EventEmitter
     {
         logger.LogDebug("GetStatsAsync() | Producer:{ProducerId}", ProducerId);
 
-        await using (await closeLock.ReadLockAsync())
+        await using(await closeLock.ReadLockAsync())
         {
-            if (Closed)
+            if(Closed)
             {
                 throw new InvalidStateException("Producer closed");
             }
@@ -257,8 +253,7 @@ public class Producer : EventEmitter.EventEmitter
             // Build Request
             var bufferBuilder = channel.BufferPool.Get();
 
-            var response = await channel.RequestAsync(bufferBuilder, Method.PRODUCER_GET_STATS, null, null,
-                @internal.ProducerId);
+            var response = await channel.RequestAsync(bufferBuilder, Method.PRODUCER_GET_STATS, null, null, @internal.ProducerId);
             var stats = response.Value.BodyAsProducer_GetStatsResponse().UnPack().Stats;
 
             return stats;
@@ -272,9 +267,9 @@ public class Producer : EventEmitter.EventEmitter
     {
         logger.LogDebug("PauseAsync() | Producer:{ProducerId}", ProducerId);
 
-        await using (await closeLock.ReadLockAsync())
+        await using(await closeLock.ReadLockAsync())
         {
-            if (Closed)
+            if(Closed)
             {
                 throw new InvalidStateException("Producer closed");
             }
@@ -292,12 +287,12 @@ public class Producer : EventEmitter.EventEmitter
                 Paused = true;
 
                 // Emit observer event.
-                if (!wasPaused)
+                if(!wasPaused)
                 {
                     Observer.Emit("pause");
                 }
             }
-            catch (Exception ex)
+            catch(Exception ex)
             {
                 logger.LogError(ex, "PauseAsync()");
             }
@@ -315,9 +310,9 @@ public class Producer : EventEmitter.EventEmitter
     {
         logger.LogDebug("ResumeAsync() | Producer:{ProducerId}", ProducerId);
 
-        await using (await closeLock.ReadLockAsync())
+        await using(await closeLock.ReadLockAsync())
         {
-            if (Closed)
+            if(Closed)
             {
                 throw new InvalidStateException("Producer closed");
             }
@@ -335,12 +330,12 @@ public class Producer : EventEmitter.EventEmitter
                 Paused = false;
 
                 // Emit observer event.
-                if (wasPaused)
+                if(wasPaused)
                 {
                     Observer.Emit("resume");
                 }
             }
-            catch (Exception ex)
+            catch(Exception ex)
             {
                 logger.LogError(ex, "ResumeAsync()");
             }
@@ -358,9 +353,9 @@ public class Producer : EventEmitter.EventEmitter
     {
         logger.LogDebug("EnableTraceEventAsync() | Producer:{ProducerId}", ProducerId);
 
-        await using (await closeLock.ReadLockAsync())
+        await using(await closeLock.ReadLockAsync())
         {
-            if (Closed)
+            if(Closed)
             {
                 throw new InvalidStateException("Producer closed");
             }
@@ -375,7 +370,7 @@ public class Producer : EventEmitter.EventEmitter
 
             // Fire and forget
             channel.RequestAsync(bufferBuilder, Method.CONSUMER_ENABLE_TRACE_EVENT,
-                    global::FlatBuffers.Request.Body.Consumer_EnableTraceEventRequest,
+                    FBS.Request.Body.Consumer_EnableTraceEventRequest,
                     requestOffset.Value,
                     @internal.ProducerId)
                 .ContinueWithOnFaultedHandleLog(logger);
@@ -387,9 +382,9 @@ public class Producer : EventEmitter.EventEmitter
     /// </summary>
     public async Task SendAsync(byte[] rtpPacket)
     {
-        await using (await closeLock.ReadLockAsync())
+        await using(await closeLock.ReadLockAsync())
         {
-            if (Closed)
+            if(Closed)
             {
                 throw new InvalidStateException("Producer closed");
             }
@@ -406,7 +401,7 @@ public class Producer : EventEmitter.EventEmitter
 
             // Fire and forget
             channel.NotifyAsync(bufferBuilder, Event.PRODUCER_SEND,
-                global::FlatBuffers.Notification.Body.Producer_SendNotification,
+                FBS.Notification.Body.Producer_SendNotification,
                 notificationOffset.Value,
                 @internal.ProducerId
             ).ContinueWithOnFaultedHandleLog(logger);
@@ -415,9 +410,9 @@ public class Producer : EventEmitter.EventEmitter
 
     public async Task AddConsumerAsync(Consumer.Consumer consumer)
     {
-        await using (await closeLock.ReadLockAsync())
+        await using(await closeLock.ReadLockAsync())
         {
-            if (Closed)
+            if(Closed)
             {
                 throw new InvalidStateException("Producer closed");
             }
@@ -430,7 +425,7 @@ public class Producer : EventEmitter.EventEmitter
     {
         logger.LogDebug("RemoveConsumer() | Producer:{ProducerId} ConsumerId:{ConsumerId}", ProducerId, consumerId);
 
-        await using (await closeLock.ReadLockAsync())
+        await using(await closeLock.ReadLockAsync())
         {
             // 关闭后也允许移除
             consumers.Remove(consumerId);
@@ -446,12 +441,12 @@ public class Producer : EventEmitter.EventEmitter
 
     private void OnNotificationHandle(string handlerId, Event @event, Notification notification)
     {
-        if (handlerId != ProducerId)
+        if(handlerId != ProducerId)
         {
             return;
         }
 
-        switch (@event)
+        switch(@event)
         {
             case Event.PRODUCER_SCORE:
             {
@@ -468,8 +463,7 @@ public class Producer : EventEmitter.EventEmitter
             }
             case Event.PRODUCER_VIDEO_ORIENTATION_CHANGE:
             {
-                var videoOrientationChangeNotification =
-                    notification.BodyAsProducer_VideoOrientationChangeNotification();
+                var videoOrientationChangeNotification = notification.BodyAsProducer_VideoOrientationChangeNotification();
                 var videoOrientation = videoOrientationChangeNotification.UnPack();
 
                 Emit("videoorientationchange", videoOrientation);
@@ -507,19 +501,18 @@ public class Producer : EventEmitter.EventEmitter
     private async void CheckConsumers(object? state)
 #pragma warning restore VSTHRD100 // Avoid async void methods
     {
-        logger.LogDebug("CheckConsumer() | Producer:{ProducerId} ConsumerCount:{Count}", @internal.ProducerId,
-            consumers.Count);
+        logger.LogDebug("CheckConsumer() | Producer:{ProducerId} ConsumerCount:{Count}", @internal.ProducerId, consumers.Count);
 
         // NOTE: 使用写锁
-        await using (await closeLock.WriteLockAsync())
+        await using(await closeLock.WriteLockAsync())
         {
-            if (Closed)
+            if(Closed)
             {
                 checkConsumersTimer?.Dispose();
                 return;
             }
 
-            if (consumers.Count == 0)
+            if(consumers.Count == 0)
             {
                 CloseInternal();
                 checkConsumersTimer?.Dispose();

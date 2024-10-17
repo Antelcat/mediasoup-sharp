@@ -62,7 +62,10 @@ public class MediasoupServer
     /// </summary>
     public void AddWorker(IWorker worker)
     {
-        ArgumentNullException.ThrowIfNull(worker);
+        if(worker == null)
+        {
+            throw new ArgumentNullException(nameof(worker));
+        }
 
         workersLock.EnterWriteLock();
         try

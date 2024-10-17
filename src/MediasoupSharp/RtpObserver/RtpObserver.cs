@@ -1,9 +1,7 @@
-using FlatBuffers.Notification;
-using FlatBuffers.Request;
-using MediasoupSharp.Extensions;
+using FBS.Notification;
+using FBS.Request;
 using MediasoupSharp.Channel;
 using MediasoupSharp.Exceptions;
-using MediasoupSharp.FlatBuffers.RtpObserver.T;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
 
@@ -92,9 +90,9 @@ public abstract class RtpObserver : EventEmitter.EventEmitter
     {
         logger.LogDebug("Close() | RtpObserverId:{RtpObserverId}", Internal.RtpObserverId);
 
-        await using (await closeLock.WriteLockAsync())
+        await using(await closeLock.WriteLockAsync())
         {
-            if (closed)
+            if(closed)
             {
                 return;
             }
@@ -107,17 +105,16 @@ public abstract class RtpObserver : EventEmitter.EventEmitter
             // Build Request
             var bufferBuilder = Channel.BufferPool.Get();
 
-            var closeRtpObserverRequest = new global::FlatBuffers.Router.CloseRtpObserverRequestT
+            var closeRtpObserverRequest = new FBS.Router.CloseRtpObserverRequestT
             {
                 RtpObserverId = Internal.RtpObserverId,
             };
 
-            var closeRtpObserverRequestOffset =
-                global::FlatBuffers.Router.CloseRtpObserverRequest.Pack(bufferBuilder, closeRtpObserverRequest);
+            var closeRtpObserverRequestOffset = FBS.Router.CloseRtpObserverRequest.Pack(bufferBuilder, closeRtpObserverRequest);
 
             // Fire and forget
             Channel.RequestAsync(bufferBuilder, Method.ROUTER_CLOSE_RTPOBSERVER,
-                global::FlatBuffers.Request.Body.Router_CloseRtpObserverRequest,
+                FBS.Request.Body.Router_CloseRtpObserverRequest,
                 closeRtpObserverRequestOffset.Value,
                 Internal.RouterId
             ).ContinueWithOnFaultedHandleLog(logger);
@@ -136,9 +133,9 @@ public abstract class RtpObserver : EventEmitter.EventEmitter
     {
         logger.LogDebug("RouterClosed() | RtpObserverId:{RtpObserverId}", Internal.RtpObserverId);
 
-        await using (await closeLock.WriteLockAsync())
+        await using(await closeLock.WriteLockAsync())
         {
-            if (closed)
+            if(closed)
             {
                 return;
             }
@@ -162,9 +159,9 @@ public abstract class RtpObserver : EventEmitter.EventEmitter
     {
         logger.LogDebug("PauseAsync() | RtpObserverId:{RtpObserverId}", Internal.RtpObserverId);
 
-        await using (await closeLock.ReadLockAsync())
+        await using(await closeLock.ReadLockAsync())
         {
-            if (closed)
+            if(closed)
             {
                 throw new InvalidStateException("PauseAsync()");
             }
@@ -187,12 +184,12 @@ public abstract class RtpObserver : EventEmitter.EventEmitter
                 paused = true;
 
                 // Emit observer event.
-                if (!wasPaused)
+                if(!wasPaused)
                 {
                     Observer.Emit("pause");
                 }
             }
-            catch (Exception ex)
+            catch(Exception ex)
             {
                 logger.LogError(ex, "PauseAsync()");
             }
@@ -210,9 +207,9 @@ public abstract class RtpObserver : EventEmitter.EventEmitter
     {
         logger.LogDebug("ResumeAsync() | RtpObserverId:{RtpObserverId}", Internal.RtpObserverId);
 
-        await using (await closeLock.ReadLockAsync())
+        await using(await closeLock.ReadLockAsync())
         {
-            if (closed)
+            if(closed)
             {
                 throw new InvalidStateException("ResumeAsync()");
             }
@@ -235,12 +232,12 @@ public abstract class RtpObserver : EventEmitter.EventEmitter
                 paused = false;
 
                 // Emit observer event.
-                if (wasPaused)
+                if(wasPaused)
                 {
                     Observer.Emit("resume");
                 }
             }
-            catch (Exception ex)
+            catch(Exception ex)
             {
                 logger.LogError(ex, "ResumeAsync()");
             }
@@ -256,18 +253,17 @@ public abstract class RtpObserver : EventEmitter.EventEmitter
     /// </summary>
     public async Task AddProducerAsync(RtpObserverAddRemoveProducerOptions rtpObserverAddRemoveProducerOptions)
     {
-        logger.LogDebug("AddProducerAsync() | RtpObserverId:{RtpObserverId} ProducerId:{ProducerId}",
-            Internal.RtpObserverId, rtpObserverAddRemoveProducerOptions.ProducerId);
+        logger.LogDebug("AddProducerAsync() | RtpObserverId:{RtpObserverId} ProducerId:{ProducerId}", Internal.RtpObserverId, rtpObserverAddRemoveProducerOptions.ProducerId);
 
-        await using (await closeLock.ReadLockAsync())
+        await using(await closeLock.ReadLockAsync())
         {
-            if (closed)
+            if(closed)
             {
                 throw new InvalidStateException("RepObserver closed");
             }
 
-            var producer = await GetProducerById(rtpObserverAddRemoveProducerOptions.ProducerId);
-            if (producer == null)
+            var producer = GetProducerById(rtpObserverAddRemoveProducerOptions.ProducerId);
+            if(producer == null)
             {
                 return;
             }
@@ -275,17 +271,16 @@ public abstract class RtpObserver : EventEmitter.EventEmitter
             // Build Request
             var bufferBuilder = Channel.BufferPool.Get();
 
-            var addProducerRequest = new AddProducerRequestT
+            var addProducerRequest = new FBS.RtpObserver.AddProducerRequestT
             {
                 ProducerId = rtpObserverAddRemoveProducerOptions.ProducerId
             };
 
-            var addProducerRequestOffset =
-                global::FlatBuffers.RtpObserver.AddProducerRequest.Pack(bufferBuilder, addProducerRequest);
+            var addProducerRequestOffset = FBS.RtpObserver.AddProducerRequest.Pack(bufferBuilder, addProducerRequest);
 
             // Fire and forget
             Channel.RequestAsync(bufferBuilder, Method.RTPOBSERVER_ADD_PRODUCER,
-                global::FlatBuffers.Request.Body.RtpObserver_AddProducerRequest,
+                FBS.Request.Body.RtpObserver_AddProducerRequest,
                 addProducerRequestOffset.Value,
                 Internal.RtpObserverId
             ).ContinueWithOnFaultedHandleLog(logger);
@@ -302,15 +297,15 @@ public abstract class RtpObserver : EventEmitter.EventEmitter
     {
         logger.LogDebug("RemoveProducerAsync() | RtpObserverId:{RtpObserverId}", Internal.RtpObserverId);
 
-        await using (await closeLock.ReadLockAsync())
+        await using(await closeLock.ReadLockAsync())
         {
-            if (closed)
+            if(closed)
             {
                 throw new InvalidStateException("RepObserver closed");
             }
 
-            var producer = await GetProducerById(rtpObserverAddRemoveProducerOptions.ProducerId);
-            if (producer == null)
+            var producer = GetProducerById(rtpObserverAddRemoveProducerOptions.ProducerId);
+            if(producer == null)
             {
                 return;
             }
@@ -318,17 +313,16 @@ public abstract class RtpObserver : EventEmitter.EventEmitter
             // Build Request
             var bufferBuilder = Channel.BufferPool.Get();
 
-            var removeProducerRequest = new RemoveProducerRequestT
+            var removeProducerRequest = new FBS.RtpObserver.RemoveProducerRequestT
             {
                 ProducerId = rtpObserverAddRemoveProducerOptions.ProducerId
             };
 
-            var removeProducerRequestOffset =
-                global::FlatBuffers.RtpObserver.RemoveProducerRequest.Pack(bufferBuilder, removeProducerRequest);
+            var removeProducerRequestOffset = FBS.RtpObserver.RemoveProducerRequest.Pack(bufferBuilder, removeProducerRequest);
 
             // Fire and forget
             Channel.RequestAsync(bufferBuilder, Method.RTPOBSERVER_REMOVE_PRODUCER,
-                global::FlatBuffers.Request.Body.RtpObserver_RemoveProducerRequest,
+                FBS.Request.Body.RtpObserver_RemoveProducerRequest,
                 removeProducerRequestOffset.Value,
                 Internal.RtpObserverId
             ).ContinueWithOnFaultedHandleLog(logger);
@@ -345,9 +339,7 @@ public abstract class RtpObserver : EventEmitter.EventEmitter
         Channel.OnNotification += OnNotificationHandle;
     }
 
-    protected virtual void OnNotificationHandle(string handlerId, Event @event, Notification notification)
-    {
-    }
+    protected virtual void OnNotificationHandle(string handlerId, Event @event, Notification notification) { }
 
     #endregion Event Handlers
 }

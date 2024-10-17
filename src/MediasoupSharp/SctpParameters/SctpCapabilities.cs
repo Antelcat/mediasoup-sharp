@@ -1,4 +1,4 @@
-﻿using MediasoupSharp.FlatBuffers.SctpParameters.T;
+﻿using FBS.SctpParameters;
 
 namespace MediasoupSharp.SctpParameters;
 

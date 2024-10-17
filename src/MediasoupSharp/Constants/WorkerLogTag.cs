@@ -3,84 +3,84 @@ using System.Text.Json.Serialization;
 
 namespace MediasoupSharp.Constants;
 
-[JsonConverter(typeof(JsonStringEnumConverter))]
+[JsonConverter(typeof(JsonStringEnumMemberConverter))]
 public enum WorkerLogTag
 {
     /// <summary>
     /// Logs about software/library versions, configuration and process information.
     /// </summary>
-    [EnumMember(Value = nameof(info))]
-    info,
+    [EnumMember(Value = "info")]
+    Info,
 
     /// <summary>
     /// Logs about ICE.
     /// </summary>
-    [EnumMember(Value = nameof(ice))]
-    ice,
+    [EnumMember(Value = "ice")]
+    Ice,
 
     /// <summary>
     /// Logs about DTLS.
     /// </summary>
-    [EnumMember(Value = nameof(dtls))]
-    dtls,
+    [EnumMember(Value = "dtls")]
+    Dtls,
 
     /// <summary>
     /// Logs about RTP.
     /// </summary>
-    [EnumMember(Value = nameof(rtp))]
-    rtp,
+    [EnumMember(Value = "rtp")]
+    Rtp,
 
     /// <summary>
     /// Logs about SRTP encryption/decryption.
     /// </summary>
-    [EnumMember(Value = nameof(srtp))]
-    srtp,
+    [EnumMember(Value = "srtp")]
+    Srtp,
 
     /// <summary>
     /// Logs about RTCP.
     /// </summary>
-    [EnumMember(Value = nameof(rtcp))]
-    rtcp,
+    [EnumMember(Value = "rtcp")]
+    Rtcp,
 
     /// <summary>
     /// Logs about RTP retransmission, including NACK/PLI/FIR.
     /// </summary>
-    [EnumMember(Value = nameof(rtx))]
-    rtx,
+    [EnumMember(Value = "rtx")]
+    Rtx,
 
     /// <summary>
     /// Logs about transport bandwidth estimation.
     /// </summary>
-    [EnumMember(Value = nameof(bwe))]
-    bwe,
+    [EnumMember(Value = "bwe")]
+    Bwe,
 
     /// <summary>
     /// Logs related to the scores of Producers and Consumers.
     /// </summary>
-    [EnumMember(Value = nameof(score))]
-    score,
+    [EnumMember(Value = "score")]
+    Score,
 
     /// <summary>
     /// Logs about video simulcast.
     /// </summary>
-    [EnumMember(Value = nameof(simulcast))]
-    simulcast,
+    [EnumMember(Value = "simulcast")]
+    Simulcast,
 
     /// <summary>
     /// Logs about video SVC.
     /// </summary>
-    [EnumMember(Value = nameof(svc))]
-    svc,
+    [EnumMember(Value = "svc")]
+    Svc,
 
     /// <summary>
     /// Logs about SCTP (DataChannel).
     /// </summary>
-    [EnumMember(Value = nameof(sctp))]
-    sctp,
+    [EnumMember(Value = "sctp")]
+    Sctp,
 
     /// <summary>
     /// Logs about messages (can be SCTP messages or direct messages).
     /// </summary>
-    [EnumMember(Value = nameof(message))]
-    message,
+    [EnumMember(Value = "message")]
+    Message,
 }

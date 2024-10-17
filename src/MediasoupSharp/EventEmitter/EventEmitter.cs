@@ -30,7 +30,7 @@ public class EventEmitter : IEventEmitter
     /// </summary>
     public EventEmitter()
     {
-        events = [];
+        events = new Dictionary<string, List<Func<string, object?, Task>>>();
         rwl    = new ReaderWriterLockSlim();
     }
 
@@ -74,7 +74,7 @@ public class EventEmitter : IEventEmitter
         {
             foreach(var f in subscribedMethods)
             {
-                _ = f(eventName, data).ContinueWith(val =>
+                f(eventName, data).ContinueWith(val =>
                 {
                     val.Exception!.Handle(ex =>
                     {
@@ -103,14 +103,18 @@ public class EventEmitter : IEventEmitter
             {
                 throw new DoesNotExistException($"Event [{eventName}] does not exist to have listeners removed.");
             }
-
-            var @event = subscribedMethods.Exists(e => e == method);
-            if(!@event)
+            else
             {
-                throw new DoesNotExistException($"Func [{method.Method}] does not exist to be removed.");
+                var @event = subscribedMethods.Exists(e => e == method);
+                if(!@event)
+                {
+                    throw new DoesNotExistException($"Func [{method.Method}] does not exist to be removed.");
+                }
+                else
+                {
+                    subscribedMethods.Remove(method);
+                }
             }
-
-            subscribedMethods.Remove(method);
         }
 
         rwl.ExitWriteLock();
@@ -130,8 +134,10 @@ public class EventEmitter : IEventEmitter
             {
                 throw new DoesNotExistException($"Event [{eventName}] does not exist to have methods removed.");
             }
-
-            subscribedMethods.Clear();
+            else
+            {
+                subscribedMethods.Clear();
+            }
         }
 
         rwl.ExitWriteLock();

@@ -1,4 +1,4 @@
-﻿using FlatBuffers.Response;
+﻿using FBS.Response;
 
 namespace MediasoupSharp.Channel;
 

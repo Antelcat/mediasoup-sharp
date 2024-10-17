@@ -1,4 +1,4 @@
-﻿using FlatBuffers.Transport;
+﻿using FBS.Transport;
 using MediasoupSharp.Transport;
 
 namespace MediasoupSharp.PlainTransport;

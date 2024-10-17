@@ -3,30 +3,30 @@ using System.Text.Json.Serialization;
 
 namespace MediasoupSharp.Constants;
 
-[JsonConverter(typeof(JsonStringEnumConverter))]
+[JsonConverter(typeof(JsonStringEnumMemberConverter))]
 public enum WorkerLogLevel
 {
     /// <summary>
     /// Log all severities.
     /// </summary>
-    [EnumMember(Value = nameof(debug))]
-    debug,
+    [EnumMember(Value = "debug")]
+    Debug,
 
     /// <summary>
     /// Log “warn” and “error” severities.
     /// </summary>
-    [EnumMember(Value = nameof(warn))]
-    warn,
+    [EnumMember(Value = "warn")]
+    Warn,
 
     /// <summary>
     /// Log “error” severity.
     /// </summary>
-    [EnumMember(Value = nameof(error))]
-    error,
+    [EnumMember(Value = "error")]
+    Error,
 
     /// <summary>
     /// Do not log anything.
     /// </summary>
-    [EnumMember(Value = nameof(none))]
-    none
+    [EnumMember(Value = "none")]
+    None
 }

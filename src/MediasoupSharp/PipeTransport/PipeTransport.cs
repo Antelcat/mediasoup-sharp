@@ -1,19 +1,13 @@
-﻿using FlatBuffers.Notification;
-using FlatBuffers.PipeTransport;
-using FlatBuffers.Request;
-using FlatBuffers.Transport;
-using MediasoupSharp.Extensions;
+﻿using FBS.Notification;
+using FBS.PipeTransport;
+using FBS.Request;
+using FBS.Transport;
 using MediasoupSharp.Channel;
 using MediasoupSharp.Consumer;
-using MediasoupSharp.FlatBuffers.Consumer.T;
-using MediasoupSharp.FlatBuffers.PipeTransport.T;
-using MediasoupSharp.FlatBuffers.Transport.T;
-using MediasoupSharp.ORTC;
 using MediasoupSharp.RtpParameters;
 using MediasoupSharp.RtpParameters.Extensions;
 using MediasoupSharp.Transport;
 using Microsoft.Extensions.Logging;
-using DumpResponseT = MediasoupSharp.FlatBuffers.PipeTransport.T.DumpResponseT;
 
 namespace MediasoupSharp.PipeTransport;
 
@@ -83,7 +77,7 @@ public class PipeTransport : Transport.Transport
     {
         if(Data.Base.SctpState.HasValue)
         {
-            Data.Base.SctpState = global::FlatBuffers.SctpAssociation.SctpState.CLOSED;
+            Data.Base.SctpState = FBS.SctpAssociation.SctpState.CLOSED;
         }
 
         return Task.CompletedTask;
@@ -106,7 +100,7 @@ public class PipeTransport : Transport.Transport
         var bufferBuilder = Channel.BufferPool.Get();
 
         var response = await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_DUMP, null, null, Internal.TransportId);
-        var data     = response.Value.BodyAsPipeTransport_DumpResponse().UnPack();
+        var data = response.Value.BodyAsPipeTransport_DumpResponse().UnPack();
 
         return data;
     }
@@ -120,7 +114,7 @@ public class PipeTransport : Transport.Transport
         var bufferBuilder = Channel.BufferPool.Get();
 
         var response = await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_GET_STATS, null, null, Internal.TransportId);
-        var data     = response.Value.BodyAsPipeTransport_GetStatsResponse().UnPack();
+        var data = response.Value.BodyAsPipeTransport_GetStatsResponse().UnPack();
 
         return [data];
     }
@@ -143,7 +137,7 @@ public class PipeTransport : Transport.Transport
         var connectRequestOffset = ConnectRequest.Pack(bufferBuilder, connectRequestT);
 
         var response = await Channel.RequestAsync(bufferBuilder, Method.PIPETRANSPORT_CONNECT,
-            global::FlatBuffers.Request.Body.PipeTransport_ConnectRequest,
+            FBS.Request.Body.PipeTransport_ConnectRequest,
             connectRequestOffset.Value,
             Internal.TransportId);
 
@@ -170,7 +164,7 @@ public class PipeTransport : Transport.Transport
         var producer = await GetProducerById(consumerOptions.ProducerId) ?? throw new Exception($"Producer with id {consumerOptions.ProducerId} not found");
 
         // This may throw.
-        var rtpParameters = Ortc.GetPipeConsumerRtpParameters(producer.Data.ConsumableRtpParameters, Data.Rtx);
+        var rtpParameters = ORTC.Ortc.GetPipeConsumerRtpParameters(producer.Data.ConsumableRtpParameters, Data.Rtx);
 
         var consumerId = Guid.NewGuid().ToString();
 
@@ -183,14 +177,14 @@ public class PipeTransport : Transport.Transport
             ConsumerId             = consumerId,
             Kind                   = producer.Data.Kind,
             RtpParameters          = rtpParameters.SerializeRtpParameters(),
-            Type                   = global::FlatBuffers.RtpParameters.Type.PIPE,
+            Type                   = FBS.RtpParameters.Type.PIPE,
             ConsumableRtpEncodings = producer.Data.ConsumableRtpParameters.Encodings,
         };
 
         var consumeRequestOffset = ConsumeRequest.Pack(bufferBuilder, consumeRequest);
 
         var response = await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_CONSUME,
-            global::FlatBuffers.Request.Body.Transport_ConsumeRequest,
+            FBS.Request.Body.Transport_ConsumeRequest,
             consumeRequestOffset.Value,
             Internal.TransportId);
 
@@ -205,7 +199,7 @@ public class PipeTransport : Transport.Transport
             Type          = producer.Data.Type,
         };
 
-        var score = new ConsumerScoreT
+        var score = new FBS.Consumer.ConsumerScoreT
         {
             Score          = 10,
             ProducerScore  = 10,
@@ -300,34 +294,34 @@ public class PipeTransport : Transport.Transport
         switch(@event)
         {
             case Event.TRANSPORT_SCTP_STATE_CHANGE:
-                {
-                    var sctpStateChangeNotification = notification.BodyAsTransport_SctpStateChangeNotification().UnPack();
+            {
+                var sctpStateChangeNotification = notification.BodyAsTransport_SctpStateChangeNotification().UnPack();
 
-                    Data.Base.SctpState = sctpStateChangeNotification.SctpState;
+                Data.Base.SctpState = sctpStateChangeNotification.SctpState;
 
-                    Emit("sctpstatechange", Data.Base.SctpState);
+                Emit("sctpstatechange", Data.Base.SctpState);
 
-                    // Emit observer event.
-                    Observer.Emit("sctpstatechange", Data.Base.SctpState);
+                // Emit observer event.
+                Observer.Emit("sctpstatechange", Data.Base.SctpState);
 
-                    break;
-                }
+                break;
+            }
             case Event.TRANSPORT_TRACE:
-                {
-                    var traceNotification = notification.BodyAsTransport_TraceNotification().UnPack();
+            {
+                var traceNotification = notification.BodyAsTransport_TraceNotification().UnPack();
 
-                    Emit("trace", traceNotification);
+                Emit("trace", traceNotification);
 
-                    // Emit observer event.
-                    Observer.Emit("trace", traceNotification);
+                // Emit observer event.
+                Observer.Emit("trace", traceNotification);
 
-                    break;
-                }
+                break;
+            }
             default:
-                {
-                    logger.LogError("OnNotificationHandle() | PipeTransport:{TransportId} Ignoring unknown event:{@event}", TransportId, @event);
-                    break;
-                }
+            {
+                logger.LogError("OnNotificationHandle() | PipeTransport:{TransportId} Ignoring unknown event:{@event}", TransportId, @event);
+                break;
+            }
         }
     }
 

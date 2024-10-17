@@ -1,11 +1,9 @@
 ﻿using System.Text;
-using FlatBuffers.DataConsumer;
-using FlatBuffers.Notification;
-using FlatBuffers.Request;
-using MediasoupSharp.Extensions;
+using FBS.DataConsumer;
+using FBS.Notification;
+using FBS.Request;
 using MediasoupSharp.Channel;
 using MediasoupSharp.Exceptions;
-using MediasoupSharp.FlatBuffers.DataConsumer.T;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
 
@@ -91,18 +89,18 @@ public class DataConsumer : EventEmitter.EventEmitter
         IChannel channel,
         bool paused,
         bool dataProducerPaused,
-        List<ushort> subChannels,
+        List<ushort> subchannels,
         Dictionary<string, object>? appData
     )
     {
         logger = loggerFactory.CreateLogger<DataConsumer>();
 
-        this.@internal          = @internal;
+        this.@internal               = @internal;
         Data                    = data;
         this.channel            = channel;
         this.paused             = paused;
         this.dataProducerPaused = dataProducerPaused;
-        subchannels             = subChannels;
+        this.subchannels        = subchannels;
         AppData                 = appData ?? new Dictionary<string, object>();
 
         HandleWorkerNotifications();
@@ -130,18 +128,18 @@ public class DataConsumer : EventEmitter.EventEmitter
             // Build Request
             var bufferBuilder = channel.BufferPool.Get();
 
-            var closeDataConsumerRequest = new global::FlatBuffers.Transport.CloseDataConsumerRequestT
+            var closeDataConsumerRequest = new FBS.Transport.CloseDataConsumerRequestT
             {
                 DataConsumerId = @internal.DataConsumerId,
             };
 
-            var closeDataConsumerRequestOffset = global::FlatBuffers.Transport.CloseDataConsumerRequest.Pack(bufferBuilder, closeDataConsumerRequest);
+            var closeDataConsumerRequestOffset = FBS.Transport.CloseDataConsumerRequest.Pack(bufferBuilder, closeDataConsumerRequest);
 
             // Fire and forget
             channel.RequestAsync(
                 bufferBuilder,
                 Method.TRANSPORT_CLOSE_DATACONSUMER,
-                global::FlatBuffers.Request.Body.Transport_CloseDataConsumerRequest,
+                FBS.Request.Body.Transport_CloseDataConsumerRequest,
                 closeDataConsumerRequestOffset.Value,
                 @internal.TransportId
             ).ContinueWithOnFaultedHandleLog(logger);
@@ -333,7 +331,7 @@ public class DataConsumer : EventEmitter.EventEmitter
             channel.RequestAsync(
                 bufferBuilder,
                 Method.DATACONSUMER_SET_BUFFERED_AMOUNT_LOW_THRESHOLD,
-                global::FlatBuffers.Request.Body.DataConsumer_SetBufferedAmountLowThresholdRequest,
+                FBS.Request.Body.DataConsumer_SetBufferedAmountLowThresholdRequest,
                 setBufferedAmountLowThresholdRequestOffset.Value,
                 @internal.DataConsumerId
             ).ContinueWithOnFaultedHandleLog(logger);
@@ -407,14 +405,14 @@ public class DataConsumer : EventEmitter.EventEmitter
             var sendRequest = new SendRequestT
             {
                 Ppid = ppid,
-                Data = data
+                Data = data.ToList()
             };
 
             var sendRequestOffset = SendRequest.Pack(bufferBuilder, sendRequest);
 
             // Fire and forget
             channel.RequestAsync(bufferBuilder, Method.DATACONSUMER_SEND,
-                global::FlatBuffers.Request.Body.DataConsumer_SendRequest,
+                FBS.Request.Body.DataConsumer_SendRequest,
                 sendRequestOffset.Value,
                 @internal.DataConsumerId
             ).ContinueWithOnFaultedHandleLog(logger);
@@ -450,11 +448,11 @@ public class DataConsumer : EventEmitter.EventEmitter
     }
 
     /// <summary>
-    /// Set SubChannels.
+    /// Set subchannels.
     /// </summary>
-    public async Task SetSubChannelsAsync(List<ushort> subChannels)
+    public async Task SetSubchannelsAsync(List<ushort> subchannels)
     {
-        logger.LogDebug("SetSubChannelsAsync()");
+        logger.LogDebug("SetSubchannelsAsync()");
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -466,32 +464,31 @@ public class DataConsumer : EventEmitter.EventEmitter
             // Build Request
             var bufferBuilder = channel.BufferPool.Get();
 
-            var setSubChannelsRequest = new SetSubchannelsRequestT
+            var setSubchannelsRequest = new SetSubchannelsRequestT
             {
-                Subchannels = subChannels
+                Subchannels = subchannels
             };
 
-            var setSubChannelsRequestOffset = SetSubchannelsRequest.Pack(bufferBuilder, setSubChannelsRequest);
+            var setSubchannelsRequestOffset = SetSubchannelsRequest.Pack(bufferBuilder, setSubchannelsRequest);
 
-            var response = await channel.RequestAsync(bufferBuilder,
-                Method.DATACONSUMER_SET_SUBCHANNELS,
-                global::FlatBuffers.Request.Body.DataConsumer_SetSubchannelsRequest,
-                setSubChannelsRequestOffset.Value,
+            var response = await channel.RequestAsync(bufferBuilder, Method.DATACONSUMER_SET_SUBCHANNELS,
+                FBS.Request.Body.DataConsumer_SetSubchannelsRequest,
+                setSubchannelsRequestOffset.Value,
                 @internal.DataConsumerId);
 
             /* Decode Response. */
             var data = response.Value.BodyAsDataConsumer_SetSubchannelsResponse().UnPack();
-            // Update SubChannels.
-            subchannels = data.Subchannels;
+            // Update subchannels.
+            this.subchannels = data.Subchannels;
         }
     }
 
     /// <summary>
-    /// Add a SubChannel.
+    /// Add a subchannel.
     /// </summary>
-    public async Task AddSubChannelAsync(ushort subChannel)
+    public async Task AddSubchannelAsync(ushort subchannel)
     {
-        logger.LogDebug("AddSubChannelAsync()");
+        logger.LogDebug("AddSubchannelAsync()");
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -503,31 +500,31 @@ public class DataConsumer : EventEmitter.EventEmitter
             // Build Request
             var bufferBuilder = channel.BufferPool.Get();
 
-            var addSubChannelsRequest = new AddSubchannelRequestT
+            var addSubchannelsRequest = new AddSubchannelRequestT
             {
-                Subchannel = subChannel
+                Subchannel = subchannel
             };
 
-            var addSubChannelRequestOffset = AddSubchannelRequest.Pack(bufferBuilder, addSubChannelsRequest);
+            var addSubchannelRequestOffset = AddSubchannelRequest.Pack(bufferBuilder, addSubchannelsRequest);
 
             var response = await channel.RequestAsync(bufferBuilder, Method.DATACONSUMER_ADD_SUBCHANNEL,
-                global::FlatBuffers.Request.Body.DataConsumer_AddSubchannelRequest,
-                addSubChannelRequestOffset.Value,
+                FBS.Request.Body.DataConsumer_AddSubchannelRequest,
+                addSubchannelRequestOffset.Value,
                 @internal.DataConsumerId);
 
             /* Decode Response. */
             var data = response.Value.BodyAsDataConsumer_AddSubchannelResponse().UnPack();
-            // Update SubChannels.
+            // Update subchannels.
             subchannels = data.Subchannels;
         }
     }
 
     /// <summary>
-    /// Remove a SubChannel.
+    /// Remove a subchannel.
     /// </summary>
-    public async Task RemoveSubChannelAsync(ushort subChannel)
+    public async Task RemoveSubchannelAsync(ushort subchannel)
     {
-        logger.LogDebug("RemoveSubChannelAsync()");
+        logger.LogDebug("RemoveSubchannelAsync()");
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -539,21 +536,21 @@ public class DataConsumer : EventEmitter.EventEmitter
             // Build Request
             var bufferBuilder = channel.BufferPool.Get();
 
-            var removeSubChannelsRequest = new RemoveSubchannelRequestT
+            var removeSubchannelsRequest = new RemoveSubchannelRequestT
             {
-                Subchannel = subChannel
+                Subchannel = subchannel
             };
 
-            var removeSubChannelRequestOffset = RemoveSubchannelRequest.Pack(bufferBuilder, removeSubChannelsRequest);
+            var removeSubchannelRequestOffset = RemoveSubchannelRequest.Pack(bufferBuilder, removeSubchannelsRequest);
 
             var response = await channel.RequestAsync(bufferBuilder, Method.DATACONSUMER_REMOVE_SUBCHANNEL,
-                global::FlatBuffers.Request.Body.DataConsumer_RemoveSubchannelRequest,
-                removeSubChannelRequestOffset.Value,
+                FBS.Request.Body.DataConsumer_RemoveSubchannelRequest,
+                removeSubchannelRequestOffset.Value,
                 @internal.DataConsumerId);
 
             /* Decode Response. */
             var data = response.Value.BodyAsDataConsumer_AddSubchannelResponse().UnPack();
-            // Update SubChannels.
+            // Update subchannels.
             subchannels = data.Subchannels;
         }
     }
@@ -577,93 +574,93 @@ public class DataConsumer : EventEmitter.EventEmitter
         switch(@event)
         {
             case Event.DATACONSUMER_DATAPRODUCER_CLOSE:
+            {
+                await using(await closeLock.WriteLockAsync())
                 {
-                    await using(await closeLock.WriteLockAsync())
-                    {
-                        if(closed)
-                        {
-                            break;
-                        }
-
-                        closed = true;
-
-                        // Remove notification subscriptions.
-                        channel.OnNotification -= OnNotificationHandle;
-
-                        Emit("@dataproducerclose");
-                        Emit("dataproducerclose");
-
-                        // Emit observer event.
-                        Observer.Emit("close");
-                    }
-
-                    break;
-                }
-            case Event.DATACONSUMER_DATAPRODUCER_PAUSE:
-                {
-                    if(dataProducerPaused)
+                    if(closed)
                     {
                         break;
                     }
 
-                    dataProducerPaused = true;
+                    closed = true;
 
-                    Emit("dataproducerpause");
+                    // Remove notification subscriptions.
+                    channel.OnNotification -= OnNotificationHandle;
+
+                    Emit("@dataproducerclose");
+                    Emit("dataproducerclose");
 
                     // Emit observer event.
-                    if(!paused)
-                    {
-                        Observer.Emit("pause");
-                    }
+                    Observer.Emit("close");
+                }
 
+                break;
+            }
+            case Event.DATACONSUMER_DATAPRODUCER_PAUSE:
+            {
+                if(dataProducerPaused)
+                {
                     break;
                 }
+
+                dataProducerPaused = true;
+
+                Emit("dataproducerpause");
+
+                // Emit observer event.
+                if(!paused)
+                {
+                    Observer.Emit("pause");
+                }
+
+                break;
+            }
 
             case Event.DATACONSUMER_DATAPRODUCER_RESUME:
+            {
+                if(!dataProducerPaused)
                 {
-                    if(!dataProducerPaused)
-                    {
-                        break;
-                    }
-
-                    dataProducerPaused = false;
-
-                    Emit("dataproducerresume");
-
-                    // Emit observer event.
-                    if(!paused)
-                    {
-                        Observer.Emit("resume");
-                    }
-
                     break;
                 }
+
+                dataProducerPaused = false;
+
+                Emit("dataproducerresume");
+
+                // Emit observer event.
+                if(!paused)
+                {
+                    Observer.Emit("resume");
+                }
+
+                break;
+            }
             case Event.DATACONSUMER_SCTP_SENDBUFFER_FULL:
-                {
-                    Emit("sctpsendbufferfull");
+            {
+                Emit("sctpsendbufferfull");
 
-                    break;
-                }
+                break;
+            }
             case Event.DATACONSUMER_BUFFERED_AMOUNT_LOW:
-                {
-                    var bufferedAmountLowNotification = notification.BodyAsDataConsumer_BufferedAmountLowNotification().UnPack();
+            {
+                var bufferedAmountLowNotification = notification.BodyAsDataConsumer_BufferedAmountLowNotification().UnPack();
 
-                    Emit("bufferedamountlow", bufferedAmountLowNotification.BufferedAmount);
+                Emit("bufferedamountlow", bufferedAmountLowNotification.BufferedAmount);
 
-                    break;
-                }
+                break;
+            }
             case Event.DATACONSUMER_MESSAGE:
-                {
-                    var messageNotification = notification.BodyAsDataConsumer_MessageNotification().UnPack();
-                    Emit("message", messageNotification);
+            {
+                var messageNotification = notification.BodyAsDataConsumer_MessageNotification().UnPack();
+                Emit("message", messageNotification);
 
-                    break;
-                }
+                break;
+            }
             default:
-                {
-                    logger.LogError("OnNotificationHandle() | Ignoring unknown event \"{@event}\" in channel listener", @event);
-                    break;
-                }
+            {
+                logger.LogError("OnNotificationHandle() | Ignoring unknown event \"{@event}\" in channel listener", @event);
+                break;
+            }
         }
     }
 

@@ -1,6 +1,6 @@
-﻿using FlatBuffers.SctpAssociation;
-using FlatBuffers.Transport;
-using FlatBuffers.WebRtcTransport;
+﻿using FBS.SctpAssociation;
+using FBS.Transport;
+using FBS.WebRtcTransport;
 
 namespace MediasoupSharp.Channel;
 

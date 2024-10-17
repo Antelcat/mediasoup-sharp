@@ -1,4 +1,4 @@
-﻿using MediasoupSharp.FlatBuffers.WebRtcTransport.T;
+﻿using FBS.WebRtcTransport;
 
 namespace MediasoupSharp.ClientRequest;
 

@@ -1,8 +1,11 @@
-﻿namespace MediasoupSharp.Extensions;
+﻿using System.Diagnostics.CodeAnalysis;
 
-internal static class IEnumerableExtensions
+namespace MediasoupSharp.Extensions;
+
+internal static class EnumerableExtensions
 {
-    public static bool IsNullOrEmpty<T>(this IEnumerable<T>? enumerable) => enumerable is null || !enumerable.Any();
+    public static bool IsNullOrEmpty<T>([NotNullWhen(false)] this IEnumerable<T>? enumerable) =>
+        enumerable is null || !enumerable.Any();
     
     public static Dictionary<TKey, TValue> Merge<TKey, TValue>(this IDictionary<TKey, TValue> first, IDictionary<TKey, TValue> second)
         where TKey : notnull
@@ -32,15 +35,9 @@ internal static class IEnumerableExtensions
     {
         public bool Equals(IDictionary<TKey, TValue>? x, IDictionary<TKey, TValue>? y)
         {
-            if (x is null)
-            {
-                throw new ArgumentNullException(nameof(x));
-            }
+            ArgumentNullException.ThrowIfNull(x);
 
-            if (y is null)
-            {
-                throw new ArgumentNullException(nameof(y));
-            }
+            ArgumentNullException.ThrowIfNull(y);
 
             if (x.Count != y.Count)
             {
@@ -54,7 +51,8 @@ internal static class IEnumerableExtensions
                     return false;
                 }
 
-                if ((value == null && kvp.Value != null) || (value != null && kvp.Value == null) || (value != null && kvp.Value != null && !value.Equals(kvp.Value)))
+                if ((value == null && kvp.Value != null) || (value != null && kvp.Value == null) ||
+                    (value != null && kvp.Value != null                    && !value.Equals(kvp.Value)))
                 {
                     return false;
                 }
@@ -65,10 +63,7 @@ internal static class IEnumerableExtensions
 
         public int GetHashCode(IDictionary<TKey, TValue> obj)
         {
-            if (obj == null)
-            {
-                throw new ArgumentNullException(nameof(obj));
-            }
+            ArgumentNullException.ThrowIfNull(obj);
 
             var hash = 0;
             foreach (var kvp in obj)
@@ -85,9 +80,6 @@ internal static class IEnumerableExtensions
     }
     
     public static int DeepGetHashCode<TKey, TValue>(this IDictionary<TKey, TValue> dic)
-        where TKey : notnull
-    {
-        var comparer = new DictionaryComparer<TKey, TValue>();
-        return comparer.GetHashCode(dic);
-    }
+        where TKey : notnull =>
+        new DictionaryComparer<TKey, TValue>().GetHashCode(dic);
 }

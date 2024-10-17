@@ -1,6 +1,5 @@
-﻿using FlatBuffers.Transport;
-using FlatBuffers.WebRtcTransport;
-using MediasoupSharp.FlatBuffers.WebRtcTransport.T;
+﻿using FBS.Transport;
+using FBS.WebRtcTransport;
 using MediasoupSharp.Transport;
 
 namespace MediasoupSharp.WebRtcTransport;

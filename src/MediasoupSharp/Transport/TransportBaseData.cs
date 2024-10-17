@@ -1,5 +1,5 @@
-﻿using FlatBuffers.SctpAssociation;
-using MediasoupSharp.FlatBuffers.SctpParameters.T;
+﻿using FBS.SctpAssociation;
+using FBS.SctpParameters;
 
 namespace MediasoupSharp.Transport;
 

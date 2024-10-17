@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using LibuvSharp;
-using Process = LibuvSharp.UvProcess;
+using Process = LibuvSharp.Process;
 
 namespace MediasoupSharp.Test;
 
@@ -42,14 +42,9 @@ public class Tests
         };
         try
         {
-            var process = Process.Spawn(new UvProcessOptions
+            var process = Process.Spawn(new ProcessOptions
             {
-                ExitCb = (a, b, c) =>
-                {
-                    Console.WriteLine($"Process exit with code:{c}");
-                    Console.WriteLine($"Process exit with status : {(UvErrno)b}");
-                },
-                Args = new[]
+                Arguments = new[]
                 {
                     "--logLevel=debug", "--logTag=info",
                     "--logTag=ice", "--logTag=rtx",
@@ -58,10 +53,10 @@ public class Tests
                     "--logTag=sctp", "--logTag=message",
                     "--rtcMinPort=20000", "--rtcMaxPort=29999",
                 },
-                Env = dic.Select(x => $"{x.Key}={x.Value}").ToArray(),
+                Environment = dic.Select(x => $"{x.Key}={x.Value}").ToArray(),
                 File =
                     @"D:\Shared\WorkSpace\Git\mediasoup-sharp\src\MediasoupSharp.Test\runtimes\win-x64\native\mediasoup-worker.exe",
-                Stdio = new List<UvPipe> { new(), Pipe(), Pipe(), Pipe(), Pipe(), Pipe(), Pipe(), }.ToArray()
+                Streams = new List<Pipe> { new(), Pipe(), Pipe(), Pipe(), Pipe(), Pipe(), Pipe(), }.ToArray()
             });
         }
         catch (Exception e)
@@ -73,9 +68,9 @@ public class Tests
         return;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        UvPipe Pipe()
+        Pipe Pipe()
         {
-            var ret = new UvPipe { Writable = true, Readable = true };
+            var ret = new Pipe { Writeable = true, Readable = true };
             ret.Error += _ => Debugger.Break();
             ret.Data += data =>
             {

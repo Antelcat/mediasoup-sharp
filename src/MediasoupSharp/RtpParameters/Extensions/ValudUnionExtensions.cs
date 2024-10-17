@@ -1,6 +1,5 @@
 using System.Text.Json;
-using FlatBuffers.RtpParameters;
-using MediasoupSharp.Extensions;
+using FBS.RtpParameters;
 
 namespace MediasoupSharp.RtpParameters.Extensions;
 
@@ -20,122 +19,131 @@ public static class ValudUnionExtensions
         };
     }
 
-    public static ValueUnion ConvertToValueUnion(this object? value)
+    public static ValueUnion ConvertToValueUnion(this object value)
     {
         var result = new ValueUnion();
 
-        switch (value)
+        if(value == null)
         {
-            case null:
-                result.Type   = Value.NONE;
-                result.Value_ = null;
-                return result;
-            case JsonElement element:
-                switch (element.ValueKind)
+            result.Type   = Value.NONE;
+            result.Value_ = null;
+            return result;
+        }
+
+        if(value is JsonElement element)
+        {
+            switch(element.ValueKind)
+            {
+                case JsonValueKind.Number:
                 {
-                    case JsonValueKind.Number:
+                    if(element.TryGetInt32(out int intValue))
                     {
-                        if (element.TryGetInt32(out var intValue))
+                        result.Type = Value.Integer32;
+                        result.Value_ = new Integer32T
                         {
-                            result.Type = Value.Integer32;
-                            result.Value_ = new Integer32T
-                            {
-                                Value = intValue,
-                            };
-                            return result;
-                        }
-
-                        if (element.TryGetDouble(out _))
-                        {
-                            result.Type = Value.Double;
-                            result.Value_ = new DoubleT
-                            {
-                                Value = intValue,
-                            };
-                            return result;
-                        }
-
-                        if (element.TryGetSingle(out _))
-                        {
-                            result.Type = Value.Double;
-                            result.Value_ = new DoubleT
-                            {
-                                Value = intValue,
-                            };
-                            return result;
-                        }
-                    }
-                        break;
-                    case JsonValueKind.String:
-                    {
-                        result.Type = Value.String;
-                        result.Value_ = new StringT
-                        {
-                            Value = element.ToString(),
+                            Value = intValue,
                         };
                         return result;
                     }
-                    case JsonValueKind.True:
-                    case JsonValueKind.False:
+
+                    if(element.TryGetDouble(out double doubleValue))
                     {
-                        result.Type = Value.Boolean;
-                        result.Value_ = new BooleanT
+                        result.Type = Value.Double;
+                        result.Value_ = new DoubleT
                         {
-                            Value = element.GetBoolean() ? (byte)1 : (byte)0
+                            Value = intValue,
                         };
                         return result;
                     }
-                    case JsonValueKind.Array:
-                    {
-                        var integer32Array = new Integer32T[element.GetArrayLength()];
-                        var index          = 0;
-                        foreach (var itemElement in element.EnumerateArray())
-                        {
-                            if (element.ValueKind == JsonValueKind.Number && element.TryGetInt32(out var intValue))
-                            {
-                                integer32Array[index++] = new Integer32T
-                                {
-                                    Value = intValue,
-                                };
-                            }
-                            else
-                            {
-                                throw new ArgumentException(
-                                    $"Unsupported type for conversion: {itemElement.GetType().FullName}");
-                            }
-                        }
 
-                        result.Type   = Value.Integer32Array;
-                        result.Value_ = integer32Array;
+                    if(element.TryGetSingle(out float floatValue))
+                    {
+                        result.Type = Value.Double;
+                        result.Value_ = new DoubleT
+                        {
+                            Value = intValue,
+                        };
                         return result;
                     }
-                    default:
-                        // 对于无法处理的类型，可能需要进行适当的处理
-                        throw new ArgumentException($"Unsupported type for conversion: {value.GetType().FullName}");
                 }
+                    break;
+                case JsonValueKind.String:
+                {
+                    result.Type = Value.String;
+                    result.Value_ = new StringT
+                    {
+                        Value = element.ToString(),
+                    };
+                    return result;
+                }
+                case JsonValueKind.True:
+                case JsonValueKind.False:
+                {
+                    result.Type = Value.Boolean;
+                    result.Value_ = new BooleanT
+                    {
+                        Value = element.GetBoolean() ? (byte)1 : (byte)0
+                    };
+                    return result;
+                }
+                case JsonValueKind.Array:
+                {
+                    var integer32Array = new Integer32T[element.GetArrayLength()];
+                    var index          = 0;
+                    foreach(var itemElement in element.EnumerateArray())
+                    {
+                        if(element.ValueKind == JsonValueKind.Number && element.TryGetInt32(out int intValue))
+                        {
+                            integer32Array[index++] = new Integer32T
+                            {
+                                Value = intValue,
+                            };
+                        }
+                        else
+                        {
+                            throw new ArgumentException($"Unsupported type for conversion: {itemElement.GetType().FullName}");
+                        }
+                    }
 
-                break;
-            case string stringValue when stringValue.IsNullOrWhiteSpace():
+                    result.Type   = Value.Integer32Array;
+                    result.Value_ = integer32Array;
+                    return result;
+                }
+                default:
+                    // 对于无法处理的类型，可能需要进行适当的处理
+                    throw new ArgumentException($"Unsupported type for conversion: {value.GetType().FullName}");
+            }
+        }
+
+        if(value is string stringValue)
+        {
+            if(stringValue.IsNullOrWhiteSpace())
+            {
                 result.Type   = Value.NONE;
                 result.Value_ = null;
                 return result;
-            case string stringValue when bool.TryParse(stringValue, out var boolValue):
+            }
+            else if(bool.TryParse(stringValue, out bool boolValue))
+            {
                 result.Type = Value.Boolean;
                 result.Value_ = new BooleanT
                 {
                     Value = boolValue ? (byte)1 : (byte)0
                 };
                 return result;
-            case string stringValue:
+            }
+            else
+            {
                 result.Type = Value.String;
                 result.Value_ = new StringT
                 {
                     Value = stringValue,
                 };
                 return result;
+            }
         }
 
-        if (IsInteger32Type(value))
+        if(IsInteger32Type(value))
         {
             result.Type = Value.Integer32;
             result.Value_ = new Integer32T
@@ -145,7 +153,7 @@ public static class ValudUnionExtensions
             return result;
         }
 
-        if (value is IEnumerable<int> intEnumerableValue)
+        if(value is IEnumerable<int> intEnumerableValue)
         {
             result.Type = Value.Integer32Array;
             result.Value_ = intEnumerableValue.Select(m => new Integer32T
@@ -155,7 +163,7 @@ public static class ValudUnionExtensions
             return result;
         }
 
-        if (value is double or float)
+        if(value is double || value is float)
         {
             result.Type = Value.Double;
             result.Value_ = new DoubleT
@@ -166,7 +174,7 @@ public static class ValudUnionExtensions
             return result;
         }
 
-        if (value is bool x)
+        if(value is bool x)
         {
             result.Type = Value.Boolean;
             result.Value_ = new BooleanT
@@ -183,6 +191,6 @@ public static class ValudUnionExtensions
     public static bool IsInteger32Type(this object value)
     {
         // byte sbyte short ushort int uint long ulong
-        return value is byte or sbyte or short or ushort or int;
+        return value is byte || value is sbyte || value is short || value is ushort || value is int;
     }
 }

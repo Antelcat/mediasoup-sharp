@@ -19,7 +19,7 @@ public class RtcpParameters
     /// </summary>
     [JsonPropertyName("cname")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? CNAME { get; set; }
+    public string? Cname { get; set; }
 
     /// <summary>
     /// Whether reduced size RTCP RFC 5506 is configured (if true) or compound RTCP

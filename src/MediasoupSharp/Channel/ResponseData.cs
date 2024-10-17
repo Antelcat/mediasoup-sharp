@@ -1,30 +1,37 @@
-﻿using FlatBuffers.SrtpParameters;
-using FlatBuffers.Transport;
-using FlatBuffers.WebRtcTransport;
+﻿using FBS.Consumer;
+using FBS.SctpParameters;
+using FBS.SrtpParameters;
+using FBS.Transport;
+using FBS.WebRtcTransport;
 using MediasoupSharp.DataConsumer;
-using MediasoupSharp.FlatBuffers.Consumer.T;
-using MediasoupSharp.FlatBuffers.SctpParameters.T;
-using MediasoupSharp.FlatBuffers.WebRtcTransport.T;
 using MediasoupSharp.PipeTransport;
 using MediasoupSharp.PlainTransport;
 using MediasoupSharp.WebRtcTransport;
 
 namespace MediasoupSharp.Channel;
 
-public class RouterCreateWebRtcTransportResponseData : WebRtcTransportData;
+public class RouterCreateWebRtcTransportResponseData : WebRtcTransportData
+{
+}
 
-public class RouterCreatePlainTransportResponseData : PlainTransportData;
+public class RouterCreatePlainTransportResponseData : PlainTransportData
+{
+}
 
-public class RouterCreatePipeTransportResponseData : PipeTransportData;
+public class RouterCreatePipeTransportResponseData : PipeTransportData
+{
+}
 
-public class RouterCreateDirectTransportResponseData : PipeTransportData;
+public class RouterCreateDirectTransportResponseData : PipeTransportData
+{
+}
 
 public class TransportProduceResponseData
 {
     /// <summary>
     /// Producer donot support `pipe`
     /// </summary>
-    public global::FlatBuffers.RtpParameters.Type Type { get; set; }
+    public FBS.RtpParameters.Type Type { get; set; }
 }
 
 public class TransportConsumeResponseData

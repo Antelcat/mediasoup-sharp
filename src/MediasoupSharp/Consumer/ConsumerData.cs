@@ -1,5 +1,5 @@
-﻿using FlatBuffers.RtpParameters;
-using Type = FlatBuffers.RtpParameters.Type;
+﻿using FBS.RtpParameters;
+using Type = FBS.RtpParameters.Type;
 
 namespace MediasoupSharp.Consumer;
 

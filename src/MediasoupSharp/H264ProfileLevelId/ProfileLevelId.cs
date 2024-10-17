@@ -3,7 +3,7 @@
 /// <summary>
 /// Represents a parsed h264 profile-level-id value.
 /// </summary>
-public class ProfileLevelId(Profile profile, Level level)
+public class ProfileLevelId
 {
     /// <summary>
     /// <para>Default ProfileLevelId.</para>
@@ -17,9 +17,15 @@ public class ProfileLevelId(Profile profile, Level level)
     /// </para>
     /// <para>http://crbug/webrtc/6337.</para>
     /// </summary>
-    public static readonly ProfileLevelId DefaultProfileLevelId = new(Profile.ConstrainedBaseline, Level.L3_1);
+    public static readonly ProfileLevelId DefaultProfileLevelId = new(Profile.ConstrainedBaseline, Level.L31);
 
-    public Profile Profile { get; } = profile;
+    public Profile Profile { get; }
 
-    public Level Level { get; } = level;
+    public Level Level { get; }
+
+    public ProfileLevelId(Profile profile, Level level)
+    {
+        Profile = profile;
+        Level   = level;
+    }
 }

@@ -1,6 +1,5 @@
 ﻿using System.Text.Json.Serialization;
-using FlatBuffers.RtpParameters;
-using MediasoupSharp.FlatBuffers.RtpParameters.T;
+using FBS.RtpParameters;
 
 namespace MediasoupSharp.RtpParameters;
 

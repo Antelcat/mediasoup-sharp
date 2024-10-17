@@ -1,4 +1,4 @@
-﻿using FlatBuffers.Notification;
+﻿using FBS.Notification;
 using MediasoupSharp.Channel;
 using MediasoupSharp.RtpObserver;
 using Microsoft.Extensions.Logging;
@@ -49,43 +49,43 @@ public class AudioLevelObserver : RtpObserver.RtpObserver
         switch(@event)
         {
             case Event.AUDIOLEVELOBSERVER_VOLUMES:
+            {
+                var volumesNotification = data.BodyAsAudioLevelObserver_VolumesNotification().UnPack();
+
+                var volumes = new List<AudioLevelObserverVolume>();
+                foreach(var item in volumesNotification.Volumes)
                 {
-                    var volumesNotification = data.BodyAsAudioLevelObserver_VolumesNotification().UnPack();
-
-                    var volumes = new List<AudioLevelObserverVolume>();
-                    foreach(var item in volumesNotification.Volumes)
+                    var producer = await GetProducerById(item.ProducerId);
+                    if(producer != null)
                     {
-                        var producer = await GetProducerById(item.ProducerId);
-                        if(producer != null)
-                        {
-                            volumes.Add(new AudioLevelObserverVolume { Producer = producer, Volume = item.Volume_, });
-                        }
+                        volumes.Add(new AudioLevelObserverVolume { Producer = producer, Volume = item.Volume_, });
                     }
-
-                    if(volumes.Count > 0)
-                    {
-                        Emit("volumes", volumes);
-
-                        // Emit observer event.
-                        Observer.Emit("volumes", volumes);
-                    }
-
-                    break;
                 }
-            case Event.AUDIOLEVELOBSERVER_SILENCE:
+
+                if(volumes.Count > 0)
                 {
-                    Emit("silence");
+                    Emit("volumes", volumes);
 
                     // Emit observer event.
-                    Observer.Emit("silence");
+                    Observer.Emit("volumes", volumes);
+                }
 
-                    break;
-                }
+                break;
+            }
+            case Event.AUDIOLEVELOBSERVER_SILENCE:
+            {
+                Emit("silence");
+
+                // Emit observer event.
+                Observer.Emit("silence");
+
+                break;
+            }
             default:
-                {
-                    logger.LogError("OnNotificationHandle() | Ignoring unknown event: {@event}", @event);
-                    break;
-                }
+            {
+                logger.LogError("OnNotificationHandle() | Ignoring unknown event: {@event}", @event);
+                break;
+            }
         }
     }
 }

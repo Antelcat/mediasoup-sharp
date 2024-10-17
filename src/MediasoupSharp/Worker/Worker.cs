@@ -1,8 +1,8 @@
 ﻿using System.Reflection;
 using System.Runtime.InteropServices;
-using FlatBuffers.Notification;
+using System.Text;
+using FBS.Notification;
 using LibuvSharp;
-using MediasoupSharp.Extensions;
 using MediasoupSharp.Exceptions;
 using Microsoft.Extensions.Logging;
 
@@ -78,12 +78,15 @@ public class Worker : WorkerBase
         var argv = new List<string> { workerPath };
         if(workerSettings.LogLevel.HasValue)
         {
-            argv.Add($"--logLevel={workerSettings.LogLevel.Value.ToString()}");
+            argv.Add($"--logLevel={workerSettings.LogLevel.Value.GetEnumMemberValue()}");
         }
 
         if(!workerSettings.LogTags.IsNullOrEmpty())
         {
-            argv.AddRange(from tag in workerSettings.LogTags ?? [] select $"--logTag={tag.ToString()}");
+            foreach (var logTag in workerSettings.LogTags)
+            {
+                argv.Add($"--logTag={logTag.GetEnumMemberValue()}");
+            }
         }
 
         if(workerSettings.RtcMinPort.HasValue)
@@ -113,7 +116,7 @@ public class Worker : WorkerBase
 
         Logger.LogDebug("Worker() | Spawning worker process: {Arguments}", string.Join(" ", argv));
 
-        pipes = new Pipe[StdioCount];
+        pipes = new UVStream[StdioCount];
 
         // fd 0 (stdin)   : Just ignore it. (忽略标准输入)
         // fd 1 (stdout)  : Pipe it for 3rd libraries that log their own stuff.
@@ -122,7 +125,19 @@ public class Worker : WorkerBase
         // fd 4 (channel) : Consumer Channel fd.
         for(var i = 1; i < StdioCount; i++)
         {
-            pipes[i] = new Pipe { Writeable = true, Readable = true };
+            pipes[i]      =  new Pipe { Writeable = true, Readable = true };
+            pipes[i].Data += data =>
+            {
+                var str = Encoding.UTF8.GetString(data);
+                if(str.Contains("throwing"))
+                {
+                    Logger.LogError(str);
+                }
+                else
+                {
+                    Logger.LogInformation(str);
+                }
+            };
         }
 
         try
@@ -139,6 +154,7 @@ public class Worker : WorkerBase
                 },
                 OnExit
             );
+
 
             ProcessId = child.Id;
         }
@@ -164,9 +180,9 @@ public class Worker : WorkerBase
         Channel                =  new Channel.Channel(LoggerFactory.CreateLogger<Channel.Channel>(), pipes[3], pipes[4], ProcessId);
         Channel.OnNotification += OnNotificationHandle;
 
-        foreach (var stream in pipes)
+        foreach (var pipe in pipes)
         {
-            stream.Resume();
+            pipe.Resume();
         }
     }
 
@@ -231,12 +247,12 @@ public class Worker : WorkerBase
         }
     }
 
-    protected override void DestroyManaged()
+    protected override void DestoryManaged()
     {
         child?.Dispose();
-        foreach (var stream in pipes)
+        foreach (var pipe in pipes)
         {
-            stream.Dispose();
+            pipe.Dispose();
         }
     }
 
@@ -244,11 +260,13 @@ public class Worker : WorkerBase
 
     private void OnNotificationHandle(string handlerId, Event @event, Notification notification)
     {
-        if (spawnDone || @event != Event.WORKER_RUNNING) return;
-        spawnDone = true;
-        Logger.LogDebug("Worker[{ProcessId}] process running", ProcessId);
-        Emit("@success");
-        Channel.OnNotification -= OnNotificationHandle;
+        if(!spawnDone && @event == Event.WORKER_RUNNING)
+        {
+            spawnDone = true;
+            Logger.LogDebug("Worker[{ProcessId}] process running", ProcessId);
+            Emit("@success");
+            Channel.OnNotification -= OnNotificationHandle;
+        }
     }
 
     private void OnExit(Process process)

@@ -1,12 +1,9 @@
-﻿using FlatBuffers.Request;
-using FlatBuffers.Worker;
-using MediasoupSharp.Extensions;
+﻿using FBS.Request;
+using FBS.Transport;
+using FBS.Worker;
 using MediasoupSharp.Channel;
 using MediasoupSharp.Constants;
 using MediasoupSharp.Exceptions;
-using MediasoupSharp.FlatBuffers.Transport.T;
-using MediasoupSharp.FlatBuffers.Worker.T;
-using MediasoupSharp.ORTC;
 using MediasoupSharp.Router;
 using MediasoupSharp.Settings;
 using MediasoupSharp.WebRtcServer;
@@ -89,7 +86,7 @@ public abstract class WorkerBase : EventEmitter.EventEmitter, IDisposable, IWork
     protected WorkerBase(ILoggerFactory loggerFactory, MediasoupOptions mediasoupOptions)
     {
         LoggerFactory = loggerFactory;
-        Logger        = loggerFactory.CreateLogger<Worker>();
+        Logger         = loggerFactory.CreateLogger<Worker>();
 
         var workerSettings = mediasoupOptions.MediasoupSettings.WorkerSettings;
 
@@ -161,10 +158,10 @@ public abstract class WorkerBase : EventEmitter.EventEmitter, IDisposable, IWork
                 throw new InvalidStateException("Worker closed");
             }
 
-            var logLevel       = workerUpdateableSettings.LogLevel ?? WorkerLogLevel.none;
-            var logLevelString = logLevel.ToString();
+            var logLevel       = workerUpdateableSettings.LogLevel ?? WorkerLogLevel.None;
+            var logLevelString = logLevel.GetEnumMemberValue();
             var logTags        = workerUpdateableSettings.LogTags ?? [];
-            var logTagStrings  = logTags.Select(m => m.ToString()).ToList();
+            var logTagStrings  = logTags.Select(m => m.GetEnumMemberValue()).ToList();
 
             // Build Request
             var bufferBuilder = Channel.BufferPool.Get();
@@ -197,7 +194,7 @@ public abstract class WorkerBase : EventEmitter.EventEmitter, IDisposable, IWork
         {
             if(Closed)
             {
-                throw new InvalidStateException("Worker closed");
+                throw new InvalidStateException("Workder closed");
             }
 
             // Build the request.
@@ -205,7 +202,7 @@ public abstract class WorkerBase : EventEmitter.EventEmitter, IDisposable, IWork
             {
                 Protocol       = m.Protocol,
                 Ip             = m.Ip,
-                AnnouncedIp    = m.AnnouncedIp,
+                AnnouncedAddress    = m.AnnouncedAddress,
                 Port           = m.Port,
                 Flags          = m.Flags,
                 SendBufferSize = m.SendBufferSize,
@@ -274,11 +271,11 @@ public abstract class WorkerBase : EventEmitter.EventEmitter, IDisposable, IWork
         {
             if(Closed)
             {
-                throw new InvalidStateException("Worker closed");
+                throw new InvalidStateException("Workder closed");
             }
 
             // This may throw.
-            var rtpCapabilities = Ortc.GenerateRouterRtpCapabilities(routerOptions.MediaCodecs);
+            var rtpCapabilities = ORTC.Ortc.GenerateRouterRtpCapabilities(routerOptions.MediaCodecs);
 
             var routerId = Guid.NewGuid().ToString();
 
@@ -292,8 +289,7 @@ public abstract class WorkerBase : EventEmitter.EventEmitter, IDisposable, IWork
 
             var createRouterRequestOffset = CreateRouterRequest.Pack(bufferBuilder, createRouterRequestT);
 
-            await Channel.RequestAsync(bufferBuilder,
-                Method.WORKER_CREATE_ROUTER,
+            await Channel.RequestAsync(bufferBuilder, Method.WORKER_CREATE_ROUTER,
                 Body.Worker_CreateRouterRequest,
                 createRouterRequestOffset.Value);
 
@@ -336,24 +332,26 @@ public abstract class WorkerBase : EventEmitter.EventEmitter, IDisposable, IWork
 
     private bool disposedValue; // 要检测冗余调用
 
-    protected virtual void DestroyManaged() { }
+    protected virtual void DestoryManaged() { }
 
-    protected virtual void DestroyUnmanaged() { }
+    protected virtual void DestoryUnmanaged() { }
 
     protected virtual void Dispose(bool disposing)
     {
-        if (disposedValue) return;
-        if(disposing)
+        if(!disposedValue)
         {
-            // TODO: 释放托管状态(托管对象)。
-            DestroyManaged();
+            if(disposing)
+            {
+                // TODO: 释放托管状态(托管对象)。
+                DestoryManaged();
+            }
+
+            // TODO: 释放未托管的资源(未托管的对象)并在以下内容中替代终结器。
+            // TODO: 将大型字段设置为 null。
+            DestoryUnmanaged();
+
+            disposedValue = true;
         }
-
-        // TODO: 释放未托管的资源(未托管的对象)并在以下内容中替代终结器。
-        // TODO: 将大型字段设置为 null。
-        DestroyUnmanaged();
-
-        disposedValue = true;
     }
 
     // TODO: 仅当以上 Dispose(bool disposing) 拥有用于释放未托管资源的代码时才替代终结器。

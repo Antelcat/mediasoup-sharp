@@ -1,6 +1,6 @@
-﻿using FlatBuffers.SrtpParameters;
-using MediasoupSharp.FlatBuffers.SctpParameters.T;
-using MediasoupSharp.FlatBuffers.Transport.T;
+﻿using FBS.SctpParameters;
+using FBS.SrtpParameters;
+using FBS.Transport;
 
 namespace MediasoupSharp.PlainTransport;
 

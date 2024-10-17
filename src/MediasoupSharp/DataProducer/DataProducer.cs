@@ -1,11 +1,9 @@
 ﻿using System.Text;
-using FlatBuffers.DataProducer;
-using FlatBuffers.Notification;
-using FlatBuffers.Request;
-using MediasoupSharp.Extensions;
+using FBS.DataProducer;
+using FBS.Notification;
+using FBS.Request;
 using MediasoupSharp.Channel;
 using MediasoupSharp.Exceptions;
-using MediasoupSharp.FlatBuffers.DataProducer.T;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
 
@@ -78,11 +76,11 @@ public class DataProducer : EventEmitter.EventEmitter
     {
         logger = loggerFactory.CreateLogger<DataProducer>();
 
-        this.@internal = @internal;
-        Data           = data;
-        this.channel   = channel;
-        this.paused    = paused;
-        AppData        = appData ?? [];
+        this.@internal    = @internal;
+        Data         = data;
+        this.channel = channel;
+        this.paused  = paused;
+        AppData      = appData ?? new Dictionary<string, object>();
 
         HandleWorkerNotifications();
     }
@@ -109,16 +107,16 @@ public class DataProducer : EventEmitter.EventEmitter
             // Build Request
             var bufferBuilder = channel.BufferPool.Get();
 
-            var closeDataProducerRequest = new global::FlatBuffers.Transport.CloseDataProducerRequestT
+            var closeDataProducerRequest = new FBS.Transport.CloseDataProducerRequestT
             {
                 DataProducerId = @internal.DataProducerId,
             };
 
-            var closeDataProducerRequestOffset = global::FlatBuffers.Transport.CloseDataProducerRequest.Pack(bufferBuilder, closeDataProducerRequest);
+            var closeDataProducerRequestOffset = FBS.Transport.CloseDataProducerRequest.Pack(bufferBuilder, closeDataProducerRequest);
 
             // Fire and forget
             channel.RequestAsync(bufferBuilder, Method.TRANSPORT_CLOSE_DATAPRODUCER,
-                global::FlatBuffers.Request.Body.Transport_CloseDataProducerRequest,
+                FBS.Request.Body.Transport_CloseDataProducerRequest,
                 closeDataProducerRequestOffset.Value,
                 @internal.TransportId
             ).ContinueWithOnFaultedHandleLog(logger);
@@ -347,7 +345,7 @@ public class DataProducer : EventEmitter.EventEmitter
             var sendNotification = new SendNotificationT
             {
                 Ppid               = ppid,
-                Data               = data,
+                Data               = data.ToList(),
                 Subchannels        = subchannels ?? [],
                 RequiredSubchannel = requiredSubchannel,
             };
@@ -356,7 +354,7 @@ public class DataProducer : EventEmitter.EventEmitter
 
             // Fire and forget
             channel.NotifyAsync(bufferBuilder, Event.PRODUCER_SEND,
-                global::FlatBuffers.Notification.Body.DataProducer_SendNotification,
+                FBS.Notification.Body.DataProducer_SendNotification,
                 sendNotificationOffset.Value,
                 @internal.DataProducerId
             ).ContinueWithOnFaultedHandleLog(logger);

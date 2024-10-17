@@ -1,5 +1,5 @@
-﻿using MediasoupSharp.FlatBuffers.SctpParameters.T;
-using MediasoupSharp.FlatBuffers.Transport.T;
+﻿using FBS.SctpParameters;
+using FBS.Transport;
 
 namespace MediasoupSharp.Router;
 
@@ -33,7 +33,7 @@ public class PipeToRouterOptions
     /// <summary>
     /// SCTP streams number.
     /// </summary>
-    public NumSctpStreamsT NumSctpStreams { get; set; } = new() { OS = 1024, MIS = 1024 };
+    public NumSctpStreamsT NumSctpStreams { get; set; } = new() { Os = 1024, Mis = 1024 };
 
     /// <summary>
     /// Enable RTX and NACK for RTP retransmission.

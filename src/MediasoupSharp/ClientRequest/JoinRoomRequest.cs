@@ -10,7 +10,7 @@ public class JoinRoomRequest
     public UserRole Role { get; set; }
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter))]
+[JsonConverter(typeof(JsonStringEnumMemberConverter))]
 public enum UserRole
 {
     [EnumMember(Value = "normal")]

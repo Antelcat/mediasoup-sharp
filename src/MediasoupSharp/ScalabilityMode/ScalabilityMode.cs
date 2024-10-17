@@ -1,5 +1,4 @@
 ﻿using System.Text.RegularExpressions;
-using MediasoupSharp.Extensions;
 
 namespace MediasoupSharp.ScalabilityMode;
 
@@ -7,9 +6,9 @@ namespace MediasoupSharp.ScalabilityMode;
 /// 扩展模式
 /// <para>https://w3c.github.io/webrtc-svc/</para>
 /// </summary>
-public partial class ScalabilityMode
+public class ScalabilityMode
 {
-    private static readonly Regex ScalabilityModeRegex = MyRegex();
+    private static readonly Regex ScalabilityModeRegex = new("^[LS]([1-9]\\d{0,1})T([1-9]\\d{0,1})(_KEY)?.*", RegexOptions.Compiled);
 
     /// <summary>
     /// 空间层
@@ -48,7 +47,4 @@ public partial class ScalabilityMode
 
         return result;
     }
-
-    [GeneratedRegex("^[LS]([1-9]\\d{0,1})T([1-9]\\d{0,1})(_KEY)?.*", RegexOptions.Compiled)]
-    private static partial Regex MyRegex();
 }

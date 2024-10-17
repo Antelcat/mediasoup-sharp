@@ -1,7 +1,6 @@
 ﻿using System.Runtime.InteropServices;
-using FlatBuffers.Message;
+using FBS.Message;
 using Google.FlatBuffers;
-using MediasoupSharp.Extensions;
 using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.Channel;

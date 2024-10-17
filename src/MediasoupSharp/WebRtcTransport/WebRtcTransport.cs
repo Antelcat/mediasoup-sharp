@@ -1,9 +1,8 @@
-﻿using FlatBuffers.Notification;
-using FlatBuffers.Request;
-using FlatBuffers.WebRtcTransport;
+﻿using FBS.Notification;
+using FBS.Request;
+using FBS.WebRtcTransport;
 using MediasoupSharp.Channel;
 using MediasoupSharp.Exceptions;
-using MediasoupSharp.FlatBuffers.WebRtcTransport.T;
 using MediasoupSharp.RtpParameters;
 using MediasoupSharp.Transport;
 using Microsoft.Extensions.Logging;
@@ -75,9 +74,9 @@ public class WebRtcTransport : Transport.Transport
         Data.IceSelectedTuple = null;
         Data.DtlsState        = DtlsState.CLOSED;
 
-        if (Data.Base.SctpState.HasValue)
+        if(Data.Base.SctpState.HasValue)
         {
-            Data.Base.SctpState = global::FlatBuffers.SctpAssociation.SctpState.CLOSED;
+            Data.Base.SctpState = FBS.SctpAssociation.SctpState.CLOSED;
         }
 
         return Task.CompletedTask;
@@ -99,8 +98,7 @@ public class WebRtcTransport : Transport.Transport
         // Build Request
         var bufferBuilder = Channel.BufferPool.Get();
 
-        var response =
-            await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_DUMP, null, null, Internal.TransportId);
+        var response = await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_DUMP, null, null, Internal.TransportId);
         var data = response.Value.BodyAsWebRtcTransport_DumpResponse().UnPack();
 
         return data;
@@ -114,8 +112,7 @@ public class WebRtcTransport : Transport.Transport
         // Build Request
         var bufferBuilder = Channel.BufferPool.Get();
 
-        var response =
-            await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_GET_STATS, null, null, Internal.TransportId);
+        var response = await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_GET_STATS, null, null, Internal.TransportId);
         var data = response.Value.BodyAsWebRtcTransport_GetStatsResponse().UnPack();
 
         return [data];
@@ -128,7 +125,7 @@ public class WebRtcTransport : Transport.Transport
     {
         logger.LogDebug("OnConnectAsync() | WebRtcTransportId:{WebRtcTransportId}", TransportId);
 
-        if (parameters is not ConnectRequestT connectRequestT)
+        if(parameters is not ConnectRequestT connectRequestT)
         {
             throw new Exception($"{nameof(parameters)} type is not FBS.WebRtcTransport.ConnectRequestT");
         }
@@ -138,9 +135,8 @@ public class WebRtcTransport : Transport.Transport
 
         var connectRequestOffset = ConnectRequest.Pack(bufferBuilder, connectRequestT);
 
-        var response = await Channel.RequestAsync(bufferBuilder,
-            Method.WEBRTCTRANSPORT_CONNECT,
-            global::FlatBuffers.Request.Body.WebRtcTransport_ConnectRequest,
+        var response = await Channel.RequestAsync(bufferBuilder, Method.WEBRTCTRANSPORT_CONNECT,
+            FBS.Request.Body.WebRtcTransport_ConnectRequest,
             connectRequestOffset.Value,
             Internal.TransportId);
 
@@ -158,9 +154,9 @@ public class WebRtcTransport : Transport.Transport
     {
         logger.LogDebug("RestartIceAsync() | WebRtcTransportId:{WebRtcTransportId}", TransportId);
 
-        await using (await CloseLock.ReadLockAsync())
+        await using(await CloseLock.ReadLockAsync())
         {
-            if (Closed)
+            if(Closed)
             {
                 throw new InvalidStateException("Transport closed");
             }
@@ -197,17 +193,16 @@ public class WebRtcTransport : Transport.Transport
 
     private void OnNotificationHandle(string handlerId, Event @event, Notification notification)
     {
-        if (handlerId != Internal.TransportId)
+        if(handlerId != Internal.TransportId)
         {
             return;
         }
 
-        switch (@event)
+        switch(@event)
         {
             case Event.WEBRTCTRANSPORT_ICE_STATE_CHANGE:
             {
-                var iceStateChangeNotification =
-                    notification.BodyAsWebRtcTransport_IceStateChangeNotification().UnPack();
+                var iceStateChangeNotification = notification.BodyAsWebRtcTransport_IceStateChangeNotification().UnPack();
 
                 Data.IceState = iceStateChangeNotification.IceState;
 
@@ -220,8 +215,7 @@ public class WebRtcTransport : Transport.Transport
             }
             case Event.WEBRTCTRANSPORT_ICE_SELECTED_TUPLE_CHANGE:
             {
-                var iceSelectedTupleChangeNotification =
-                    notification.BodyAsWebRtcTransport_IceSelectedTupleChangeNotification().UnPack();
+                var iceSelectedTupleChangeNotification = notification.BodyAsWebRtcTransport_IceSelectedTupleChangeNotification().UnPack();
 
                 Data.IceSelectedTuple = iceSelectedTupleChangeNotification.Tuple;
 
@@ -235,12 +229,11 @@ public class WebRtcTransport : Transport.Transport
 
             case Event.WEBRTCTRANSPORT_DTLS_STATE_CHANGE:
             {
-                var dtlsStateChangeNotification =
-                    notification.BodyAsWebRtcTransport_DtlsStateChangeNotification().UnPack();
+                var dtlsStateChangeNotification = notification.BodyAsWebRtcTransport_DtlsStateChangeNotification().UnPack();
 
                 Data.DtlsState = dtlsStateChangeNotification.DtlsState;
 
-                if (Data.DtlsState == DtlsState.CONNECTED)
+                if(Data.DtlsState == DtlsState.CONNECTED)
                 {
                     // TODO: DtlsRemoteCert donot exists.
                     // Data.DtlsRemoteCert = dtlsStateChangeNotification.RemoteCert;
@@ -279,9 +272,7 @@ public class WebRtcTransport : Transport.Transport
             }
             default:
             {
-                logger.LogError(
-                    "OnNotificationHandle() | WebRtcTransport:{TransportId} Ignoring unknown event:{@event}",
-                    TransportId, @event);
+                logger.LogError("OnNotificationHandle() | WebRtcTransport:{TransportId} Ignoring unknown event:{@event}", TransportId, @event);
                 break;
             }
         }

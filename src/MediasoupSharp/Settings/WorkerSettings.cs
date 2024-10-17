@@ -9,7 +9,7 @@ public class WorkerSettings
     /// the Debugging documentation). Valid values are 'debug', 'warn', 'error' and
     /// 'none'. Default 'error'.
     /// </summary>
-    public WorkerLogLevel? LogLevel { get; set; } = WorkerLogLevel.error;
+    public WorkerLogLevel? LogLevel { get; set; } = WorkerLogLevel.Error;
 
     /// <summary>
     /// Log tags for debugging. Check the meaning of each available tag in the
@@ -18,7 +18,7 @@ public class WorkerSettings
     public WorkerLogTag[]? LogTags { get; set; }
 
     /// <summary>
-    /// Minimum RTC port for ICE, DTLS, RTP, etc. Default 10000.
+    /// Minimun RTC port for ICE, DTLS, RTP, etc. Default 10000.
     /// </summary>
     public int? RtcMinPort { get; set; } = 10000;
 

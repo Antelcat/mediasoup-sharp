@@ -8,8 +8,8 @@ internal static class Utils
     /// 生成 100000000 - 999999999 的随机数
     /// </summary>
     /// <returns></returns>
-    public static int GenerateRandomNumber()
+    public static uint GenerateRandomNumber()
     {
-        return Random.Next(100_000_000, 1_000_000_000);
+        return (uint)Random.Next(100_000_000, 1_000_000_000);
     }
 }

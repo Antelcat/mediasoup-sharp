@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
-using FlatBuffers.Notification;
-using FlatBuffers.Request;
+using FBS.Notification;
+using FBS.Request;
 
 namespace MediasoupSharp.Channel;
 

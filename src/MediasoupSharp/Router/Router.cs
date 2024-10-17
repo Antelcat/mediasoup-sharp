@@ -1,6 +1,5 @@
-using FlatBuffers.Request;
-using FlatBuffers.Router;
-using MediasoupSharp.Extensions;
+using FBS.Request;
+using FBS.Router;
 using MediasoupSharp.ActiveSpeakerObserver;
 using MediasoupSharp.AudioLevelObserver;
 using MediasoupSharp.Channel;
@@ -9,14 +8,6 @@ using MediasoupSharp.DataConsumer;
 using MediasoupSharp.DataProducer;
 using MediasoupSharp.DirectTransport;
 using MediasoupSharp.Exceptions;
-using MediasoupSharp.FlatBuffers.ActiveSpeakerObserver.T;
-using MediasoupSharp.FlatBuffers.DirectTransport.T;
-using MediasoupSharp.FlatBuffers.PipeTransport.T;
-using MediasoupSharp.FlatBuffers.PlainTransport.T;
-using MediasoupSharp.FlatBuffers.Transport.T;
-using MediasoupSharp.FlatBuffers.WebRtcTransport.T;
-using MediasoupSharp.FlatBuffers.Worker.T;
-using MediasoupSharp.ORTC;
 using MediasoupSharp.PipeTransport;
 using MediasoupSharp.PlainTransport;
 using MediasoupSharp.Producer;
@@ -26,7 +17,6 @@ using MediasoupSharp.Transport;
 using MediasoupSharp.WebRtcTransport;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
-using ConnectRequestT = MediasoupSharp.FlatBuffers.PipeTransport.T.ConnectRequestT;
 
 namespace MediasoupSharp.Router;
 
@@ -134,11 +124,10 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
     {
         this.loggerFactory = loggerFactory;
         logger             = loggerFactory.CreateLogger<Router>();
-
-        this.@internal = @internal;
-        Data           = data;
-        this.channel   = channel;
-        AppData        = appData ?? new Dictionary<string, object>();
+        this.@internal     = @internal;
+        this.channel       = channel;
+        Data               = data;
+        AppData            = appData ?? new Dictionary<string, object>();
     }
 
     /// <summary>
@@ -160,13 +149,12 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
             // Build Request
             var bufferBuilder = channel.BufferPool.Get();
 
-            var closeRouterRequest = new CloseRouterRequestT
+            var closeRouterRequest = new FBS.Worker.CloseRouterRequestT
             {
                 RouterId = @internal.RouterId,
             };
 
-            var closeRouterRequestOffset =
-                global::FlatBuffers.Worker.CloseRouterRequest.Pack(bufferBuilder, closeRouterRequest);
+            var closeRouterRequestOffset = FBS.Worker.CloseRouterRequest.Pack(bufferBuilder, closeRouterRequest);
 
             // Fire and forget
             channel.RequestAsync(bufferBuilder, Method.WORKER_CLOSE_ROUTER,
@@ -211,7 +199,7 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
     /// <summary>
     /// Dump Router.
     /// </summary>
-    public async Task<global::FlatBuffers.Router.DumpResponseT> DumpAsync()
+    public async Task<DumpResponseT> DumpAsync()
     {
         logger.LogDebug("DumpAsync() | Router:{RouterId}", RouterId);
 
@@ -275,36 +263,36 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
             }
 
             /* Build Request. */
-            ListenServerT?                                         webRtcTransportListenServer     = null;
-            global::FlatBuffers.WebRtcTransport.ListenIndividualT? webRtcTransportListenIndividual = null;
+            FBS.WebRtcTransport.ListenServerT?     webRtcTransportListenServer     = null;
+            FBS.WebRtcTransport.ListenIndividualT? webRtcTransportListenIndividual = null;
             if (webRtcServer != null)
             {
-                webRtcTransportListenServer = new ListenServerT
+                webRtcTransportListenServer = new FBS.WebRtcTransport.ListenServerT
                 {
                     WebRtcServerId = webRtcServer.WebRtcServerId
                 };
             }
             else
             {
-                var fbsListenInfos = webRtcTransportOptions.ListenInfos!.Select(m => new ListenInfoT
+                var fbsListenInfos = webRtcTransportOptions.ListenInfos!.Select(m => new FBS.Transport.ListenInfoT
                 {
-                    Protocol       = m.Protocol,
-                    Ip             = m.Ip,
-                    AnnouncedIp    = m.AnnouncedIp,
-                    Port           = m.Port,
-                    Flags          = m.Flags,
-                    SendBufferSize = m.SendBufferSize,
-                    RecvBufferSize = m.RecvBufferSize,
+                    Protocol         = m.Protocol,
+                    Ip               = m.Ip,
+                    AnnouncedAddress = m.AnnouncedAddress,
+                    Port             = m.Port,
+                    Flags            = m.Flags,
+                    SendBufferSize   = m.SendBufferSize,
+                    RecvBufferSize   = m.RecvBufferSize,
                 }).ToList();
 
                 webRtcTransportListenIndividual =
-                    new global::FlatBuffers.WebRtcTransport.ListenIndividualT
+                    new FBS.WebRtcTransport.ListenIndividualT
                     {
                         ListenInfos = fbsListenInfos,
                     };
             }
 
-            var baseTransportOptions = new global::FlatBuffers.Transport.OptionsT
+            var baseTransportOptions = new FBS.Transport.OptionsT
             {
                 Direct                          = false,
                 MaxMessageSize                  = null,
@@ -316,18 +304,18 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
                 IsDataChannel                   = true
             };
 
-            var webRtcTransportOptionsForCreate = new WebRtcTransportOptionsT
+            var webRtcTransportOptionsForCreate = new FBS.WebRtcTransport.WebRtcTransportOptionsT
             {
                 Base      = baseTransportOptions,
                 EnableUdp = webRtcTransportOptions.EnableUdp!.Value,
                 EnableTcp = webRtcTransportOptions.EnableTcp!.Value,
                 PreferUdp = webRtcTransportOptions.PreferUdp,
                 PreferTcp = webRtcTransportOptions.PreferTcp,
-                Listen = new global::FlatBuffers.WebRtcTransport.ListenUnion
+                Listen = new FBS.WebRtcTransport.ListenUnion
                 {
                     Type = webRtcServer != null
-                        ? global::FlatBuffers.WebRtcTransport.Listen.ListenServer
-                        : global::FlatBuffers.WebRtcTransport.Listen.ListenIndividual,
+                        ? FBS.WebRtcTransport.Listen.ListenServer
+                        : FBS.WebRtcTransport.Listen.ListenIndividual,
                     Value = webRtcServer != null ? webRtcTransportListenServer : webRtcTransportListenIndividual
                 }
             };
@@ -344,8 +332,7 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
             };
 
             var createWebRtcTransportRequestOffset =
-                global::FlatBuffers.Router.CreateWebRtcTransportRequest.Pack(bufferBuilder,
-                    createWebRtcTransportRequest);
+                CreateWebRtcTransportRequest.Pack(bufferBuilder, createWebRtcTransportRequest);
 
             var response = await channel.RequestAsync(bufferBuilder, webRtcServer != null
                     ? Method.ROUTER_CREATE_WEBRTCTRANSPORT_WITH_SERVER
@@ -367,14 +354,14 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
                 {
                     await using (await producersLock.ReadLockAsync())
                     {
-                        return producers.GetValueOrDefault(m);
+                        return producers.TryGetValue(m, out var p) ? p : null;
                     }
                 },
                 async m =>
                 {
                     await using (await dataProducersLock.ReadLockAsync())
                     {
-                        return dataProducers.GetValueOrDefault(m);
+                        return dataProducers.TryGetValue(m, out var p) ? p : null;
                     }
                 }
             );
@@ -406,13 +393,13 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
             }
 
             // If rtcpMux is enabled, ignore rtcpListenInfo.
-            if (plainTransportOptions is { RtcpMux: true, RtcpListenInfo: not null })
+            if (plainTransportOptions.RtcpMux && plainTransportOptions.RtcpListenInfo != null)
             {
                 logger.LogWarning("createPlainTransport() | ignoring rtcpMux since rtcpListenInfo is given");
                 plainTransportOptions.RtcpMux = false;
             }
 
-            var baseTransportOptions = new global::FlatBuffers.Transport.OptionsT
+            var baseTransportOptions = new FBS.Transport.OptionsT
             {
                 Direct                          = false,
                 MaxMessageSize                  = null,
@@ -424,7 +411,7 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
                 IsDataChannel                   = false
             };
 
-            var plainTransportOptionsForCreate = new PlainTransportOptionsT
+            var plainTransportOptionsForCreate = new FBS.PlainTransport.PlainTransportOptionsT
             {
                 Base           = baseTransportOptions,
                 ListenInfo     = plainTransportOptions.ListenInfo,
@@ -444,7 +431,8 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
                 Options     = plainTransportOptionsForCreate
             };
 
-            var createPlainTransportRequestOffset = CreatePlainTransportRequest.Pack(bufferBuilder, createPlainTransportRequest);
+            var createPlainTransportRequestOffset =
+                CreatePlainTransportRequest.Pack(bufferBuilder, createPlainTransportRequest);
 
             var response = await channel.RequestAsync(bufferBuilder, Method.ROUTER_CREATE_PLAINTRANSPORT,
                 Body.Router_CreatePlainTransportRequest,
@@ -464,14 +452,14 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
                 {
                     await using (await producersLock.ReadLockAsync())
                     {
-                        return producers.GetValueOrDefault(m);
+                        return producers.TryGetValue(m, out var p) ? p : null;
                     }
                 },
                 async m =>
                 {
                     await using (await dataProducersLock.ReadLockAsync())
                     {
-                        return dataProducers.GetValueOrDefault(m);
+                        return dataProducers.TryGetValue(m, out var p) ? p : null;
                     }
                 }
             );
@@ -503,7 +491,7 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
                 throw new ArgumentException("Missing ListenInfo");
             }
 
-            var baseTransportOptions = new global::FlatBuffers.Transport.OptionsT
+            var baseTransportOptions = new FBS.Transport.OptionsT
             {
                 Direct                          = false,
                 MaxMessageSize                  = null,
@@ -517,7 +505,7 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
 
             var listenInfo = pipeTransportOptions.ListenInfo;
 
-            var pipeTransportOptionsForCreate = new PipeTransportOptionsT
+            var pipeTransportOptionsForCreate = new FBS.PipeTransport.PipeTransportOptionsT
             {
                 Base       = baseTransportOptions,
                 ListenInfo = pipeTransportOptions.ListenInfo,
@@ -557,14 +545,14 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
                 {
                     await using (await producersLock.ReadLockAsync())
                     {
-                        return producers.GetValueOrDefault(m);
+                        return producers.TryGetValue(m, out var p) ? p : null;
                     }
                 },
                 async m =>
                 {
                     await using (await dataProducersLock.ReadLockAsync())
                     {
-                        return dataProducers.GetValueOrDefault(m);
+                        return dataProducers.TryGetValue(m, out var p) ? p : null;
                     }
                 });
 
@@ -589,7 +577,7 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
                 throw new InvalidStateException("Router closed");
             }
 
-            var baseTransportOptions = new global::FlatBuffers.Transport.OptionsT
+            var baseTransportOptions = new FBS.Transport.OptionsT
             {
                 Direct         = true,
                 MaxMessageSize = directTransportOptions.MaxMessageSize,
@@ -602,7 +590,7 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
                 directTransportOptions.MaxMessageSize,
             };
 
-            var directTransportOptionsForCreate = new DirectTransportOptionsT
+            var directTransportOptionsForCreate = new FBS.DirectTransport.DirectTransportOptionsT
             {
                 Base = baseTransportOptions,
             };
@@ -829,15 +817,15 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
                         localPipeTransport  = pipeTransports[0];
                         remotePipeTransport = pipeTransports[1];
 
-                        await Task.WhenAll(localPipeTransport.ConnectAsync(new ConnectRequestT
+                        await Task.WhenAll(localPipeTransport.ConnectAsync(new FBS.PipeTransport.ConnectRequestT
                             {
-                                Ip             = remotePipeTransport.Data.Tuple.LocalIp,
+                                Ip             = remotePipeTransport.Data.Tuple.LocalAddress,
                                 Port           = remotePipeTransport.Data.Tuple.LocalPort,
                                 SrtpParameters = remotePipeTransport.Data.SrtpParameters,
                             }),
-                            remotePipeTransport.ConnectAsync(new ConnectRequestT
+                            remotePipeTransport.ConnectAsync(new FBS.PipeTransport.ConnectRequestT
                             {
-                                Ip             = localPipeTransport.Data.Tuple.LocalIp,
+                                Ip             = localPipeTransport.Data.Tuple.LocalAddress,
                                 Port           = localPipeTransport.Data.Tuple.LocalPort,
                                 SrtpParameters = localPipeTransport.Data.SrtpParameters,
                             })
@@ -861,7 +849,10 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
                             }
                         });
 
-                        mapRouterPipeTransports[pipeToRouterOptions.Router] = [localPipeTransport, remotePipeTransport];
+                        mapRouterPipeTransports[pipeToRouterOptions.Router] =
+                        [
+                            localPipeTransport, remotePipeTransport
+                        ];
                     }
                     catch (Exception ex)
                     {
@@ -1021,7 +1012,7 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
             var createActiveSpeakerObserverRequest = new CreateActiveSpeakerObserverRequestT
             {
                 RtpObserverId = rtpObserverId,
-                Options = new ActiveSpeakerObserverOptionsT
+                Options = new FBS.ActiveSpeakerObserver.ActiveSpeakerObserverOptionsT
                 {
                     Interval = activeSpeakerObserverOptions.Interval,
                 }
@@ -1045,7 +1036,7 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
                 {
                     await using (await producersLock.ReadLockAsync())
                     {
-                        return producers.GetValueOrDefault(m);
+                        return producers.TryGetValue(m, out var p) ? p : null;
                     }
                 });
 
@@ -1078,7 +1069,7 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
             var createAudioLevelObserverRequest = new CreateAudioLevelObserverRequestT
             {
                 RtpObserverId = rtpObserverId,
-                Options = new global::FlatBuffers.AudioLevelObserver.AudioLevelObserverOptionsT
+                Options = new FBS.AudioLevelObserver.AudioLevelObserverOptionsT
                 {
                     MaxEntries = audioLevelObserverOptions.MaxEntries,
                     Threshold  = audioLevelObserverOptions.Threshold,
@@ -1104,7 +1095,7 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
                 {
                     await using (await producersLock.ReadLockAsync())
                     {
-                        return producers.GetValueOrDefault(m);
+                        return producers.TryGetValue(m, out var p) ? p : null;
                     }
                 });
 
@@ -1129,7 +1120,7 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
 
             try
             {
-                return Ortc.CanConsume(producer.Data.ConsumableRtpParameters, rtpCapabilities);
+                return ORTC.Ortc.CanConsume(producer.Data.ConsumableRtpParameters, rtpCapabilities);
             }
             catch (Exception ex)
             {

@@ -1,5 +1,5 @@
-﻿using MediasoupSharp.FlatBuffers.SctpParameters.T;
-using MediasoupSharp.FlatBuffers.WebRtcTransport.T;
+﻿using FBS.SctpParameters;
+using FBS.WebRtcTransport;
 
 namespace MediasoupSharp.ClientRequest;
 

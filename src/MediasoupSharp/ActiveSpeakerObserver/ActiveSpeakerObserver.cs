@@ -1,4 +1,4 @@
-﻿using FlatBuffers.Notification;
+﻿using FBS.Notification;
 using MediasoupSharp.Channel;
 using MediasoupSharp.RtpObserver;
 using Microsoft.Extensions.Logging;
@@ -49,30 +49,30 @@ public class ActiveSpeakerObserver : RtpObserver.RtpObserver
         switch(@event)
         {
             case Event.ACTIVESPEAKEROBSERVER_DOMINANT_SPEAKER:
-                {
-                    var dominantSpeakerNotification = notification.BodyAsActiveSpeakerObserver_DominantSpeakerNotification().UnPack();
+            {
+                var dominantSpeakerNotification = notification.BodyAsActiveSpeakerObserver_DominantSpeakerNotification().UnPack();
 
-                    var producer = await GetProducerById(dominantSpeakerNotification.ProducerId);
-                    if (producer != null)
+                var producer = GetProducerById(dominantSpeakerNotification.ProducerId);
+                if(producer != null)
+                {
+                    var dominantSpeaker = new ActiveSpeakerObserverDominantSpeaker
                     {
-                        var dominantSpeaker = new ActiveSpeakerObserverDominantSpeaker
-                        {
-                            Producer = await GetProducerById(dominantSpeakerNotification.ProducerId)
-                        };
+                        Producer = await GetProducerById(dominantSpeakerNotification.ProducerId)
+                    };
 
-                        Emit("dominantspeaker", dominantSpeaker);
+                    Emit("dominantspeaker", dominantSpeaker);
 
-                        // Emit observer event.
-                        Observer.Emit("dominantspeaker", dominantSpeaker);
-                    }
-
-                    break;
+                    // Emit observer event.
+                    Observer.Emit("dominantspeaker", dominantSpeaker);
                 }
+
+                break;
+            }
             default:
-                {
-                    logger.LogError("OnNotificationHandle() | Ignoring unknown event: {Event}", @event);
-                    break;
-                }
+            {
+                logger.LogError("OnNotificationHandle() | Ignoring unknown event: {Event}", @event);
+                break;
+            }
         }
     }
 }
