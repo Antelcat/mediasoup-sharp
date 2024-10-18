@@ -103,18 +103,14 @@ public class EventEmitter : IEventEmitter
             {
                 throw new DoesNotExistException($"Event [{eventName}] does not exist to have listeners removed.");
             }
-            else
+
+            var @event = subscribedMethods.Exists(e => e == method);
+            if(!@event)
             {
-                var @event = subscribedMethods.Exists(e => e == method);
-                if(!@event)
-                {
-                    throw new DoesNotExistException($"Func [{method.Method}] does not exist to be removed.");
-                }
-                else
-                {
-                    subscribedMethods.Remove(method);
-                }
+                throw new DoesNotExistException($"Func [{method.Method}] does not exist to be removed.");
             }
+
+            subscribedMethods.Remove(method);
         }
 
         rwl.ExitWriteLock();
@@ -134,10 +130,8 @@ public class EventEmitter : IEventEmitter
             {
                 throw new DoesNotExistException($"Event [{eventName}] does not exist to have methods removed.");
             }
-            else
-            {
-                subscribedMethods.Clear();
-            }
+
+            subscribedMethods.Clear();
         }
 
         rwl.ExitWriteLock();

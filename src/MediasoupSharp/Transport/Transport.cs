@@ -332,11 +332,8 @@ public abstract class Transport : EventEmitter.EventEmitter
                     // Must tell the Router.
                     Emit("@dataproducerclose", dataProducer);
                 }
-                else
-                {
-                    // NOTE: No need to tell the Router since it already knows (it has
-                    // been closed in fact).
-                }
+                // NOTE: No need to tell the Router since it already knows (it has
+                // been closed in fact).
             }
 
             DataProducers.Clear();

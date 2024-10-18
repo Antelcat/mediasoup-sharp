@@ -123,7 +123,8 @@ public static class ValudUnionExtensions
                 result.Value_ = null;
                 return result;
             }
-            else if(bool.TryParse(stringValue, out bool boolValue))
+
+            if(bool.TryParse(stringValue, out bool boolValue))
             {
                 result.Type = Value.Boolean;
                 result.Value_ = new BooleanT
@@ -132,15 +133,12 @@ public static class ValudUnionExtensions
                 };
                 return result;
             }
-            else
+            result.Type = Value.String;
+            result.Value_ = new StringT
             {
-                result.Type = Value.String;
-                result.Value_ = new StringT
-                {
-                    Value = stringValue,
-                };
-                return result;
-            }
+                Value = stringValue,
+            };
+            return result;
         }
 
         if(IsInteger32Type(value))

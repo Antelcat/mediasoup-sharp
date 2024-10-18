@@ -81,7 +81,8 @@ public class DirectTransport : Transport.Transport
         // Build Request
         var bufferBuilder = Channel.BufferPool.Get();
 
-        var response = await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_DUMP, null, null, Internal.TransportId);
+        var response =
+            await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_DUMP, null, null, Internal.TransportId);
         var data = response.Value.BodyAsDirectTransport_DumpResponse().UnPack();
 
         return data;
@@ -95,7 +96,8 @@ public class DirectTransport : Transport.Transport
         // Build Request
         var bufferBuilder = Channel.BufferPool.Get();
 
-        var response = await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_GET_STATS, null, null, Internal.TransportId);
+        var response =
+            await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_GET_STATS, null, null, Internal.TransportId);
         var data = response.Value.BodyAsDirectTransport_GetStatsResponse().UnPack();
         return [data];
     }
@@ -113,7 +115,8 @@ public class DirectTransport : Transport.Transport
     /// </summary>
     public override Task<string> SetMaxIncomingBitrateAsync(uint bitrate)
     {
-        logger.LogError("SetMaxIncomingBitrateAsync() | DiectTransport:{TransportId} Bitrate:{bitrate}", TransportId, TransportId);
+        logger.LogError("SetMaxIncomingBitrateAsync() | DiectTransport:{TransportId} Bitrate:{bitrate}", TransportId,
+            TransportId);
         throw new NotImplementedException("SetMaxIncomingBitrateAsync() not implemented in DirectTransport");
     }
 
@@ -122,7 +125,8 @@ public class DirectTransport : Transport.Transport
     /// </summary>
     public override Task<string> SetMaxOutgoingBitrateAsync(uint bitrate)
     {
-        logger.LogError("SetMaxOutgoingBitrateAsync() | DiectTransport:{TransportId} Bitrate:{bitrate}", TransportId, TransportId);
+        logger.LogError("SetMaxOutgoingBitrateAsync() | DiectTransport:{TransportId} Bitrate:{bitrate}", TransportId,
+            TransportId);
         throw new NotImplementedException("SetMaxOutgoingBitrateAsync is not implemented in DirectTransport");
     }
 
@@ -131,7 +135,8 @@ public class DirectTransport : Transport.Transport
     /// </summary>
     public override Task<string> SetMinOutgoingBitrateAsync(uint bitrate)
     {
-        logger.LogError("SetMinOutgoingBitrateAsync() | DiectTransport:{TransportId} Bitrate:{bitrate}", TransportId, TransportId);
+        logger.LogError("SetMinOutgoingBitrateAsync() | DiectTransport:{TransportId} Bitrate:{bitrate}", TransportId,
+            TransportId);
         throw new NotImplementedException("SetMinOutgoingBitrateAsync is not implemented in DirectTransport");
     }
 
@@ -155,9 +160,9 @@ public class DirectTransport : Transport.Transport
 
     public async Task SendRtcpAsync(byte[] rtcpPacket)
     {
-        await using(await CloseLock.ReadLockAsync())
+        await using (await CloseLock.ReadLockAsync())
         {
-            if(Closed)
+            if (Closed)
             {
                 throw new InvalidStateException("Transport closed");
             }
@@ -190,12 +195,12 @@ public class DirectTransport : Transport.Transport
 
     private void OnNotificationHandle(string handlerId, Event @event, Notification notification)
     {
-        if(handlerId != Internal.TransportId)
+        if (handlerId != Internal.TransportId)
         {
             return;
         }
 
-        switch(@event)
+        switch (@event)
         {
             case Event.TRANSPORT_TRACE:
             {
@@ -210,7 +215,8 @@ public class DirectTransport : Transport.Transport
             }
             default:
             {
-                logger.LogError("OnNotificationHandle() | DiectTransport:{TransportId} Ignoring unknown event:{@event}", TransportId, @event);
+                logger.LogError("OnNotificationHandle() | DirectTransport:{TransportId} Ignoring unknown event:{@event}",
+                    TransportId, @event);
                 break;
             }
         }

@@ -3,18 +3,11 @@
 /// <summary>
 ///  Class for converting between profile_idc/profile_iop to Profile.
 /// </summary>
-public class ProfilePattern
+public class ProfilePattern(int profileIdc, BitPattern profileIop, Profile profile)
 {
-    public int ProfileIdc { get; }
+    public int ProfileIdc { get; } = profileIdc;
 
-    public BitPattern ProfileIop { get; }
+    public BitPattern ProfileIop { get; } = profileIop;
 
-    public Profile Profile { get; }
-
-    public ProfilePattern(int profileIdc, BitPattern profileIop, Profile profile)
-    {
-        ProfileIdc = profileIdc;
-        ProfileIop = profileIop;
-        Profile    = profile;
-    }
+    public Profile Profile { get; } = profile;
 }

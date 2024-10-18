@@ -2,6 +2,4 @@
 
 namespace MediasoupSharp.PipeTransport;
 
-public class PipeConsumerOptions : ConsumerOptionsBase
-{
-}
+public class PipeConsumerOptions : ConsumerOptionsBase;

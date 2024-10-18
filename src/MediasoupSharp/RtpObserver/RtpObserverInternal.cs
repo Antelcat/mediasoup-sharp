@@ -1,20 +1,14 @@
 ﻿namespace MediasoupSharp.RtpObserver;
 
-public class RtpObserverInternal
+public class RtpObserverInternal(string routerId, string rtpObserverId)
 {
     /// <summary>
     /// Router id.
     /// </summary>
-    public string RouterId { get; }
+    public string RouterId { get; } = routerId;
 
     /// <summary>
     /// RtpObserver id.
     /// </summary>
-    public string RtpObserverId { get; }
-
-    public RtpObserverInternal(string routerId, string rtpObserverId)
-    {
-        RouterId      = routerId;
-        RtpObserverId = rtpObserverId;
-    }
+    public string RtpObserverId { get; } = rtpObserverId;
 }

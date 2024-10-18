@@ -14,15 +14,15 @@ public class MediasoupOptions
 
     public static MediasoupOptions Default { get; } = new()
     {
-        MediasoupStartupSettings = new MediasoupStartupSettings
+        MediasoupStartupSettings = new ()
         {
             WorkerPath       = "mediasoup-worker",
             MediasoupVersion = "0.0.1",
             NumberOfWorkers  = Environment.ProcessorCount,
         },
-        MediasoupSettings = new MediasoupSettings
+        MediasoupSettings = new ()
         {
-            WorkerSettings = new WorkerSettings
+            WorkerSettings = new ()
             {
                 LogLevel = WorkerLogLevel.Warn,
                 LogTags =
@@ -44,18 +44,18 @@ public class MediasoupOptions
                 RtcMinPort = 10000,
                 RtcMaxPort = 59999,
             },
-            RouterSettings = new RouterSettings
+            RouterSettings = new ()
             {
                 RtpCodecCapabilities =
                 [
-                    new RtpCodecCapability
+                    new ()
                     {
                         Kind      = MediaKind.AUDIO,
                         MimeType  = "audio/opus",
                         ClockRate = 48000,
                         Channels  = 2
                     },
-                    new RtpCodecCapability {
+                    new () {
                         Kind      = MediaKind.VIDEO,
                         MimeType  = "video/VP8",
                         ClockRate = 90000,
@@ -64,7 +64,7 @@ public class MediasoupOptions
                             { "x-google-start-bitrate" , 1000 }
                         }
                     },
-                    new RtpCodecCapability {
+                    new () {
                         Kind      = MediaKind.VIDEO,
                         MimeType  = "video/VP9",
                         ClockRate = 90000,
@@ -74,7 +74,7 @@ public class MediasoupOptions
                             { "x-google-start-bitrate" , 1000 }
                         }
                     },
-                    new RtpCodecCapability {
+                    new () {
                         Kind      = MediaKind.VIDEO,
                         MimeType  = "video/h264",
                         ClockRate = 90000,
@@ -86,7 +86,7 @@ public class MediasoupOptions
                             { "x-google-start-bitrate"  , 1000 }
                         }
                     },
-                    new RtpCodecCapability {
+                    new () {
                         Kind      = MediaKind.VIDEO,
                         MimeType  = "video/h264",
                         ClockRate = 90000,
@@ -100,18 +100,18 @@ public class MediasoupOptions
                     }
                 ],
             },
-            WebRtcServerSettings = new WebRtcServerSettings
+            WebRtcServerSettings = new ()
             {
                 ListenInfos =
                 [
-                    new ListenInfoT
+                    new ()
                     {
                         Protocol         = Protocol.UDP,
                         Ip               = "0.0.0.0",
                         AnnouncedAddress = null,
                         Port             = 44444,
                     },
-                    new ListenInfoT
+                    new ()
                     {
                         Protocol    = Protocol.TCP,
                         Ip          = "0.0.0.0",
@@ -120,20 +120,20 @@ public class MediasoupOptions
                     }
                 ]
             },
-            WebRtcTransportSettings = new WebRtcTransportSettings
+            WebRtcTransportSettings = new ()
             {
                 ListenInfos =
                 [
-                    new ListenInfoT { Ip = "0.0.0.0",  AnnouncedAddress = null }
+                    new () { Ip = "0.0.0.0",  AnnouncedAddress = null }
                 ],
                 InitialAvailableOutgoingBitrate = 1_000_000,
                 MinimumAvailableOutgoingBitrate = 600_000,
                 MaxSctpMessageSize              = 256 * 1024,
                 MaximumIncomingBitrate          = 1_500_000,
             },
-            PlainTransportSettings = new PlainTransportSettings
+            PlainTransportSettings = new ()
             {
-                ListenInfo         = new ListenInfoT { Ip = "0.0.0.0", AnnouncedAddress = null },
+                ListenInfo         = new () { Ip = "0.0.0.0", AnnouncedAddress = null },
                 MaxSctpMessageSize = 256 * 1024,
             }
         }

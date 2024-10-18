@@ -76,11 +76,11 @@ public class DataProducer : EventEmitter.EventEmitter
     {
         logger = loggerFactory.CreateLogger<DataProducer>();
 
-        this.@internal    = @internal;
-        Data         = data;
-        this.channel = channel;
-        this.paused  = paused;
-        AppData      = appData ?? new Dictionary<string, object>();
+        this.@internal = @internal;
+        Data           = data;
+        this.channel   = channel;
+        this.paused    = paused;
+        AppData        = appData ?? new Dictionary<string, object>();
 
         HandleWorkerNotifications();
     }

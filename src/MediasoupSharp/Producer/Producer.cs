@@ -112,11 +112,11 @@ public class Producer : EventEmitter.EventEmitter
     {
         logger = loggerFactory.CreateLogger<Producer>();
 
-        this.@internal    = @internal;
-        Data         = data;
-        this.channel = channel;
-        AppData      = appData ?? new Dictionary<string, object>();
-        Paused       = paused;
+        this.@internal = @internal;
+        Data           = data;
+        this.channel   = channel;
+        AppData        = appData ?? new Dictionary<string, object>();
+        Paused         = paused;
         pauseLock.Set();
 
         if(isCheckConsumer)
@@ -190,17 +190,11 @@ public class Producer : EventEmitter.EventEmitter
 
         await using(await closeLock.WriteLockAsync())
         {
-            if(Closed)
-            {
-                return;
-            }
+            if(Closed) return;
 
             Closed = true;
 
-            if(checkConsumersTimer != null)
-            {
-                await checkConsumersTimer.DisposeAsync();
-            }
+            if(checkConsumersTimer != null) await checkConsumersTimer.DisposeAsync();
 
             // Remove notification subscriptions.
             channel.OnNotification -= OnNotificationHandle;
@@ -221,10 +215,7 @@ public class Producer : EventEmitter.EventEmitter
 
         await using(await closeLock.ReadLockAsync())
         {
-            if(Closed)
-            {
-                throw new InvalidStateException("Producer closed");
-            }
+            if (Closed) throw new InvalidStateException("Producer closed");
 
             // Build Request
             var bufferBuilder = channel.BufferPool.Get();
@@ -245,10 +236,7 @@ public class Producer : EventEmitter.EventEmitter
 
         await using(await closeLock.ReadLockAsync())
         {
-            if(Closed)
-            {
-                throw new InvalidStateException("Producer closed");
-            }
+            if(Closed) throw new InvalidStateException("Producer closed");
 
             // Build Request
             var bufferBuilder = channel.BufferPool.Get();

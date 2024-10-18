@@ -2,15 +2,11 @@
 
 namespace MediasoupSharp.DataConsumer;
 
-public class DataConsumerInternal : TransportInternal
+public class DataConsumerInternal(string routerId, string transportId, string dataConsumerId)
+    : TransportInternal(routerId, transportId)
 {
     /// <summary>
     /// DataConsumer id.
     /// </summary>
-    public string DataConsumerId { get; }
-
-    public DataConsumerInternal(string routerId, string transportId, string dataConsumerId) : base(routerId, transportId)
-    {
-        DataConsumerId = dataConsumerId;
-    }
+    public string DataConsumerId { get; } = dataConsumerId;
 }

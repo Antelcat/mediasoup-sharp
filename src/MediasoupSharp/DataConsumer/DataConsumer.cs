@@ -95,13 +95,13 @@ public class DataConsumer : EventEmitter.EventEmitter
     {
         logger = loggerFactory.CreateLogger<DataConsumer>();
 
-        this.@internal               = @internal;
+        this.@internal          = @internal;
         Data                    = data;
         this.channel            = channel;
         this.paused             = paused;
         this.dataProducerPaused = dataProducerPaused;
         this.subchannels        = subchannels;
-        AppData                 = appData ?? new Dictionary<string, object>();
+        AppData                 = appData ?? [];
 
         HandleWorkerNotifications();
     }

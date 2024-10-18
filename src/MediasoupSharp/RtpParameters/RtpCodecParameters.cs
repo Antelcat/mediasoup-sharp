@@ -27,9 +27,9 @@ public class RtpCodecParameters : RtpCodecBase, IEquatable<RtpCodecParameters>
             return false;
         }
 
-        var result = (MimeType       == other.MimeType)
-                     && (PayloadType == other.PayloadType)
-                     && (ClockRate   == other.ClockRate);
+        var result = MimeType       == other.MimeType
+                     && PayloadType == other.PayloadType
+                     && ClockRate   == other.ClockRate;
         if(result)
         {
             if(Channels.HasValue && other.Channels.HasValue)
@@ -63,10 +63,8 @@ public class RtpCodecParameters : RtpCodecBase, IEquatable<RtpCodecParameters>
         {
             return Equals(rtpCodecParameters);
         }
-        else
-        {
-            return false;
-        }
+
+        return false;
     }
 
     public override int GetHashCode()

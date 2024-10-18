@@ -11,7 +11,7 @@ public class WorkerNative : WorkerBase
 
     private readonly string version;
 
-    private readonly IntPtr channlPtr;
+    private readonly IntPtr channelPtr;
 
     public WorkerNative(ILoggerFactory loggerFactory, MediasoupOptions mediasoupOptions)
         : base(loggerFactory, mediasoupOptions)
@@ -63,14 +63,14 @@ public class WorkerNative : WorkerBase
         args.Add(null);
 #pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
 
-        this.argv    = args.ToArray();
+        argv    = args.ToArray();
         version = mediasoupOptions.MediasoupStartupSettings.MediasoupVersion;
 
         var threadId = Environment.CurrentManagedThreadId;
 
         Channel                =  new ChannelNative(LoggerFactory.CreateLogger<ChannelNative>(), threadId);
         Channel.OnNotification += OnNotificationHandle;
-        channlPtr              =  GCHandle.ToIntPtr(GCHandle.Alloc(Channel, GCHandleType.Normal));
+        channelPtr              =  GCHandle.ToIntPtr(GCHandle.Alloc(Channel, GCHandleType.Normal));
     }
 
     public void Run()
@@ -84,9 +84,9 @@ public class WorkerNative : WorkerBase
             0,
             0,
             ChannelNative.OnChannelRead,
-            channlPtr,
+            channelPtr,
             ChannelNative.OnChannelWrite,
-            channlPtr
+            channelPtr
         );
 
         void OnExit()
@@ -116,10 +116,10 @@ public class WorkerNative : WorkerBase
         throw new NotImplementedException();
     }
 
-    protected override void DestoryUnmanaged()
+    protected override void DestroyUnmanaged()
     {
-        if (channlPtr == IntPtr.Zero) return;
-        var handle = GCHandle.FromIntPtr(channlPtr);
+        if (channelPtr == IntPtr.Zero) return;
+        var handle = GCHandle.FromIntPtr(channelPtr);
         if(handle.IsAllocated)
         {
             handle.Free();

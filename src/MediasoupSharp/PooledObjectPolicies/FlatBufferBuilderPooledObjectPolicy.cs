@@ -3,22 +3,9 @@ using Microsoft.Extensions.ObjectPool;
 
 namespace MediasoupSharp.PooledObjectPolicies;
 
-public class FlatBufferBuilderPooledObjectPolicy : IPooledObjectPolicy<FlatBufferBuilder>
+public class FlatBufferBuilderPooledObjectPolicy(int initialSize) : IPooledObjectPolicy<FlatBufferBuilder>
 {
-    private readonly int initialSize;
+    public FlatBufferBuilder Create() => new(initialSize);
 
-    public FlatBufferBuilderPooledObjectPolicy(int initialSize)
-    {
-        this.initialSize = initialSize;
-    }
-
-    public FlatBufferBuilder Create()
-    {
-        return new FlatBufferBuilder(initialSize);
-    }
-
-    public bool Return(FlatBufferBuilder obj)
-    {
-        return true;
-    }
+    public bool Return(FlatBufferBuilder obj) => true;
 }

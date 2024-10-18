@@ -92,10 +92,7 @@ public abstract class RtpObserver : EventEmitter.EventEmitter
 
         await using(await closeLock.WriteLockAsync())
         {
-            if(closed)
-            {
-                return;
-            }
+            if(closed) return;
 
             closed = true;
 

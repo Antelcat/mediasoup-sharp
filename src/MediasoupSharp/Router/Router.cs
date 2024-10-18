@@ -935,7 +935,8 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
                     throw;
                 }
             }
-            else if (dataProducer != null)
+
+            if (dataProducer != null)
             {
                 DataConsumer.DataConsumer? pipeDataConsumer = null;
                 DataProducer.DataProducer? pipeDataProducer = null;
@@ -982,10 +983,7 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
                     throw;
                 }
             }
-            else
-            {
-                throw new Exception("Internal error");
-            }
+            throw new Exception("Internal error");
         }
     }
 

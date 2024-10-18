@@ -182,7 +182,7 @@ public abstract class ChannelBase : IChannel
             }
 
             tcs.WithTimeout(
-                TimeSpan.FromSeconds(15 + (0.1 * Sents.Count)),
+                TimeSpan.FromSeconds(15 + 0.1 * Sents.Count),
                 () => Sents.TryRemove(requestMessage.Id!.Value, out _)
             );
 

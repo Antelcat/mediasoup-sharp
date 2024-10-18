@@ -3,7 +3,7 @@
 /// <summary>
 /// Represents a parsed h264 profile-level-id value.
 /// </summary>
-public class ProfileLevelId
+public class ProfileLevelId(Profile profile, Level level)
 {
     /// <summary>
     /// <para>Default ProfileLevelId.</para>
@@ -19,13 +19,7 @@ public class ProfileLevelId
     /// </summary>
     public static readonly ProfileLevelId DefaultProfileLevelId = new(Profile.ConstrainedBaseline, Level.L31);
 
-    public Profile Profile { get; }
+    public Profile Profile { get; } = profile;
 
-    public Level Level { get; }
-
-    public ProfileLevelId(Profile profile, Level level)
-    {
-        Profile = profile;
-        Level   = level;
-    }
+    public Level Level { get; } = level;
 }

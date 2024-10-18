@@ -247,7 +247,7 @@ public class Worker : WorkerBase
         }
     }
 
-    protected override void DestoryManaged()
+    protected override void DestroyManaged()
     {
         child?.Dispose();
         foreach (var pipe in pipes)

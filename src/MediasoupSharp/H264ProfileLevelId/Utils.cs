@@ -30,24 +30,21 @@ public static class Utils
     /// </summary>
     /// <param name="str">profile-level-id value as a string of 3 hex bytes.</param>
     /// <returns>ProfileLevelId</returns>
-    public static ProfileLevelId? ParseProfileLevelId(string str)
+    public static ProfileLevelId? ParseProfileLevelId(string? str)
     {
         // For level_idc=11 and profile_idc=0x42, 0x4D, or 0x58, the constraint set3
         // flag specifies if level 1b or level 1.1 is used.
         const int constraintSet3Flag = 0x10;
 
         // The string should consist of 3 bytes in hexadecimal format.
-        if(str == null || str.Length != 6)
+        if(str is not { Length: 6 })
         {
             return null;
         }
 
         var profileLevelIdNumeric = Convert.ToInt32(str, 16);
 
-        if(profileLevelIdNumeric == 0)
-        {
-            return null;
-        }
+        if(profileLevelIdNumeric == 0) return null;
 
         // Separate into three bytes.
         var levelIdc   = (Level)(profileLevelIdNumeric & 0xFF);
@@ -120,28 +117,13 @@ public static class Utils
         // Handle special case level == 1b.
         if(profileLevelId.Level == Level.L1B)
         {
-            switch(profileLevelId.Profile)
+            return profileLevelId.Profile switch
             {
-                case Profile.ConstrainedBaseline:
-                {
-                    return "42f00b";
-                }
-                case Profile.Baseline:
-                {
-                    return "42100b";
-                }
-                case Profile.Main:
-                {
-                    return "4d100b";
-                }
-                // Level 1_b is not allowed for other profiles.
-                default:
-                {
-                    // NOTE: For testing.
-                    //debug("ProfileLevelIdToString() | Level 1_b not is allowed for profile:%s", profileLevelId.profile);
-                    return null;
-                }
-            }
+                Profile.ConstrainedBaseline => "42f00b",
+                Profile.Baseline            => "42100b",
+                Profile.Main                => "4d100b",
+                _                           => null
+            };
         }
 
         string profileIdcIopString;
@@ -321,30 +303,14 @@ public static class Utils
     #region Private Methods
 
     // Compare H264 levels and handle the level 1b case.
-    private static bool IsLessLevel(Level a, Level b)
-    {
-        if(a == Level.L1B)
-        {
-            return b != Level.L1 && b != Level.L1B;
-        }
+    private static bool IsLessLevel(Level a, Level b) =>
+        a == Level.L1B ? b != Level.L1 && b != Level.L1B : b == Level.L1B ? a != Level.L1 : a < b;
 
-        if(b == Level.L1B)
-        {
-            return a != Level.L1;
-        }
+    private static Level MinLevel(Level a, Level b) => IsLessLevel(a, b) ? a : b;
 
-        return a < b;
-    }
-
-    private static Level MinLevel(Level a, Level b)
-    {
-        return IsLessLevel(a, b) ? a : b;
-    }
-
-    private static bool IsLevelAsymmetryAllowed(IDictionary<string, object> parameters)
-    {
-        return parameters.TryGetValue("level-asymmetry-allowed", out var levelAsymmetryAllowed) && levelAsymmetryAllowed.ToString() == "1";
-    }
+    private static bool IsLevelAsymmetryAllowed(IDictionary<string, object> parameters) =>
+        parameters.TryGetValue("level-asymmetry-allowed", out var levelAsymmetryAllowed) &&
+        levelAsymmetryAllowed.ToString() == "1";
 
     #endregion Private Methods
 }

@@ -332,26 +332,24 @@ public abstract class WorkerBase : EventEmitter.EventEmitter, IDisposable, IWork
 
     private bool disposedValue; // 要检测冗余调用
 
-    protected virtual void DestoryManaged() { }
+    protected virtual void DestroyManaged() { }
 
-    protected virtual void DestoryUnmanaged() { }
+    protected virtual void DestroyUnmanaged() { }
 
     protected virtual void Dispose(bool disposing)
     {
-        if(!disposedValue)
+        if (disposedValue) return;
+        if(disposing)
         {
-            if(disposing)
-            {
-                // TODO: 释放托管状态(托管对象)。
-                DestoryManaged();
-            }
-
-            // TODO: 释放未托管的资源(未托管的对象)并在以下内容中替代终结器。
-            // TODO: 将大型字段设置为 null。
-            DestoryUnmanaged();
-
-            disposedValue = true;
+            // TODO: 释放托管状态(托管对象)。
+            DestroyManaged();
         }
+
+        // TODO: 释放未托管的资源(未托管的对象)并在以下内容中替代终结器。
+        // TODO: 将大型字段设置为 null。
+        DestroyUnmanaged();
+
+        disposedValue = true;
     }
 
     // TODO: 仅当以上 Dispose(bool disposing) 拥有用于释放未托管资源的代码时才替代终结器。
