@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace MediasoupSharp.EventEmitter;
+namespace MediasoupSharp.EnhancedEvent;
 
 public class EventEmitter : IEventEmitter
 {
@@ -23,15 +23,15 @@ public class EventEmitter : IEventEmitter
 
     private readonly Dictionary<string, List<Func<string, object?, Task>>> events;
 
-    private readonly ReaderWriterLockSlim rwl;
+    private readonly ReaderWriterLockSlim readerWriterLock;
 
     /// <summary>
     /// The EventEmitter object to subscribe to events with
     /// </summary>
     public EventEmitter()
     {
-        events = new Dictionary<string, List<Func<string, object?, Task>>>();
-        rwl    = new ReaderWriterLockSlim();
+        events           = new Dictionary<string, List<Func<string, object?, Task>>>();
+        readerWriterLock = new ReaderWriterLockSlim();
     }
 
     /// <summary>
@@ -41,11 +41,11 @@ public class EventEmitter : IEventEmitter
     /// <param name="method">Method to add to the event</param>
     public void On(string eventNames, Func<string, object?, Task> method)
     {
-        rwl.EnterWriteLock();
+        readerWriterLock.EnterWriteLock();
         var eventNameList = eventNames.Split(EventSeparator, StringSplitOptions.RemoveEmptyEntries);
-        foreach(var eventName in eventNameList)
+        foreach (var eventName in eventNameList)
         {
-            if(events.TryGetValue(eventName, out var subscribedMethods))
+            if (events.TryGetValue(eventName, out var subscribedMethods))
             {
                 subscribedMethods.Add(method);
             }
@@ -55,7 +55,7 @@ public class EventEmitter : IEventEmitter
             }
         }
 
-        rwl.ExitWriteLock();
+        readerWriterLock.ExitWriteLock();
     }
 
     /// <summary>
@@ -65,16 +65,16 @@ public class EventEmitter : IEventEmitter
     /// <param name="data">The data to call all the methods with</param>
     public void Emit(string eventName, object? data = null)
     {
-        rwl.EnterReadLock();
-        if(!events.TryGetValue(eventName, out var subscribedMethods))
+        readerWriterLock.EnterReadLock();
+        if (!events.TryGetValue(eventName, out var subscribedMethods))
         {
             //throw new DoesNotExistException($"Event [{eventName}] does not exist in the emitter. Consider calling EventEmitter.On");
         }
         else
         {
-            foreach(var f in subscribedMethods)
+            foreach (var f in subscribedMethods)
             {
-                f(eventName, data).ContinueWith(val =>
+                _ = f(eventName, data).ContinueWith(val =>
                 {
                     val.Exception!.Handle(ex =>
                     {
@@ -85,7 +85,7 @@ public class EventEmitter : IEventEmitter
             }
         }
 
-        rwl.ExitReadLock();
+        readerWriterLock.ExitReadLock();
     }
 
     /// <summary>
@@ -95,17 +95,17 @@ public class EventEmitter : IEventEmitter
     /// <param name="method">Method to remove from eventName</param>
     public void RemoveListener(string eventNames, Func<string, object?, Task> method)
     {
-        rwl.EnterWriteLock();
+        readerWriterLock.EnterWriteLock();
         var eventNameList = eventNames.Split(EventSeparator, StringSplitOptions.RemoveEmptyEntries);
-        foreach(var eventName in eventNameList)
+        foreach (var eventName in eventNameList)
         {
-            if(!events.TryGetValue(eventName, out var subscribedMethods))
+            if (!events.TryGetValue(eventName, out var subscribedMethods))
             {
                 throw new DoesNotExistException($"Event [{eventName}] does not exist to have listeners removed.");
             }
 
             var @event = subscribedMethods.Exists(e => e == method);
-            if(!@event)
+            if (!@event)
             {
                 throw new DoesNotExistException($"Func [{method.Method}] does not exist to be removed.");
             }
@@ -113,7 +113,7 @@ public class EventEmitter : IEventEmitter
             subscribedMethods.Remove(method);
         }
 
-        rwl.ExitWriteLock();
+        readerWriterLock.ExitWriteLock();
     }
 
     /// <summary>
@@ -122,11 +122,11 @@ public class EventEmitter : IEventEmitter
     /// <param name="eventNames">Event name to remove methods from</param>
     public void RemoveAllListeners(string eventNames)
     {
-        rwl.EnterWriteLock();
+        readerWriterLock.EnterWriteLock();
         var eventNameList = eventNames.Split(EventSeparator, StringSplitOptions.RemoveEmptyEntries);
-        foreach(var eventName in eventNameList)
+        foreach (var eventName in eventNameList)
         {
-            if(!events.TryGetValue(eventName, out var subscribedMethods))
+            if (!events.TryGetValue(eventName, out var subscribedMethods))
             {
                 throw new DoesNotExistException($"Event [{eventName}] does not exist to have methods removed.");
             }
@@ -134,6 +134,6 @@ public class EventEmitter : IEventEmitter
             subscribedMethods.Clear();
         }
 
-        rwl.ExitWriteLock();
+        readerWriterLock.ExitWriteLock();
     }
 }

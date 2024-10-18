@@ -9,7 +9,7 @@ using Microsoft.VisualStudio.Threading;
 
 namespace MediasoupSharp.Consumer;
 
-public class Consumer : EventEmitter.EventEmitter
+public class Consumer : EnhancedEvent.EventEmitter
 {
     /// <summary>
     /// Logger.
@@ -93,7 +93,7 @@ public class Consumer : EventEmitter.EventEmitter
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EventEmitter.EventEmitter Observer { get; } = new();
+    public EnhancedEvent.EventEmitter Observer { get; } = new();
 
     /// <summary>
     /// <para>Events:</para>

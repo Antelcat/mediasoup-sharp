@@ -1,5 +1,5 @@
 ﻿using FBS.Worker;
-using MediasoupSharp.EventEmitter;
+using MediasoupSharp.EnhancedEvent;
 using MediasoupSharp.Router;
 using MediasoupSharp.Settings;
 
@@ -9,7 +9,7 @@ public interface IWorker : IEventEmitter, IDisposable
 {
     Dictionary<string, object> AppData { get; }
 
-    EventEmitter.EventEmitter Observer { get; }
+    EnhancedEvent.EventEmitter Observer { get; }
 
     Task CloseAsync();
 

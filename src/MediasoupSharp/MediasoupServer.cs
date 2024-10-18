@@ -16,7 +16,7 @@ public class MediasoupServer
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EventEmitter.EventEmitter Observer { get; } = new();
+    public EnhancedEvent.EventEmitter Observer { get; } = new();
 
     /// <summary>
     /// Get a cloned copy of the mediasoup supported RTP capabilities.

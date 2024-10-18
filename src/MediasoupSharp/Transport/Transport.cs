@@ -16,7 +16,7 @@ using Microsoft.VisualStudio.Threading;
 
 namespace MediasoupSharp.Transport;
 
-public abstract class Transport : EventEmitter.EventEmitter
+public abstract class Transport : EnhancedEvent.EventEmitter
 {
     /// <summary>
     /// Logger factory for create logger.
@@ -145,7 +145,7 @@ public abstract class Transport : EventEmitter.EventEmitter
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EventEmitter.EventEmitter Observer { get; } = new();
+    public EnhancedEvent.EventEmitter Observer { get; } = new();
 
     /// <summary>
     /// <para>Events:</para>

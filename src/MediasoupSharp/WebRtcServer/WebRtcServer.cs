@@ -8,7 +8,7 @@ using Microsoft.VisualStudio.Threading;
 
 namespace MediasoupSharp.WebRtcServer;
 
-public class WebRtcServer : EventEmitter.EventEmitter
+public class WebRtcServer : EnhancedEvent.EventEmitter
 {
     /// <summary>
     /// Logger.
@@ -52,7 +52,7 @@ public class WebRtcServer : EventEmitter.EventEmitter
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EventEmitter.EventEmitter Observer { get; } = new();
+    public EnhancedEvent.EventEmitter Observer { get; } = new();
 
     /// <summary>
     /// <para>Events:</para>

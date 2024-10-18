@@ -1,4 +1,4 @@
-﻿namespace MediasoupSharp.EventEmitter;
+﻿namespace MediasoupSharp.EnhancedEvent;
 
 public class DoesNotExistException : Exception
 {
