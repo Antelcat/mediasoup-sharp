@@ -2,7 +2,7 @@
 
 namespace MediasoupSharp.ClientRequest;
 
-public class SetConsumerPreferedLayersRequest : SetPreferredLayersRequestT
+public class SetConsumerPreferredLayersRequest : SetPreferredLayersRequestT
 {
     public string ConsumerId { get; set; }
 }

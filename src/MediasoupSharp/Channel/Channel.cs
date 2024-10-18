@@ -70,7 +70,7 @@ public class Channel : ChannelBase
         {
             producerSocket.Close();
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             Logger.LogError(ex, "CloseAsync() | Worker[{WorkerId}] _producerSocket.Close()", WorkerId);
         }
@@ -79,7 +79,7 @@ public class Channel : ChannelBase
         {
             consumerSocket.Close();
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             Logger.LogError(ex, "CloseAsync() | Worker[{WorkerId}] _consumerSocket.Close()", WorkerId);
         }
@@ -96,15 +96,13 @@ public class Channel : ChannelBase
                     sent.RequestMessage.Payload,
                     ex =>
                     {
-                        if(ex != null)
-                        {
-                            Logger.LogError(ex, "_producerSocket.Write() | Worker[{WorkerId}] Error", WorkerId);
-                            sent.Reject(ex);
-                        }
+                        if (ex == null) return;
+                        Logger.LogError(ex, "_producerSocket.Write() | Worker[{WorkerId}] Error", WorkerId);
+                        sent.Reject(ex);
                     }
                 );
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Logger.LogError(ex, "_producerSocket.Write() | Worker[{WorkerId}] Error", WorkerId);
                 sent.Reject(ex);
@@ -123,14 +121,14 @@ public class Channel : ChannelBase
                     requestMessage.Payload,
                     ex =>
                     {
-                        if(ex != null)
+                        if (ex != null)
                         {
                             Logger.LogError(ex, "_producerSocket.Write() | Worker[{WorkerId}] Error", WorkerId);
                         }
                     }
                 );
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Logger.LogError(ex, "_producerSocket.Write() | Worker[{WorkerId}] Error", WorkerId);
             }
@@ -142,7 +140,7 @@ public class Channel : ChannelBase
     private void ConsumerSocketOnData(ArraySegment<byte> data)
     {
         // 数据回调通过单一线程进入，所以 _recvBuffer 是 Thread-safe 的。
-        if(recvBufferCount + data.Count > RecvBufferMaxLen)
+        if (recvBufferCount + data.Count > RecvBufferMaxLen)
         {
             Logger.LogError(
                 "ConsumerSocketOnData() | Worker[{WorkerId}] Receiving buffer is full, discarding all data into it",
@@ -158,11 +156,11 @@ public class Channel : ChannelBase
         try
         {
             var readCount = 0;
-            while(readCount < recvBufferCount - sizeof(int) - 1)
+            while (readCount < recvBufferCount - sizeof(int) - 1)
             {
                 var msgLen = BitConverter.ToInt32(recvBuffer, readCount);
                 readCount += sizeof(int);
-                if(readCount >= recvBufferCount)
+                if (readCount >= recvBufferCount)
                 {
                     // Incomplete data.
                     break;
@@ -178,7 +176,7 @@ public class Channel : ChannelBase
             }
 
             var remainingLength = recvBufferCount - readCount;
-            if(remainingLength == 0)
+            if (remainingLength == 0)
             {
                 recvBufferCount = 0;
             }
@@ -189,16 +187,18 @@ public class Channel : ChannelBase
                 Array.Copy(temp, 0, recvBuffer, 0, remainingLength);
             }
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
-            Logger.LogError(ex, "ConsumerSocketOnData() | Worker[{WorkerId}] Invalid data received from the worker process.", WorkerId);
+            Logger.LogError(ex,
+                "ConsumerSocketOnData() | Worker[{WorkerId}] Invalid data received from the worker process", WorkerId);
             return;
         }
     }
 
     private void ConsumerSocketOnClosed()
     {
-        Logger.LogDebug("ConsumerSocketOnClosed() | Worker[{WorkerId}] Consumer Channel ended by the worker process", WorkerId);
+        Logger.LogDebug("ConsumerSocketOnClosed() | Worker[{WorkerId}] Consumer Channel ended by the worker process",
+            WorkerId);
     }
 
     private void ConsumerSocketOnError(Exception? exception)
@@ -208,7 +208,8 @@ public class Channel : ChannelBase
 
     private void ProducerSocketOnClosed()
     {
-        Logger.LogDebug("ProducerSocketOnClosed() | Worker[{WorkerId}] Producer Channel ended by the worker process", WorkerId);
+        Logger.LogDebug("ProducerSocketOnClosed() | Worker[{WorkerId}] Producer Channel ended by the worker process",
+            WorkerId);
     }
 
     private void ProducerSocketOnError(Exception? exception)

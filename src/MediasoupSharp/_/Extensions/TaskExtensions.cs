@@ -145,7 +145,7 @@ internal static class TaskExtensions
     /// </summary>
     /// <typeparam name="TResult">Specifies the type of the result.</typeparam>
     /// <param name="resultSetter">The TaskCompletionSource.</param>
-    /// <param name="task">The task whose completion results should be transfered.</param>
+    /// <param name="task">The task whose completion results should be transferred.</param>
     /// <returns>Whether the transfer could be completed.</returns>
     public static bool TrySetFromTask<TResult>(this TaskCompletionSource<TResult> resultSetter, Task<TResult> task)
     {
@@ -159,12 +159,7 @@ internal static class TaskExtensions
         return tcs.Task;
     }
 
-    public static TaskCompletionSource<TResult> WithTimeout<TResult>(this TaskCompletionSource<TResult> taskCompletionSource, TimeSpan timeout)
-    {
-        return WithTimeout(taskCompletionSource, timeout, null);
-    }
-
-    public static TaskCompletionSource<TResult> WithTimeout<TResult>(this TaskCompletionSource<TResult> taskCompletionSource, TimeSpan timeout, Action? cancelled)
+    public static TaskCompletionSource<TResult> WithTimeout<TResult>(this TaskCompletionSource<TResult> taskCompletionSource, TimeSpan timeout, Action? cancelled = null)
     {
         Timer? timer = null;
         timer = new Timer(_ =>
@@ -446,9 +441,9 @@ internal class SynchronousAwaiter<TResult>
         {
             result = await task.ConfigureAwait(false);
         }
-        catch(Exception exception)
+        catch(Exception ex)
         {
-            this.exception = exception;
+            exception = ex;
         }
         finally
         {
@@ -468,9 +463,9 @@ internal class SynchronousAwaiter<TResult>
         {
             result = await task.ConfigureAwait(false);
         }
-        catch(Exception exception)
+        catch(Exception ex)
         {
-            this.exception = exception;
+            exception = ex;
         }
         finally
         {
@@ -535,7 +530,7 @@ internal class SynchronousAwaiter
     public void GetResult()
     {
         manualResetEvent.WaitOne();
-        if(exception != null)
+        if (exception != null)
         {
             throw exception;
         }
@@ -556,10 +551,10 @@ internal class SynchronousAwaiter
         {
             await task.ConfigureAwait(false);
         }
-        catch(OperationCanceledException)
+        catch (OperationCanceledException)
         {
         }
-        catch(Exception exception)
+        catch (Exception exception)
         {
             this.exception = exception;
         }
@@ -584,12 +579,12 @@ internal class SynchronousAwaiter
         {
             await task.ConfigureAwait(false);
         }
-        catch(OperationCanceledException)
+        catch (OperationCanceledException)
         {
         }
-        catch(Exception exception)
+        catch (Exception ex)
         {
-            this.exception = exception;
+            exception = ex;
         }
         finally
         {

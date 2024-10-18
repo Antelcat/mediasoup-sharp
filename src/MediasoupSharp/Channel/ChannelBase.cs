@@ -368,7 +368,7 @@ public abstract class ChannelBase : IChannel
         }
         else
         {
-            requestOffset = Request.CreateRequest(bufferBuilder, id, method, handlerIdOffset, FBS.Request.Body.NONE, 0);
+            requestOffset = Request.CreateRequest(bufferBuilder, id, method, handlerIdOffset);
         }
 
         var messageOffset = Message.CreateMessage(bufferBuilder, FBS.Message.Body.Request, requestOffset.Value);
@@ -426,9 +426,7 @@ public abstract class ChannelBase : IChannel
             notificationOffset = Notification.CreateNotification(
                 bufferBuilder,
                 handlerIdOffset,
-                @event,
-                FBS.Notification.Body.NONE,
-                0
+                @event
             );
         }
 

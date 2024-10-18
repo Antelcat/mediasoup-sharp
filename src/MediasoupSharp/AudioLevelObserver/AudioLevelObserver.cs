@@ -41,28 +41,28 @@ public class AudioLevelObserver : RtpObserver.RtpObserver
     protected override async void OnNotificationHandle(string handlerId, Event @event, Notification data)
 #pragma warning restore VSTHRD100 // Avoid async void methods
     {
-        if(handlerId != Internal.RtpObserverId)
+        if (handlerId != Internal.RtpObserverId)
         {
             return;
         }
 
-        switch(@event)
+        switch (@event)
         {
             case Event.AUDIOLEVELOBSERVER_VOLUMES:
             {
                 var volumesNotification = data.BodyAsAudioLevelObserver_VolumesNotification().UnPack();
 
                 var volumes = new List<AudioLevelObserverVolume>();
-                foreach(var item in volumesNotification.Volumes)
+                foreach (var item in volumesNotification.Volumes)
                 {
                     var producer = await GetProducerById(item.ProducerId);
-                    if(producer != null)
+                    if (producer != null)
                     {
                         volumes.Add(new AudioLevelObserverVolume { Producer = producer, Volume = item.Volume_, });
                     }
                 }
 
-                if(volumes.Count > 0)
+                if (volumes.Count > 0)
                 {
                     Emit("volumes", volumes);
 

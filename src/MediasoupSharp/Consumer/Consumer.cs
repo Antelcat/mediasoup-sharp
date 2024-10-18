@@ -129,7 +129,7 @@ public class Consumer : EventEmitter.EventEmitter
     {
         logger = loggerFactory.CreateLogger<Consumer>();
 
-        this.@internal       = @internal;
+        this.@internal  = @internal;
         Data            = data;
         this.channel    = channel;
         AppData         = appData ?? new Dictionary<string, object>();
@@ -249,7 +249,7 @@ public class Consumer : EventEmitter.EventEmitter
 
             var bufferBuilder = channel.BufferPool.Get();
             var response = await channel.RequestAsync(bufferBuilder, Method.CONSUMER_GET_STATS, null, null, @internal.ConsumerId);
-            var stats = response.Value.BodyAsConsumer_GetStatsResponse().UnPack().Stats;
+            var stats = response?.BodyAsConsumer_GetStatsResponse().UnPack().Stats;
             return stats;
         }
     }
@@ -367,7 +367,7 @@ public class Consumer : EventEmitter.EventEmitter
                 FBS.Request.Body.Consumer_SetPreferredLayersRequest,
                 setPreferredLayersRequestOffset.Value,
                 @internal.ConsumerId);
-            var preferredLayers = response.Value.BodyAsConsumer_SetPreferredLayersResponse().UnPack().PreferredLayers;
+            var preferredLayers = response?.BodyAsConsumer_SetPreferredLayersResponse().UnPack().PreferredLayers;
 
             PreferredLayers = preferredLayers;
         }

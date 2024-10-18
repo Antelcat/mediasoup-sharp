@@ -52,8 +52,8 @@ public class ActiveSpeakerObserver : RtpObserver.RtpObserver
             {
                 var dominantSpeakerNotification = notification.BodyAsActiveSpeakerObserver_DominantSpeakerNotification().UnPack();
 
-                var producer = GetProducerById(dominantSpeakerNotification.ProducerId);
-                if(producer != null)
+                var producer = await GetProducerById(dominantSpeakerNotification.ProducerId);
+                if (producer != null)
                 {
                     var dominantSpeaker = new ActiveSpeakerObserverDominantSpeaker
                     {

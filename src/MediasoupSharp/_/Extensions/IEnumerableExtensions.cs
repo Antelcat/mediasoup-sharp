@@ -7,7 +7,8 @@ internal static class EnumerableExtensions
     public static bool IsNullOrEmpty<T>([NotNullWhen(false)] this IEnumerable<T>? enumerable) =>
         enumerable is null || !enumerable.Any();
     
-    public static Dictionary<TKey, TValue> Merge<TKey, TValue>(this IDictionary<TKey, TValue> first, IDictionary<TKey, TValue> second)
+    public static Dictionary<TKey, TValue> Merge<TKey, TValue>(this IDictionary<TKey, TValue> first, 
+                                                               IDictionary<TKey, TValue> second)
         where TKey : notnull
     {
         var result = new Dictionary<TKey, TValue>();
