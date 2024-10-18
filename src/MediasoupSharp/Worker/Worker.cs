@@ -59,7 +59,7 @@ public class Worker : WorkerBase
         if(workerPath.IsNullOrWhiteSpace())
         {
             // 见：https://docs.microsoft.com/en-us/dotnet/core/rid-catalog
-            string rid = RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+            var rid = RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
                 ? "linux"
                 : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
                     ? "osx"
@@ -260,13 +260,11 @@ public class Worker : WorkerBase
 
     private void OnNotificationHandle(string handlerId, Event @event, Notification notification)
     {
-        if(!spawnDone && @event == Event.WORKER_RUNNING)
-        {
-            spawnDone = true;
-            Logger.LogDebug("Worker[{ProcessId}] process running", ProcessId);
-            Emit("@success");
-            Channel.OnNotification -= OnNotificationHandle;
-        }
+        if (spawnDone || @event != Event.WORKER_RUNNING) return;
+        spawnDone = true;
+        Logger.LogDebug("Worker[{ProcessId}] process running", ProcessId);
+        Emit("@success");
+        Channel.OnNotification -= OnNotificationHandle;
     }
 
     private void OnExit(Process process)

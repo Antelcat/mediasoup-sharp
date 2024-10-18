@@ -200,13 +200,14 @@ public abstract class WorkerBase : EventEmitter.EventEmitter, IDisposable, IWork
             // Build the request.
             var fbsListenInfos = webRtcServerOptions.ListenInfos.Select(m => new ListenInfoT
             {
-                Protocol       = m.Protocol,
-                Ip             = m.Ip,
-                AnnouncedAddress    = m.AnnouncedAddress,
-                Port           = m.Port,
-                Flags          = m.Flags,
-                SendBufferSize = m.SendBufferSize,
-                RecvBufferSize = m.RecvBufferSize
+                Protocol         = m.Protocol,
+                Ip               = m.Ip,
+                AnnouncedAddress = m.AnnouncedAddress,
+                Port             = m.Port,
+                PortRange        = m.PortRange,
+                Flags            = m.Flags,
+                SendBufferSize   = m.SendBufferSize,
+                RecvBufferSize   = m.RecvBufferSize
             }).ToList();
 
             var webRtcServerId = Guid.NewGuid().ToString();

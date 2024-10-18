@@ -294,6 +294,7 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
                         Ip               = m.Ip,
                         AnnouncedAddress = m.AnnouncedAddress,
                         Port             = m.Port,
+                        PortRange        = m.PortRange,
                         Flags            = m.Flags,
                         SendBufferSize   = m.SendBufferSize,
                         RecvBufferSize   = m.RecvBufferSize,
@@ -391,7 +392,7 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
     /// Create a PlainTransport.
     /// </summary>
     public async Task<PlainTransport.PlainTransport> CreatePlainTransportAsync(
-        PlainTransportOptions plainTransportOptions)
+        PlainTransportOptions options)
     {
         logger.LogDebug("CreatePlainTransportAsync()");
 
@@ -400,14 +401,14 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
             if (closed)
                 throw new InvalidStateException("Router closed");
 
-            if (plainTransportOptions.ListenInfo?.Ip.IsNullOrWhiteSpace() != false)
+            if (options.ListenInfo?.Ip.IsNullOrWhiteSpace() != false)
                 throw new ArgumentException("Missing ListenInfo");
 
             // If rtcpMux is enabled, ignore rtcpListenInfo.
-            if (plainTransportOptions is { RtcpMux: true, RtcpListenInfo: not null })
+            if (options is { RtcpMux: true, RtcpListenInfo: not null })
             {
                 logger.LogWarning("createPlainTransport() | ignoring rtcpMux since rtcpListenInfo is given");
-                plainTransportOptions.RtcpMux = false;
+                options.RtcpMux = false;
             }
 
             var baseTransportOptions = new FBS.Transport.OptionsT
@@ -415,20 +416,22 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
                 Direct                          = false,
                 MaxMessageSize                  = null,
                 InitialAvailableOutgoingBitrate = null,
-                EnableSctp                      = plainTransportOptions.EnableSctp,
-                NumSctpStreams                  = plainTransportOptions.NumSctpStreams,
-                MaxSctpMessageSize              = plainTransportOptions.MaxSctpMessageSize,
-                SctpSendBufferSize              = plainTransportOptions.SctpSendBufferSize,
+                EnableSctp                      = options.EnableSctp,
+                NumSctpStreams                  = options.NumSctpStreams,
+                MaxSctpMessageSize              = options.MaxSctpMessageSize,
+                SctpSendBufferSize              = options.SctpSendBufferSize,
                 IsDataChannel                   = false
             };
 
-            var plainTransportOptionsForCreate = new FBS.PlainTransport.PlainTransportOptionsT
+            var plainTransportOptions = new FBS.PlainTransport.PlainTransportOptionsT
             {
-                Base           = baseTransportOptions,
-                ListenInfo     = plainTransportOptions.ListenInfo,
-                RtcpListenInfo = plainTransportOptions.RtcpListenInfo,
-                RtcpMux        = plainTransportOptions.RtcpMux,
-                Comedia        = plainTransportOptions.Comedia,
+                Base            = baseTransportOptions,
+                ListenInfo      = options.ListenInfo,
+                RtcpListenInfo  = options.RtcpListenInfo,
+                RtcpMux         = options.RtcpMux,
+                Comedia         = options.Comedia,
+                EnableSrtp      = options.EnableSrtp,
+                SrtpCryptoSuite = options.SrtpCryptoSuite
             };
 
             var transportId = Guid.NewGuid().ToString();
@@ -439,15 +442,15 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
             var createPlainTransportRequest = new CreatePlainTransportRequestT
             {
                 TransportId = transportId,
-                Options     = plainTransportOptionsForCreate
+                Options     = plainTransportOptions
             };
 
-            var createPlainTransportRequestOffset =
-                CreatePlainTransportRequest.Pack(bufferBuilder, createPlainTransportRequest);
+            var requestOffset = CreatePlainTransportRequest.Pack(bufferBuilder, createPlainTransportRequest);
 
-            var response = await channel.RequestAsync(bufferBuilder, Method.ROUTER_CREATE_PLAINTRANSPORT,
+            var response = await channel.RequestAsync(bufferBuilder,
+                Method.ROUTER_CREATE_PLAINTRANSPORT,
                 Body.Router_CreatePlainTransportRequest,
-                createPlainTransportRequestOffset.Value,
+                requestOffset.Value,
                 @internal.RouterId);
 
             /* Decode Response. */
@@ -457,7 +460,7 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
                 new TransportInternal(@internal.RouterId, transportId),
                 data, // 直接使用返回值
                 channel,
-                plainTransportOptions.AppData,
+                options.AppData,
                 () => Data.RtpCapabilities,
                 async m =>
                 {
@@ -486,7 +489,7 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
     /// </summary>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="InvalidStateException"></exception>
-    public async Task<PipeTransport.PipeTransport> CreatePipeTransportAsync(PipeTransportOptions pipeTransportOptions)
+    public async Task<PipeTransport.PipeTransport> CreatePipeTransportAsync(PipeTransportOptions options)
     {
         logger.LogDebug("CreatePipeTransportAsync()");
 
@@ -497,7 +500,7 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
                 throw new InvalidStateException("Router closed");
             }
 
-            if (pipeTransportOptions.ListenInfo?.Ip.IsNullOrWhiteSpace() != false)
+            if (options.ListenInfo?.Ip.IsNullOrWhiteSpace() != false)
             {
                 throw new ArgumentException("Missing ListenInfo");
             }
@@ -507,21 +510,21 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
                 Direct                          = false,
                 MaxMessageSize                  = null,
                 InitialAvailableOutgoingBitrate = null,
-                EnableSctp                      = pipeTransportOptions.EnableSctp,
-                NumSctpStreams                  = pipeTransportOptions.NumSctpStreams,
-                MaxSctpMessageSize              = pipeTransportOptions.MaxSctpMessageSize,
-                SctpSendBufferSize              = pipeTransportOptions.SctpSendBufferSize,
+                EnableSctp                      = options.EnableSctp,
+                NumSctpStreams                  = options.NumSctpStreams,
+                MaxSctpMessageSize              = options.MaxSctpMessageSize,
+                SctpSendBufferSize              = options.SctpSendBufferSize,
                 IsDataChannel                   = false
             };
 
-            var listenInfo = pipeTransportOptions.ListenInfo;
+            var listenInfo = options.ListenInfo;
 
-            var pipeTransportOptionsForCreate = new FBS.PipeTransport.PipeTransportOptionsT
+            var pipeTransportOptions = new FBS.PipeTransport.PipeTransportOptionsT
             {
                 Base       = baseTransportOptions,
-                ListenInfo = pipeTransportOptions.ListenInfo,
-                EnableRtx  = pipeTransportOptions.EnableRtx,
-                EnableSrtp = pipeTransportOptions.EnableSrtp,
+                ListenInfo = options.ListenInfo,
+                EnableRtx  = options.EnableRtx,
+                EnableSrtp = options.EnableSrtp,
             };
 
             var transportId = Guid.NewGuid().ToString();
@@ -532,7 +535,7 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
             var createPipeTransportRequest = new CreatePipeTransportRequestT
             {
                 TransportId = transportId,
-                Options     = pipeTransportOptionsForCreate
+                Options     = pipeTransportOptions
             };
 
             var createPipeTransportRequestOffset =
@@ -550,7 +553,7 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
                 new TransportInternal(@internal.RouterId, transportId),
                 data, // 直接使用返回值
                 channel,
-                pipeTransportOptions.AppData,
+                options.AppData,
                 () => Data.RtpCapabilities,
                 async m =>
                 {
