@@ -38,7 +38,7 @@ public class Tests
             { "DEBUG", "*INFO* *WARN* *ERROR*" },
             { "INTERACTIVE", "'true'" },
             { "MEDIASOUP_LISTEN_IP", "0.0.0.0" },
-            { "MEDIASOUP_ANNOUNCED_IP", "0.0.0.0" },
+            { "MEDIASOUP_ANNOUNCED_ADDRESS", "0.0.0.0" },
         };
         try
         {
@@ -79,4 +79,6 @@ public class Tests
             return ret;
         }
     }
+    
 }
+

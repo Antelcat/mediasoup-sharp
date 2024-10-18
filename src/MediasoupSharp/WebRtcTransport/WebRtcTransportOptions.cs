@@ -1,9 +1,10 @@
-﻿using FBS.SctpParameters;
+﻿using Antelcat.AutoGen.ComponentModel;
+using FBS.SctpParameters;
 using FBS.Transport;
 
 namespace MediasoupSharp.WebRtcTransport;
 
-public class WebRtcTransportOptionsBase
+public record WebRtcTransportOptionsBase
 {
     /// <summary>
     /// Listen in UDP. Default true.
@@ -38,7 +39,7 @@ public class WebRtcTransportOptionsBase
     /// <summary>
     /// SCTP streams number.
     /// </summary>
-    public NumSctpStreamsT? NumSctpStreams { get; set; } = new() { Os = 1024, Mis = 1024 };
+    public FBS.SctpParameters.NumSctpStreamsT? NumSctpStreams { get; set; } = new() { Os = 1024, Mis = 1024 };
 
     /// <summary>
     /// Maximum allowed size for SCTP messages sent by DataProducers.
@@ -51,6 +52,11 @@ public class WebRtcTransportOptionsBase
     /// Default 262144.
     /// </summary>
     public uint SctpSendBufferSize { get; set; } = 262144;
+  
+    /// <summary>
+    /// ICE consent timeout (in seconds). If 0 it is disabled. Default 30.
+    /// </summary>
+    public byte IceConsentTimeout { get; set; } = 30;
 
     /// <summary>
     /// Custom application data.
@@ -81,7 +87,9 @@ public class WebRtcTransportListenIndividual
     public ushort? Port { get; set; } = 0; // mediasoup-work needs >= 0
 }
 
-public class WebRtcTransportOptions : WebRtcTransportOptionsBase
+[Serializable]
+[AutoDeconstruct]
+public partial record WebRtcTransportOptions : WebRtcTransportOptionsBase
 {
     /// <summary>
     /// Instance of WebRtcServer. Mandatory unless listenIps is given.
@@ -92,5 +100,5 @@ public class WebRtcTransportOptions : WebRtcTransportOptionsBase
     /// Listening IP address or addresses in order of preference (first one is the
     /// preferred one).
     /// </summary>
-    public ListenInfoT[]? ListenInfos { get; set; }
+    public FBS.Transport.ListenInfoT[]? ListenInfos { get; set; }
 }

@@ -70,9 +70,9 @@ public class WebRtcServer : EventEmitter.EventEmitter
     {
         logger = loggerFactory.CreateLogger<WebRtcServer>();
 
-        this.@internal    = @internal;
-        this.channel = channel;
-        AppData      = appData ?? new Dictionary<string, object>();
+        this.@internal = @internal;
+        this.channel   = channel;
+        AppData        = appData ?? new Dictionary<string, object>();
     }
 
     /// <summary>

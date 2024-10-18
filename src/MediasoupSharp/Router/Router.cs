@@ -13,6 +13,7 @@ using MediasoupSharp.PlainTransport;
 using MediasoupSharp.Producer;
 using MediasoupSharp.RtpObserver;
 using MediasoupSharp.RtpParameters;
+using MediasoupSharp.RtpParameters.Extensions;
 using MediasoupSharp.Transport;
 using MediasoupSharp.WebRtcTransport;
 using Microsoft.Extensions.Logging;
@@ -225,11 +226,24 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
     /// Create a WebRtcTransport.
     /// </summary>
     public async Task<WebRtcTransport.WebRtcTransport> CreateWebRtcTransportAsync(
-        WebRtcTransportOptions webRtcTransportOptions)
+        WebRtcTransportOptions options)
     {
+        var (webRtcServer,
+            listenInfos,
+            enableUdp,
+            enableTcp,
+            preferUdp,
+            preferTcp,
+            initialAvailableOutgoingBitrate,
+            enableSctp,
+            numSctpStreams,
+            maxSctpMessageSize,
+            sctpSendBufferSize,
+            iceConsentTimeout,
+            appData) = options;
         logger.LogDebug("CreateWebRtcTransportAsync()");
 
-        if (webRtcTransportOptions.WebRtcServer == null && webRtcTransportOptions.ListenInfos.IsNullOrEmpty())
+        if (webRtcServer == null && listenInfos.IsNullOrEmpty())
         {
             throw new ArgumentException("missing webRtcServer and listenIps (one of them is mandatory)");
         }
@@ -240,19 +254,18 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
         }
         */
 
-        var webRtcServer = webRtcTransportOptions.WebRtcServer;
 
         // If webRtcServer is given, then do not force default values for enableUdp
         // and enableTcp. Otherwise set them if unset.
         if (webRtcServer != null)
         {
-            webRtcTransportOptions.EnableUdp ??= true;
-            webRtcTransportOptions.EnableTcp ??= true;
+            enableUdp ??= true;
+            enableTcp ??= true;
         }
         else
         {
-            webRtcTransportOptions.EnableUdp ??= true;
-            webRtcTransportOptions.EnableTcp ??= false;
+            enableUdp ??= true;
+            enableTcp ??= false;
         }
 
         await using (await closeLock.ReadLockAsync())
@@ -274,16 +287,17 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
             }
             else
             {
-                var fbsListenInfos = webRtcTransportOptions.ListenInfos!.Select(m => new FBS.Transport.ListenInfoT
-                {
-                    Protocol         = m.Protocol,
-                    Ip               = m.Ip,
-                    AnnouncedAddress = m.AnnouncedAddress,
-                    Port             = m.Port,
-                    Flags            = m.Flags,
-                    SendBufferSize   = m.SendBufferSize,
-                    RecvBufferSize   = m.RecvBufferSize,
-                }).ToList();
+                var fbsListenInfos = listenInfos!
+                    .Select(static m => new FBS.Transport.ListenInfoT
+                    {
+                        Protocol         = m.Protocol,
+                        Ip               = m.Ip,
+                        AnnouncedAddress = m.AnnouncedAddress,
+                        Port             = m.Port,
+                        Flags            = m.Flags,
+                        SendBufferSize   = m.SendBufferSize,
+                        RecvBufferSize   = m.RecvBufferSize,
+                    }).ToList();
 
                 webRtcTransportListenIndividual =
                     new FBS.WebRtcTransport.ListenIndividualT
@@ -296,28 +310,29 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
             {
                 Direct                          = false,
                 MaxMessageSize                  = null,
-                InitialAvailableOutgoingBitrate = webRtcTransportOptions.InitialAvailableOutgoingBitrate,
-                EnableSctp                      = webRtcTransportOptions.EnableSctp,
-                NumSctpStreams                  = webRtcTransportOptions.NumSctpStreams,
-                MaxSctpMessageSize              = webRtcTransportOptions.MaxSctpMessageSize,
-                SctpSendBufferSize              = webRtcTransportOptions.SctpSendBufferSize,
+                InitialAvailableOutgoingBitrate = initialAvailableOutgoingBitrate,
+                EnableSctp                      = enableSctp,
+                NumSctpStreams                  = numSctpStreams,
+                MaxSctpMessageSize              = maxSctpMessageSize,
+                SctpSendBufferSize              = sctpSendBufferSize,
                 IsDataChannel                   = true
             };
 
-            var webRtcTransportOptionsForCreate = new FBS.WebRtcTransport.WebRtcTransportOptionsT
+            var webRtcTransportOptions = new FBS.WebRtcTransport.WebRtcTransportOptionsT
             {
-                Base      = baseTransportOptions,
-                EnableUdp = webRtcTransportOptions.EnableUdp!.Value,
-                EnableTcp = webRtcTransportOptions.EnableTcp!.Value,
-                PreferUdp = webRtcTransportOptions.PreferUdp,
-                PreferTcp = webRtcTransportOptions.PreferTcp,
+                Base = baseTransportOptions,
                 Listen = new FBS.WebRtcTransport.ListenUnion
                 {
                     Type = webRtcServer != null
                         ? FBS.WebRtcTransport.Listen.ListenServer
                         : FBS.WebRtcTransport.Listen.ListenIndividual,
                     Value = webRtcServer != null ? webRtcTransportListenServer : webRtcTransportListenIndividual
-                }
+                },
+                EnableUdp         = enableUdp.Value,
+                EnableTcp         = enableTcp.Value,
+                PreferUdp         = preferUdp,
+                PreferTcp         = preferTcp,
+                IceConsentTimeout = iceConsentTimeout,
             };
 
             var transportId = Guid.NewGuid().ToString();
@@ -328,7 +343,7 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
             var createWebRtcTransportRequest = new CreateWebRtcTransportRequestT
             {
                 TransportId = transportId,
-                Options     = webRtcTransportOptionsForCreate
+                Options     = webRtcTransportOptions
             };
 
             var createWebRtcTransportRequestOffset =
@@ -342,26 +357,26 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
                 @internal.RouterId);
 
             /* Decode Response. */
-            var data = response.Value.BodyAsWebRtcTransport_DumpResponse().UnPack();
+            var data = response!.Value.BodyAsWebRtcTransport_DumpResponse().UnPack();
 
             var transport = new WebRtcTransport.WebRtcTransport(loggerFactory,
                 new TransportInternal(@internal.RouterId, transportId),
                 data, // 直接使用返回值
                 channel,
-                webRtcTransportOptions.AppData,
+                appData,
                 () => Data.RtpCapabilities,
                 async m =>
                 {
                     await using (await producersLock.ReadLockAsync())
                     {
-                        return producers.TryGetValue(m, out var p) ? p : null;
+                        return producers.GetValueOrDefault(m);
                     }
                 },
                 async m =>
                 {
                     await using (await dataProducersLock.ReadLockAsync())
                     {
-                        return dataProducers.TryGetValue(m, out var p) ? p : null;
+                        return dataProducers.GetValueOrDefault(m);
                     }
                 }
             );
@@ -383,17 +398,13 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
         await using (await closeLock.ReadLockAsync())
         {
             if (closed)
-            {
                 throw new InvalidStateException("Router closed");
-            }
 
             if (plainTransportOptions.ListenInfo?.Ip.IsNullOrWhiteSpace() != false)
-            {
                 throw new ArgumentException("Missing ListenInfo");
-            }
 
             // If rtcpMux is enabled, ignore rtcpListenInfo.
-            if (plainTransportOptions.RtcpMux && plainTransportOptions.RtcpListenInfo != null)
+            if (plainTransportOptions is { RtcpMux: true, RtcpListenInfo: not null })
             {
                 logger.LogWarning("createPlainTransport() | ignoring rtcpMux since rtcpListenInfo is given");
                 plainTransportOptions.RtcpMux = false;
@@ -452,14 +463,14 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
                 {
                     await using (await producersLock.ReadLockAsync())
                     {
-                        return producers.TryGetValue(m, out var p) ? p : null;
+                        return producers.GetValueOrDefault(m);
                     }
                 },
                 async m =>
                 {
                     await using (await dataProducersLock.ReadLockAsync())
                     {
-                        return dataProducers.TryGetValue(m, out var p) ? p : null;
+                        return dataProducers.GetValueOrDefault(m);
                     }
                 }
             );
@@ -545,14 +556,14 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
                 {
                     await using (await producersLock.ReadLockAsync())
                     {
-                        return producers.TryGetValue(m, out var p) ? p : null;
+                        return producers.GetValueOrDefault(m);
                     }
                 },
                 async m =>
                 {
                     await using (await dataProducersLock.ReadLockAsync())
                     {
-                        return dataProducers.TryGetValue(m, out var p) ? p : null;
+                        return dataProducers.GetValueOrDefault(m);
                     }
                 });
 
@@ -983,6 +994,7 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
                     throw;
                 }
             }
+
             throw new Exception("Internal error");
         }
     }
@@ -1034,7 +1046,7 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
                 {
                     await using (await producersLock.ReadLockAsync())
                     {
-                        return producers.TryGetValue(m, out var p) ? p : null;
+                        return producers.GetValueOrDefault(m);
                     }
                 });
 
@@ -1093,7 +1105,7 @@ public sealed class Router : EventEmitter.EventEmitter, IEquatable<Router>
                 {
                     await using (await producersLock.ReadLockAsync())
                     {
-                        return producers.TryGetValue(m, out var p) ? p : null;
+                        return producers.GetValueOrDefault(m);
                     }
                 });
 
