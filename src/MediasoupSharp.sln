@@ -11,9 +11,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediasoupSharp.Demo", "MediasoupSharp.Demo\MediasoupSharp.Demo.csproj", "{B83CBB83-135B-42AA-8823-E69140458BB2}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_", "_", "{D6F2D417-D704-4CEA-B057-38801F5A9467}"
-	ProjectSection(SolutionItems) = preProject
-		..\tools\flatc.exe = ..\tools\flatc.exe
-	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
