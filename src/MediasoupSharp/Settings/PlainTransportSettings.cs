@@ -2,9 +2,9 @@
 
 namespace MediasoupSharp.Settings;
 
-public class PlainTransportSettings
+public record PlainTransportSettings
 {
-    public ListenInfoT ListenInfo { get; set; }
+    public ListenInfoT? ListenInfo { get; set; }
 
-    public uint MaxSctpMessageSize { get; set; }
+    public uint? MaxSctpMessageSize { get; set; }
 }

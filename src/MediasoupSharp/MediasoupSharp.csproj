@@ -10,8 +10,8 @@
 
     <ItemGroup>
         <PackageReference Include="Antelcat.AutoGen" Version="2.0.0-preview6" />
-        <PackageReference Include="Antelcat.FlatBuffers" Version="1.0.0-preview7" />
-        <PackageReference Include="Google.FlatBuffers" Version="23.5.26" />
+        <PackageReference Include="Antelcat.FlatBuffers" Version="1.0.0-preview8" />
+        <PackageReference Include="Google.FlatBuffers" Version="24.3.25" />
         <PackageReference Include="Libuv" Version="1.10.0"/>
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0-rc.2.24473.5" />
         <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="9.0.0-rc.2.24474.3" />

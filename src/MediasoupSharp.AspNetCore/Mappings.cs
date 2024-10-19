@@ -3,7 +3,6 @@ using Antelcat.AutoGen.ComponentModel.Diagnostic;
 using MediasoupSharp.Settings;
 
 namespace MediasoupSharp.AspNetCore;
-
 [AutoMetadataFrom(typeof(WorkerSettings), MemberTypes.Property,
     Leading = """
               public static global::MediasoupSharp.Settings.WorkerSettings Apply(

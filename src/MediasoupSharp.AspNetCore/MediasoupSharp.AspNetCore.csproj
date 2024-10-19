@@ -12,9 +12,4 @@
       <ProjectReference Include="..\MediasoupSharp\MediasoupSharp.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <PackageReference Include="Antelcat.AutoGen" Version="2.0.0-preview5" />
-    </ItemGroup>
-
-
 </Project>
