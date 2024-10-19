@@ -4,6 +4,7 @@ using MediasoupSharp.Settings;
 
 namespace MediasoupSharp.AspNetCore;
 [AutoMetadataFrom(typeof(WorkerSettings), MemberTypes.Property,
+    BindingFlags = BindingFlags.Public,
     Leading = """
               public static global::MediasoupSharp.Settings.WorkerSettings Apply(
               this global::MediasoupSharp.Settings.WorkerSettings current,
@@ -11,13 +12,12 @@ namespace MediasoupSharp.AspNetCore;
               ){ return current with {
               """,
     Template = """
-               #if {CanWrite}
                {Name} = another.{Name} ?? current.{Name},
-               #endif
                
                """,
     Trailing = "};}")]
 [AutoMetadataFrom(typeof(WebRtcTransportSettings), MemberTypes.Property,
+    BindingFlags = BindingFlags.Public,
     Leading = """
               public static global::MediasoupSharp.Settings.WebRtcTransportSettings Apply(
               this global::MediasoupSharp.Settings.WebRtcTransportSettings current,
@@ -25,13 +25,12 @@ namespace MediasoupSharp.AspNetCore;
               ){ return current with {
               """,
     Template = """
-               #if {CanWrite}
                {Name} = another.{Name} ?? current.{Name},
-               #endif
 
                """,
     Trailing = "};}")]
-[AutoMetadataFrom(typeof(PlainTransportSettings), MemberTypes.Property,
+[AutoMetadataFrom(typeof(PlainTransportSettings), MemberTypes.Property, 
+    BindingFlags = BindingFlags.Public,
     Leading = """
               public static global::MediasoupSharp.Settings.PlainTransportSettings Apply(
               this global::MediasoupSharp.Settings.PlainTransportSettings current,
@@ -39,13 +38,12 @@ namespace MediasoupSharp.AspNetCore;
               ){ return current with {
               """,
     Template = """
-               #if {CanWrite}
                {Name} = another.{Name} ?? current.{Name},
-               #endif
 
                """,
     Trailing = "};}")]
 [AutoMetadataFrom(typeof(MediasoupStartupSettings), MemberTypes.Property,
+    BindingFlags = BindingFlags.Public,
     Leading = """
               public static global::MediasoupSharp.Settings.MediasoupStartupSettings Apply(
               this global::MediasoupSharp.Settings.MediasoupStartupSettings current,
@@ -53,9 +51,7 @@ namespace MediasoupSharp.AspNetCore;
               ){ return current with {
               """,
     Template = """
-               #if {CanWrite}
                {Name} = another.{Name} ?? current.{Name},
-               #endif
 
                """,
     Trailing = "};}")]
