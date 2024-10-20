@@ -1,8 +1,8 @@
 ﻿using FBS.Request;
 using FBS.WebRtcServer;
-using MediasoupSharp.Extensions;
 using MediasoupSharp.Channel;
 using MediasoupSharp.Exceptions;
+using MediasoupSharp.Internals.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
 

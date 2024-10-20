@@ -1,4 +1,5 @@
 ﻿using FBS.RtpParameters;
+using MediasoupSharp.Internals.Extensions;
 
 namespace MediasoupSharp.RtpParameters;
 

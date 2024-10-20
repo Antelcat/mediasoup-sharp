@@ -4,6 +4,7 @@ using FBS.Request;
 using FBS.RtpStream;
 using MediasoupSharp.Channel;
 using MediasoupSharp.Exceptions;
+using MediasoupSharp.Internals.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
 

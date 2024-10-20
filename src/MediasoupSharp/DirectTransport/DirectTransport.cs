@@ -5,6 +5,7 @@ using FBS.Transport;
 using MediasoupSharp.Channel;
 using MediasoupSharp.Consumer;
 using MediasoupSharp.Exceptions;
+using MediasoupSharp.Internals.Extensions;
 using MediasoupSharp.Producer;
 using MediasoupSharp.RtpParameters;
 using MediasoupSharp.Transport;

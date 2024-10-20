@@ -4,6 +4,7 @@ using FBS.Worker;
 using MediasoupSharp.Channel;
 using MediasoupSharp.Constants;
 using MediasoupSharp.Exceptions;
+using MediasoupSharp.Internals.Extensions;
 using MediasoupSharp.Router;
 using MediasoupSharp.Settings;
 using MediasoupSharp.WebRtcServer;

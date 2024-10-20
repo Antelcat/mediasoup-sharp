@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using LibuvSharp;
 using Process = LibuvSharp.Process;
 
@@ -79,6 +81,46 @@ public class Tests
             return ret;
         }
     }
-    
+
+
+    [Test]
+    public void TestSerialize()
+    {
+        var demo   = new Demo();
+        var option =  new JsonSerializerOptions
+        {
+            Converters = { new EnumConverter() }
+        };
+        var convert = JsonSerializer.Serialize(demo, option);
+        var source  = JsonSerializer.Deserialize<Demo>(convert, option);
+    }
+
+    public class Demo
+    {
+        public enum DemoEnum
+        {
+            A,
+            B
+        }
+        
+        public DemoEnum Enum { get; set; }
+    }
+
+    public class EnumConverter : JsonConverter<Demo.DemoEnum>
+    {
+        public override Demo.DemoEnum Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void Write(Utf8JsonWriter writer, Demo.DemoEnum value, JsonSerializerOptions options)
+        {
+            writer.WriteStringValue(value switch
+            {
+                Demo.DemoEnum.A => "a",
+                Demo.DemoEnum.B => "b"
+            });
+        }
+    }
 }
 

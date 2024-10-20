@@ -4,6 +4,7 @@ using FBS.Request;
 using FBS.Transport;
 using MediasoupSharp.Channel;
 using MediasoupSharp.Consumer;
+using MediasoupSharp.Internals.Extensions;
 using MediasoupSharp.RtpParameters;
 using MediasoupSharp.RtpParameters.Extensions;
 using MediasoupSharp.Transport;

@@ -5,6 +5,7 @@ using FBS.RtpStream;
 using Google.FlatBuffers;
 using MediasoupSharp.Channel;
 using MediasoupSharp.Exceptions;
+using MediasoupSharp.Internals.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
 

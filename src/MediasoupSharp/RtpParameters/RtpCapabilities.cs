@@ -531,7 +531,7 @@ public class RtpCapabilities
             [
                 new () {
                     Kind             = MediaKind.AUDIO,
-                    Uri              =  RtpHeaderExtensionUri.Mid,
+                    Uri              = RtpHeaderExtensionUri.Mid,
                     PreferredId      = 1,
                     PreferredEncrypt = false,
                     Direction        = RtpHeaderExtensionDirection.SendReceive

@@ -8,6 +8,7 @@ using MediasoupSharp.DataConsumer;
 using MediasoupSharp.DataProducer;
 using MediasoupSharp.DirectTransport;
 using MediasoupSharp.Exceptions;
+using MediasoupSharp.Internals.Extensions;
 using MediasoupSharp.PipeTransport;
 using MediasoupSharp.PlainTransport;
 using MediasoupSharp.Producer;

@@ -1,11 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+    <Import Project="../Build.props"/>
+    
     <PropertyGroup>
         <TargetFrameworks>net7.0;net8.0;net9.0</TargetFrameworks>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <LangVersion>preview</LangVersion>
-        <Version>3.14.7</Version>
     </PropertyGroup>
 
     <ItemGroup>
@@ -22,6 +23,7 @@
     <ItemGroup>
         <InternalsVisibleTo Include="MediasoupSharp.Test"/>
         <InternalsVisibleTo Include="MediasoupSharp.AspNetCore"/>
+        <InternalsVisibleTo Include="MediasoupSharp.Demo"/>
         <AdditionalFiles LinkBase="fbs" Include="..\..\mediasoup\worker\fbs\*.fbs"/>
     </ItemGroup>
 

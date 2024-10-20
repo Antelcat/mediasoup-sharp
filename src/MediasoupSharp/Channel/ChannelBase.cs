@@ -6,6 +6,7 @@ using FBS.Request;
 using FBS.Response;
 using Google.FlatBuffers;
 using MediasoupSharp.Exceptions;
+using MediasoupSharp.Internals.Extensions;
 using MediasoupSharp.PooledObjectPolicies;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ObjectPool;

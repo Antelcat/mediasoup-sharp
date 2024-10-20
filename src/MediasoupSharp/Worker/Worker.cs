@@ -4,6 +4,7 @@ using System.Text;
 using FBS.Notification;
 using LibuvSharp;
 using MediasoupSharp.Exceptions;
+using MediasoupSharp.Internals.Extensions;
 using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.Worker;
@@ -39,7 +40,7 @@ public class Worker : WorkerBase
     /// <summary>
     /// Pipes.
     /// </summary>
-    private readonly UVStream[] pipes;
+    private readonly UVStream?[] pipes;
 
     #endregion Private Fields
 
@@ -182,7 +183,7 @@ public class Worker : WorkerBase
 
         foreach (var pipe in pipes)
         {
-            pipe.Resume();
+            pipe?.Resume();
         }
     }
 

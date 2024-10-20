@@ -2,12 +2,12 @@
 using FBS.SctpParameters;
 using FBS.Transport;
 using Force.DeepCloner;
-using MediasoupSharp.Extensions;
 using MediasoupSharp.Channel;
 using MediasoupSharp.Consumer;
 using MediasoupSharp.DataConsumer;
 using MediasoupSharp.DataProducer;
 using MediasoupSharp.Exceptions;
+using MediasoupSharp.Internals.Extensions;
 using MediasoupSharp.Producer;
 using MediasoupSharp.RtpParameters;
 using MediasoupSharp.RtpParameters.Extensions;

@@ -6,6 +6,7 @@ using MediasoupSharp.AspNetCore;
 using MediasoupSharp.Settings;
 using MediasoupSharp.Worker;
 using MediasoupSharp.Extensions;
+using MediasoupSharp.Internals.Extensions;
 
 // ReSharper disable once CheckNamespace
 namespace Microsoft.Extensions.DependencyInjection;

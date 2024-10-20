@@ -1,0 +1,33 @@
+<Project>
+    <PropertyGroup>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <Version>3.14.7</Version>
+        <Authors>Antelcat</Authors>
+        <Copyright>Copyright Antelcat. All rights reserved</Copyright>
+        <PackageProjectUrl>https://github.com/Antelcat/mediasoup-sharp</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/Antelcat/mediasoup-sharp.git</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <!--<PackageIcon>Icon.png</PackageIcon>-->
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageReleaseNotes>mediasoup-sharp</PackageReleaseNotes>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!--<None Include="..\..\docs\Icon.png">
+            <Pack>True</Pack>
+            <PackagePath>\</PackagePath>
+            <Link>Icon.png</Link>
+        </None>-->
+        <None Include="..\..\README.md">
+            <Pack>True</Pack>
+            <PackagePath>\</PackagePath>
+            <Link>README.md</Link>
+        </None>
+    </ItemGroup>
+    
+    <!--<Target Condition="$(SolutionName) == 'MediasoupSharp'" Name="PostBuild" AfterTargets="PostBuildEvent">
+        <Exec Command="copy $(ProjectDir)bin\Debug\*.nupkg ..\..\build\ /Y" />
+    </Target>-->
+
+</Project>

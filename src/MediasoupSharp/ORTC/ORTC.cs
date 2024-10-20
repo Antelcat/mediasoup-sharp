@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using FBS.RtpParameters;
 using FBS.SctpParameters;
 using Force.DeepCloner;
+using MediasoupSharp.Internals.Extensions;
 using MediasoupSharp.RtpParameters;
 using MediasoupSharp.SctpParameters;
 using RtpCodecParameters = MediasoupSharp.RtpParameters.RtpCodecParameters;

@@ -1,6 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using FBS.Notification;
 using MediasoupSharp.Channel;
+using MediasoupSharp.Internals.Extensions;
 using Microsoft.Extensions.Logging;
 
 namespace MediasoupSharp.Worker;
