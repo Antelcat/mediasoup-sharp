@@ -14,7 +14,6 @@ using MediasoupSharp.PlainTransport;
 using MediasoupSharp.Producer;
 using MediasoupSharp.RtpObserver;
 using MediasoupSharp.RtpParameters;
-using MediasoupSharp.RtpParameters.Extensions;
 using MediasoupSharp.Transport;
 using MediasoupSharp.WebRtcTransport;
 using Microsoft.Extensions.Logging;

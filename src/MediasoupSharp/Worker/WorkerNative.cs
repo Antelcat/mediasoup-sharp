@@ -25,14 +25,14 @@ public class WorkerNative : WorkerBase
 
         if(workerSettings.LogLevel.HasValue)
         {
-            args.Add($"--logLevel={workerSettings.LogLevel.Value.GetEnumMemberValue()}");
+            args.Add($"--logLevel={workerSettings.LogLevel.Value.GetEnumText()}");
         }
 
         if(!workerSettings.LogTags.IsNullOrEmpty())
         {
             foreach (var logTag in workerSettings.LogTags)
             {
-                args.Add($"--logTag={logTag.GetEnumMemberValue()}");
+                args.Add($"--logTag={logTag.GetEnumText()}");
             }
         }
 

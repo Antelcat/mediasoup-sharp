@@ -1,7 +1,6 @@
 ﻿using FBS.RtpParameters;
 using FBS.Transport;
 using MediasoupSharp.Constants;
-using MediasoupSharp.RtpParameters;
 using MediasoupSharp.Settings;
 
 namespace MediasoupSharp;
@@ -14,15 +13,15 @@ public class MediasoupOptions
 
     public static MediasoupOptions Default { get; } = new()
     {
-        MediasoupStartupSettings = new ()
+        MediasoupStartupSettings = new()
         {
             WorkerPath       = "mediasoup-worker",
             MediasoupVersion = "0.0.1",
             NumberOfWorkers  = Environment.ProcessorCount,
         },
-        MediasoupSettings = new ()
+        MediasoupSettings = new()
         {
-            WorkerSettings = new ()
+            WorkerSettings = new()
             {
                 LogLevel = WorkerLogLevel.Warn,
                 LogTags =
@@ -44,96 +43,116 @@ public class MediasoupOptions
                 RtcMinPort = 10000,
                 RtcMaxPort = 59999,
             },
-            RouterSettings = new ()
+            RouterSettings = new()
             {
                 RtpCodecCapabilities =
                 [
-                    new ()
+                    new()
                     {
                         Kind      = MediaKind.AUDIO,
                         MimeType  = "audio/opus",
                         ClockRate = 48000,
                         Channels  = 2
                     },
-                    new () {
+                    new()
+                    {
                         Kind      = MediaKind.VIDEO,
                         MimeType  = "video/VP8",
                         ClockRate = 90000,
                         Parameters = new Dictionary<string, object>
                         {
-                            { "x-google-start-bitrate" , 1000 }
+                            { "x-google-start-bitrate", 1000 }
                         }
                     },
-                    new () {
+                    new()
+                    {
                         Kind      = MediaKind.VIDEO,
                         MimeType  = "video/VP9",
                         ClockRate = 90000,
                         Parameters = new Dictionary<string, object>
                         {
-                            { "profile-id"             , 2 },
-                            { "x-google-start-bitrate" , 1000 }
+                            { "profile-id", 2 },
+                            { "x-google-start-bitrate", 1000 }
                         }
                     },
-                    new () {
+                    new()
+                    {
                         Kind      = MediaKind.VIDEO,
                         MimeType  = "video/h264",
                         ClockRate = 90000,
                         Parameters = new Dictionary<string, object>
                         {
-                            { "packetization-mode"      , 1 },
-                            { "profile-level-id"        , "4d0032" },
-                            { "level-asymmetry-allowed" , 1 },
-                            { "x-google-start-bitrate"  , 1000 }
+                            { "packetization-mode", 1 },
+                            { "profile-level-id", "4d0032" },
+                            { "level-asymmetry-allowed", 1 },
+                            { "x-google-start-bitrate", 1000 }
                         }
                     },
-                    new () {
+                    new()
+                    {
                         Kind      = MediaKind.VIDEO,
                         MimeType  = "video/h264",
                         ClockRate = 90000,
                         Parameters = new Dictionary<string, object>
                         {
-                            { "packetization-mode"      , 1 },
-                            { "profile-level-id"        , "42e01f" },
-                            { "level-asymmetry-allowed" , 1 },
-                            { "x-google-start-bitrate"  , 1000 }
+                            { "packetization-mode", 1 },
+                            { "profile-level-id", "42e01f" },
+                            { "level-asymmetry-allowed", 1 },
+                            { "x-google-start-bitrate", 1000 }
                         }
                     }
                 ],
             },
-            WebRtcServerSettings = new ()
+            WebRtcServerSettings = new()
             {
                 ListenInfos =
                 [
-                    new ()
+                    new()
                     {
                         Protocol         = Protocol.UDP,
                         Ip               = "0.0.0.0",
                         AnnouncedAddress = null,
                         Port             = 44444,
+                        Flags            = new(),
+                        PortRange        = new()
                     },
-                    new ()
+                    new()
                     {
-                        Protocol    = Protocol.TCP,
-                        Ip          = "0.0.0.0",
+                        Protocol         = Protocol.TCP,
+                        Ip               = "0.0.0.0",
                         AnnouncedAddress = null,
-                        Port        = 44444,
+                        Port             = 44444,
+                        Flags            = new(),
+                        PortRange        = new()
                     }
                 ]
             },
-            WebRtcTransportSettings = new ()
+            WebRtcTransportSettings = new()
             {
                 ListenInfos =
                 [
-                    new () { Ip = "0.0.0.0",  AnnouncedAddress = null }
+                    new()
+                    {
+                        Ip               = "0.0.0.0",
+                        AnnouncedAddress = null,
+                        Flags            = new(),
+                        PortRange        = new()
+                    }
                 ],
                 InitialAvailableOutgoingBitrate = 1_000_000,
                 MinimumAvailableOutgoingBitrate = 600_000,
                 MaxSctpMessageSize              = 256 * 1024,
                 MaximumIncomingBitrate          = 1_500_000,
             },
-            PlainTransportSettings = new ()
+            PlainTransportSettings = new()
             {
-                ListenInfo         = new () { Ip = "0.0.0.0", AnnouncedAddress = null },
+                ListenInfo = new()
+                {
+                    Ip               = "0.0.0.0",
+                    AnnouncedAddress = null,
+                    Flags            = new(),
+                    PortRange        = new()
+                },
                 MaxSctpMessageSize = 256 * 1024,
             }
         }

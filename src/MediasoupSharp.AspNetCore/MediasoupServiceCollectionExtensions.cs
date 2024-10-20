@@ -93,15 +93,17 @@ public static class MediasoupServiceCollectionExtensions
             {
                 var localIPv4IpAddresses = IPAddressExtensions.GetLocalIPAddresses(AddressFamily.InterNetwork)
                     .Where(m => !Equals(m, IPAddress.Loopback));
-                
+
                 var listenInfosTemp = (from ip in localIPv4IpAddresses
                     let ipString = ip.ToString()
                     select new ListenInfoT
                     {
-                        Ip          = ipString,
-                        Port        = 44444,
-                        Protocol    = Protocol.TCP,
-                        AnnouncedAddress = ipString
+                        Ip               = ipString,
+                        Port             = 44444,
+                        Protocol         = Protocol.TCP,
+                        AnnouncedAddress = ipString,
+                        Flags            = new(),
+                        PortRange        = new()
                     }).ToList();
 
                 if (listenInfosTemp.IsNullOrEmpty())
@@ -114,7 +116,9 @@ public static class MediasoupServiceCollectionExtensions
                     Ip               = m.Ip,
                     Port             = m.Port,
                     Protocol         = Protocol.UDP,
-                    AnnouncedAddress = m.AnnouncedAddress
+                    AnnouncedAddress = m.AnnouncedAddress,
+                    Flags            = m.Flags,
+                    PortRange        = m.PortRange
                 }));
                 mediasoupOptions.MediasoupSettings.WebRtcServerSettings.ListenInfos = listenInfosTemp.ToArray();
             }
@@ -154,8 +158,10 @@ public static class MediasoupServiceCollectionExtensions
                     let ipString = ip.ToString()
                     select new ListenInfoT
                     {
-                        Ip          = ipString,
-                        AnnouncedAddress = ipString
+                        Ip               = ipString,
+                        AnnouncedAddress = ipString,
+                        Flags            = new(),
+                        PortRange        = new()
                     }).ToArray();
                 
                 if (listenAddresses.IsNullOrEmpty())
@@ -198,8 +204,10 @@ public static class MediasoupServiceCollectionExtensions
             {
                 listenIp = new ListenInfoT
                 {
-                    Ip          = localIPv4IpAddress,
-                    AnnouncedAddress = localIPv4IpAddress
+                    Ip               = localIPv4IpAddress,
+                    AnnouncedAddress = localIPv4IpAddress,
+                    Flags            = new(),
+                    PortRange        = new()
                 };
                 mediasoupOptions.MediasoupSettings.PlainTransportSettings.ListenInfo = listenIp;
             }

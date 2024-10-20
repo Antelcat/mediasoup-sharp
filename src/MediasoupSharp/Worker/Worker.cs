@@ -79,14 +79,14 @@ public class Worker : WorkerBase
         var argv = new List<string> { workerPath };
         if(workerSettings.LogLevel.HasValue)
         {
-            argv.Add($"--logLevel={workerSettings.LogLevel.Value.GetEnumMemberValue()}");
+            argv.Add($"--logLevel={workerSettings.LogLevel.Value.GetEnumText()}");
         }
 
         if(!workerSettings.LogTags.IsNullOrEmpty())
         {
             foreach (var logTag in workerSettings.LogTags)
             {
-                argv.Add($"--logTag={logTag.GetEnumMemberValue()}");
+                argv.Add($"--logTag={logTag.GetEnumText()}");
             }
         }
 
@@ -253,7 +253,7 @@ public class Worker : WorkerBase
         child?.Dispose();
         foreach (var pipe in pipes)
         {
-            pipe.Dispose();
+            pipe?.Dispose();
         }
     }
 

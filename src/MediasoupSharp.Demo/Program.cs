@@ -4,6 +4,7 @@ using MediasoupSharp.Demo.Authorization;
 using MediasoupSharp.Demo.Microsoft.AspNetCore.Builder;
 using MediasoupSharp.Demo.Microsoft.Extensions;
 using MediasoupSharp.Demo.Settings;
+using MediasoupSharp.Internals.Converters;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
@@ -27,7 +28,10 @@ builder.Host.UseSerilog();
 builder.Services.AddMvc()
     .AddJsonOptions(options =>
     {
-        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        foreach (var converter in IEnumStringConverter.Converters())
+        {
+            options.JsonSerializerOptions.Converters.Add(converter);
+        }
         options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     });
 builder.Services
@@ -107,6 +111,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                         }
                     };
                 });
+builder.Services.AddSignalR().AddJsonProtocol(c =>
+{
+    foreach (var converter in IEnumStringConverter.Converters())
+    {
+        c.PayloadSerializerOptions.Converters.Add(converter);
+    }
+    c.PayloadSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+});
 builder.Services.AddMeetingServer();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

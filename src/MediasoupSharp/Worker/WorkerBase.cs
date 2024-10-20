@@ -160,9 +160,9 @@ public abstract class WorkerBase : EnhancedEvent.EventEmitter, IDisposable, IWor
             }
 
             var logLevel       = workerUpdateableSettings.LogLevel ?? WorkerLogLevel.None;
-            var logLevelString = logLevel.GetEnumMemberValue();
+            var logLevelString = logLevel.GetEnumText();
             var logTags        = workerUpdateableSettings.LogTags ?? [];
-            var logTagStrings  = logTags.Select(m => m.GetEnumMemberValue()).ToList();
+            var logTagStrings  = logTags.Select(m => m.GetEnumText()).ToList();
 
             // Build Request
             var bufferBuilder = Channel.BufferPool.Get();

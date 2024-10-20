@@ -86,7 +86,7 @@ public static class Ortc
         // 在 Node.js 实现中，判断了 mandatory 的数据类型。在强类型语言中不需要。
 
         // channels is optional. If unset, set it to 1 (just if audio).
-        if (codec.Kind == MediaKind.AUDIO && (!codec.Channels.HasValue || codec.Channels < 1))
+        if (codec.Kind == MediaKind.AUDIO && codec.Channels is null or < 1)
         {
             codec.Channels = 1;
         }
@@ -262,7 +262,7 @@ public static class Ortc
 
         // channels is optional. If unset, set it to 1 (just if audio).
         // 在 Node.js 实现中，如果是 `video` 会 delete 掉 Channels 。
-        if (mimeType.StartsWith("audio") && (!codec.Channels.HasValue || codec.Channels < 1))
+        if (mimeType.StartsWith("audio") && codec.Channels is null or < 1)
         {
             codec.Channels = 1;
         }
@@ -603,7 +603,7 @@ public static class Ortc
                 var rtxCodec = new RtpCodecCapability
                 {
                     Kind                 = codec.Kind,
-                    MimeType             = $"{codec.Kind.GetEnumMemberValue()}/rtx",
+                    MimeType             = $"{codec.Kind.GetEnumText()}/rtx",
                     PreferredPayloadType = pt,
                     ClockRate            = codec.ClockRate,
                     Parameters = new Dictionary<string, object>

@@ -145,7 +145,7 @@ namespace MediasoupSharp.Demo
             ConnectionId = connectionId;
             HubClient = hubClient;
             DisplayName = displayName.NullOrWhiteSpaceThen("User:" + peerId.PadLeft(8, '0'));
-            Sources = sources ?? Array.Empty<string>();
+            Sources = sources ?? [];
             AppData = new ConcurrentDictionary<string, object>(appData ?? new Dictionary<string, object>());
             InternalData = new ConcurrentDictionary<string, object>(appData ?? new Dictionary<string, object>());
             _pullPaddingsLock.Set();

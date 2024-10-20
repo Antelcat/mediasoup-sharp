@@ -1,4 +1,5 @@
-﻿using FBS.RtpParameters;
+﻿using System.Text.Json;
+using FBS.RtpParameters;
 using FBS.WebRtcTransport;
 using MediasoupSharp.ClientRequest;
 using MediasoupSharp.Demo.Exceptions;
@@ -6,6 +7,7 @@ using MediasoupSharp.Demo.Models;
 using MediasoupSharp.Demo.Settings;
 using MediasoupSharp.Demo.SignalR.Models;
 using MediasoupSharp.Demo.SignalR.Services;
+using MediasoupSharp.Internals.Converters;
 using MediasoupSharp.RtpParameters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;

@@ -2,36 +2,26 @@
 
 namespace MediasoupSharp.Demo.SignalR.Services
 {
-    public class BadDisconnectSocketService
+    public class BadDisconnectSocketService(ILogger<BadDisconnectSocketService> logger)
     {
-        private readonly ILogger<BadDisconnectSocketService> _logger;
-        private readonly Dictionary<string, HubCallerContext> _cache = new();
-        private readonly object _cacheLock = new();
-
-        public BadDisconnectSocketService(ILogger<BadDisconnectSocketService> logger)
-        {
-            _logger = logger ??
-               throw new ArgumentNullException(nameof(logger));
-        }
+        private readonly Dictionary<string, HubCallerContext> cache     = new();
+        private readonly object                               cacheLock = new();
 
         public void DisconnectClient(string connectionId)
         {
-            lock(_cacheLock)
+            lock(cacheLock)
             {
-                if(_cache.TryGetValue(connectionId, out var context))
-                {
-                    // 也许连接已关闭，但也再操作一次。
-                    context.Abort();
-                    _cache.Remove(connectionId);
-                }
+                if (!cache.TryGetValue(connectionId, out var context)) return;
+                context.Abort();
+                cache.Remove(connectionId);
             }
         }
 
         public void CacheContext(HubCallerContext context)
         {
-            lock(_cacheLock)
+            lock(cacheLock)
             {
-                _cache[context.ConnectionId] = context;
+                cache[context.ConnectionId] = context;
             }
         }
     }

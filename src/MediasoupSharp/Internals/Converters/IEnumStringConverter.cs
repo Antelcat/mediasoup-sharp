@@ -8,6 +8,24 @@ internal interface IEnumStringConverter
     public string? Convert(Enum value);
 
     public Enum? ConvertBack(string? value);
+
+    public static JsonSerializerOptions JsonSerializerOptions
+    {
+        get
+        {
+            var options = new JsonSerializerOptions()
+            {
+                PropertyNamingPolicy        = JsonNamingPolicy.CamelCase,
+                PropertyNameCaseInsensitive = true,
+            };
+            foreach (var converter in Converters())
+            {
+                options.Converters.Add(converter);
+            }
+
+            return options;
+        }
+    }
     
     public static IEnumerable<JsonConverter> Converters()
     {
@@ -25,6 +43,7 @@ internal interface IEnumStringConverter
         yield return new MethodConverter();
         yield return new ProducerTraceEventTypeConverter();
         yield return new ProtocolConverter();
+        yield return new RtpHeaderExtensionDirectionConverter();
         yield return new RtpHeaderExtensionUriConverter();
         yield return new RtpParameterTypeConverter();
         yield return new SctpStateConverter();
