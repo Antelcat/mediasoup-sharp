@@ -8,7 +8,7 @@ using Microsoft.VisualStudio.Threading;
 
 namespace MediasoupSharp.RtpObserver;
 
-public abstract class RtpObserver : EnhancedEvent.EventEmitter
+public abstract class RtpObserver : EnhancedEvent.EnhancedEventEmitter
 {
     /// <summary>
     /// Logger.
@@ -52,7 +52,7 @@ public abstract class RtpObserver : EnhancedEvent.EventEmitter
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EnhancedEvent.EventEmitter Observer { get; } = new();
+    public EnhancedEvent.EnhancedEventEmitter Observer { get; } = new();
 
     /// <summary>
     /// <para>Events:</para>

@@ -21,7 +21,7 @@ using Microsoft.VisualStudio.Threading;
 
 namespace MediasoupSharp.Router;
 
-public sealed class Router : EnhancedEvent.EventEmitter, IEquatable<Router>
+public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Router>
 {
     /// <summary>
     /// Logger factory for create logger.
@@ -105,7 +105,7 @@ public sealed class Router : EnhancedEvent.EventEmitter, IEquatable<Router>
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EnhancedEvent.EventEmitter Observer { get; } = new();
+    public EnhancedEvent.EnhancedEventEmitter Observer { get; } = new();
 
     /// <summary>
     /// <para>Events:</para>

@@ -10,7 +10,7 @@ using Microsoft.VisualStudio.Threading;
 
 namespace MediasoupSharp.Consumer;
 
-public class Consumer : EnhancedEvent.EventEmitter
+public class Consumer : EnhancedEvent.EnhancedEventEmitter
 {
     /// <summary>
     /// Logger.
@@ -94,7 +94,7 @@ public class Consumer : EnhancedEvent.EventEmitter
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EnhancedEvent.EventEmitter Observer { get; } = new();
+    public EnhancedEvent.EnhancedEventEmitter Observer { get; } = new();
 
     /// <summary>
     /// <para>Events:</para>
@@ -566,10 +566,10 @@ public class Consumer : EnhancedEvent.EventEmitter
                 var score             = scoreNotification.Score!.Value.UnPack();
                 Score = score;
 
-                Emit("score", Score);
+                Emit(nameof(score), Score);
 
                 // Emit observer event.
-                Observer.Emit("score", Score);
+                Observer.Emit(nameof(score), Score);
 
                 break;
             }
@@ -591,10 +591,10 @@ public class Consumer : EnhancedEvent.EventEmitter
                 var traceNotification = notification.BodyAsConsumer_TraceNotification();
                 var trace             = traceNotification.UnPack();
 
-                Emit("trace", trace);
+                Emit(nameof(trace), trace);
 
                 // Emit observer event.
-                Observer.Emit("trace", trace);
+                Observer.Emit(nameof(trace), trace);
 
                 break;
             }

@@ -12,6 +12,7 @@
     <ItemGroup>
         <PackageReference Include="Antelcat.AutoGen" Version="2.0.0-preview7" />
         <PackageReference Include="Antelcat.FlatBuffers" Version="1.0.0-preview9" />
+        <PackageReference Include="Antelcat.NodeSharp" Version="0.1.0" />
         <PackageReference Include="Google.FlatBuffers" Version="24.3.25" />
         <PackageReference Include="Libuv" Version="1.10.0"/>
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0-rc.2.24473.5" />
@@ -24,6 +25,7 @@
         <InternalsVisibleTo Include="MediasoupSharp.Test"/>
         <InternalsVisibleTo Include="MediasoupSharp.AspNetCore"/>
         <InternalsVisibleTo Include="MediasoupSharp.Demo"/>
+        <InternalsVisibleTo Include="MediasoupSharp.Meeting"/>
         <AdditionalFiles LinkBase="fbs" Include="..\..\mediasoup\worker\fbs\*.fbs"/>
     </ItemGroup>
 

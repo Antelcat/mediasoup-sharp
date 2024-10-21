@@ -11,7 +11,7 @@ using Microsoft.VisualStudio.Threading;
 
 namespace MediasoupSharp.Producer;
 
-public class Producer : EnhancedEvent.EventEmitter
+public class Producer : EnhancedEvent.EnhancedEventEmitter
 {
     /// <summary>
     /// Logger
@@ -85,7 +85,7 @@ public class Producer : EnhancedEvent.EventEmitter
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EnhancedEvent.EventEmitter Observer { get; } = new();
+    public EnhancedEvent.EnhancedEventEmitter Observer { get; } = new();
 
     /// <summary>
     /// <para>Events:</para>
@@ -443,10 +443,10 @@ public class Producer : EnhancedEvent.EventEmitter
                 var score             = scoreNotification.UnPack().Scores;
                 Score = score;
 
-                Emit("score", score);
+                Emit(nameof(score), score);
 
                 // Emit observer event.
-                Observer.Emit("score", score);
+                Observer.Emit(nameof(score), score);
 
                 break;
             }
@@ -467,10 +467,10 @@ public class Producer : EnhancedEvent.EventEmitter
                 var traceNotification = notification.BodyAsProducer_TraceNotification();
                 var trace             = traceNotification.UnPack();
 
-                Emit("trace", trace);
+                Emit(nameof(trace), trace);
 
                 // Emit observer event.
-                Observer.Emit("trace", trace);
+                Observer.Emit(nameof(trace), trace);
 
                 break;
             }

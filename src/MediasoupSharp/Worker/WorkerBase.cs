@@ -13,7 +13,7 @@ using Microsoft.VisualStudio.Threading;
 
 namespace MediasoupSharp.Worker;
 
-public abstract class WorkerBase : EnhancedEvent.EventEmitter, IDisposable, IWorker
+public abstract class WorkerBase : EnhancedEvent.EnhancedEventEmitter, IDisposable, IWorker
 {
     #region Protected Fields
 
@@ -72,7 +72,7 @@ public abstract class WorkerBase : EnhancedEvent.EventEmitter, IDisposable, IWor
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EnhancedEvent.EventEmitter Observer { get; } = new();
+    public EnhancedEvent.EnhancedEventEmitter Observer { get; } = new();
 
     /// <summary>
     /// <para>Events:</para>

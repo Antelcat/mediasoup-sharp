@@ -9,7 +9,7 @@ public interface IWorker : IEventEmitter, IDisposable
 {
     Dictionary<string, object> AppData { get; }
 
-    EnhancedEvent.EventEmitter Observer { get; }
+    EnhancedEvent.EnhancedEventEmitter Observer { get; }
 
     Task CloseAsync();
 

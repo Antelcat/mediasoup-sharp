@@ -64,10 +64,10 @@ public class AudioLevelObserver : RtpObserver.RtpObserver
 
                 if (volumes.Count > 0)
                 {
-                    Emit("volumes", volumes);
+                    Emit(nameof(volumes), volumes);
 
                     // Emit observer event.
-                    Observer.Emit("volumes", volumes);
+                    Observer.Emit(nameof(volumes), volumes);
                 }
 
                 break;
