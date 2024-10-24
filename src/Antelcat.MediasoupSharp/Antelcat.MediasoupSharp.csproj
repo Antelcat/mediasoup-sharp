@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <Import Project="../Build.props"/>
+    
+    <PropertyGroup>
+        <TargetFrameworks>net7.0;net8.0;net9.0</TargetFrameworks>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <LangVersion>preview</LangVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Antelcat.AutoGen" Version="2.0.0-preview7" />
+        <PackageReference Include="Antelcat.FlatBuffers" Version="1.0.0-preview9" />
+        <PackageReference Include="Antelcat.NodeSharp" Version="0.1.1" />
+        <PackageReference Include="Google.FlatBuffers" Version="24.3.25" />
+        <PackageReference Include="Libuv" Version="1.10.0"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0-rc.2.24473.5" />
+        <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="9.0.0-rc.2.24474.3" />
+        <PackageReference Include="Microsoft.VisualStudio.Threading" Version="17.11.20" />
+        <PackageReference Include="DeepCloner" Version="0.10.4" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Antelcat.MediasoupSharp.Test"/>
+        <InternalsVisibleTo Include="Antelcat.MediasoupSharp.AspNetCore"/>
+        <InternalsVisibleTo Include="Antelcat.MediasoupSharp.Demo"/>
+        <InternalsVisibleTo Include="Antelcat.MediasoupSharp.Meeting"/>
+        <AdditionalFiles LinkBase="fbs" Include="..\..\mediasoup\worker\fbs\*.fbs"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\libuv-sharp\src\Antelcat.LibuvSharp\Antelcat.LibuvSharp.csproj" />
+    </ItemGroup>
+
+</Project>
