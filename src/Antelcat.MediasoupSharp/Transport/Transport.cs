@@ -46,7 +46,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
     /// <summary>
     /// Trannsport id.
     /// </summary>
-    public string TransportId => Internal.TransportId;
+    public string Id => Internal.TransportId;
 
     /// <summary>
     /// Transport data.
@@ -198,7 +198,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task CloseAsync()
     {
-        logger.LogDebug("CloseAsync() | TransportId:{TransportId}", TransportId);
+        logger.LogDebug("CloseAsync() | TransportId:{TransportId}", Id);
 
         await using(await CloseLock.WriteLockAsync())
         {
@@ -246,7 +246,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task RouterClosedAsync()
     {
-        logger.LogDebug("RouterClosed() | TransportId:{TransportId}", TransportId);
+        logger.LogDebug("RouterClosed() | TransportId:{TransportId}", Id);
 
         await using(await CloseLock.WriteLockAsync())
         {
@@ -383,7 +383,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
 
             Closed = true;
 
-            logger.LogDebug("ListenServerClosedAsync() | TransportId:{TransportId}", TransportId);
+            logger.LogDebug("ListenServerClosedAsync() | TransportId:{TransportId}", Id);
 
             // Remove notification subscriptions.
             //_channel.OnNotification -= OnNotificationHandle;
@@ -406,7 +406,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task<object> DumpAsync()
     {
-        logger.LogDebug("DumpAsync() | TransportId:{TransportId}", TransportId);
+        logger.LogDebug("DumpAsync() | TransportId:{TransportId}", Id);
 
         await using(await CloseLock.ReadLockAsync())
         {
@@ -426,7 +426,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task<object[]> GetStatsAsync()
     {
-        logger.LogDebug("GetStatsAsync() | TransportId:{TransportId}", TransportId);
+        logger.LogDebug("GetStatsAsync() | TransportId:{TransportId}", Id);
 
         await using(await CloseLock.ReadLockAsync())
         {
@@ -446,7 +446,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task ConnectAsync(object parameters)
     {
-        logger.LogDebug("ConnectAsync() | TransportId:{TransportId}", TransportId);
+        logger.LogDebug("ConnectAsync() | TransportId:{TransportId}", Id);
 
         await using(await CloseLock.ReadLockAsync())
         {
@@ -466,7 +466,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public virtual async Task SetMaxIncomingBitrateAsync(uint bitrate)
     {
-        logger.LogDebug("SetMaxIncomingBitrateAsync() | TransportId:{TransportId} Bitrate:{Bitrate}", TransportId, bitrate);
+        logger.LogDebug("SetMaxIncomingBitrateAsync() | TransportId:{TransportId} Bitrate:{Bitrate}", Id, bitrate);
 
         await using(await CloseLock.ReadLockAsync())
         {
@@ -499,7 +499,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public virtual async Task SetMaxOutgoingBitrateAsync(uint bitrate)
     {
-        logger.LogDebug("SetMaxOutgoingBitrateAsync() | TransportId:{TransportId} Bitrate:{Bitrate}", TransportId, bitrate);
+        logger.LogDebug("SetMaxOutgoingBitrateAsync() | TransportId:{TransportId} Bitrate:{Bitrate}", Id, bitrate);
 
         await using(await CloseLock.ReadLockAsync())
         {
@@ -532,7 +532,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public virtual async Task SetMinOutgoingBitrateAsync(uint bitrate)
     {
-        logger.LogDebug("SetMinOutgoingBitrateAsync() | TransportId:{TransportId} Bitrate:{bitrate}", TransportId, bitrate);
+        logger.LogDebug("SetMinOutgoingBitrateAsync() | TransportId:{TransportId} Bitrate:{bitrate}", Id, bitrate);
 
         await using(await CloseLock.ReadLockAsync())
         {
@@ -565,7 +565,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public virtual async Task<Producer.Producer> ProduceAsync(ProducerOptions producerOptions)
     {
-        logger.LogDebug("ProduceAsync() | TransportId:{TransportId}", TransportId);
+        logger.LogDebug("ProduceAsync() | TransportId:{TransportId}", Id);
 
         if(!producerOptions.Id.IsNullOrWhiteSpace() && Producers.ContainsKey(producerOptions.Id!))
         {
@@ -677,7 +677,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
                     await ProducersLock.WaitAsync();
                     try
                     {
-                        Producers.Remove(producer.ProducerId);
+                        Producers.Remove(producer.Id);
                         Emit("@producerclose", producer);
                     }
                     catch(Exception ex)
@@ -694,7 +694,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
             await ProducersLock.WaitAsync();
             try
             {
-                Producers[producer.ProducerId] = producer;
+                Producers[producer.Id] = producer;
             }
             catch(Exception ex)
             {
@@ -719,7 +719,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public virtual async Task<Consumer.Consumer> ConsumeAsync(ConsumerOptions consumerOptions)
     {
-        logger.LogDebug("ConsumeAsync() | TransportId:{TransportId}", TransportId);
+        logger.LogDebug("ConsumeAsync() | TransportId:{TransportId}", Id);
 
         if(consumerOptions.ProducerId.IsNullOrWhiteSpace())
         {
@@ -833,7 +833,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
                     await ConsumersLock.WaitAsync();
                     try
                     {
-                        Consumers.Remove(consumer.ConsumerId);
+                        Consumers.Remove(consumer.Id);
                     }
                     catch(Exception ex)
                     {
@@ -852,7 +852,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
                     await ConsumersLock.WaitAsync();
                     try
                     {
-                        Consumers.Remove(consumer.ConsumerId);
+                        Consumers.Remove(consumer.Id);
                     }
                     catch(Exception ex)
                     {
@@ -868,7 +868,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
             await ConsumersLock.WaitAsync();
             try
             {
-                Consumers[consumer.ConsumerId] = consumer;
+                Consumers[consumer.Id] = consumer;
             }
             catch(Exception ex)
             {
@@ -891,7 +891,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task<DataProducer.DataProducer> ProduceDataAsync(DataProducerOptions dataProducerOptions)
     {
-        logger.LogDebug("ProduceDataAsync() | TransportId:{TransportId}", TransportId);
+        logger.LogDebug("ProduceDataAsync() | TransportId:{TransportId}", Id);
 
         if(!dataProducerOptions.Id.IsNullOrWhiteSpace() && DataProducers.ContainsKey(dataProducerOptions.Id!))
         {
@@ -932,7 +932,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
 
                 if(dataProducerOptions.SctpStreamParameters != null)
                 {
-                    logger.LogWarning("ProduceDataAsync() | TransportId:{TransportId} sctpStreamParameters are ignored when producing data on a DirectTransport", TransportId);
+                    logger.LogWarning("ProduceDataAsync() | TransportId:{TransportId} sctpStreamParameters are ignored when producing data on a DirectTransport", Id);
                 }
             }
 
@@ -984,7 +984,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
                     await DataProducersLock.WaitAsync();
                     try
                     {
-                        DataProducers.Remove(dataProducer.DataProducerId);
+                        DataProducers.Remove(dataProducer.Id);
                     }
                     catch(Exception ex)
                     {
@@ -1002,7 +1002,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
             await DataProducersLock.WaitAsync();
             try
             {
-                DataProducers[dataProducer.DataProducerId] = dataProducer;
+                DataProducers[dataProducer.Id] = dataProducer;
             }
             catch(Exception ex)
             {
@@ -1027,7 +1027,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task<DataConsumer.DataConsumer> ConsumeDataAsync(DataConsumerOptions dataConsumerOptions)
     {
-        logger.LogDebug("ConsumeDataAsync() | TransportId:{TransportId}", TransportId);
+        logger.LogDebug("ConsumeDataAsync() | TransportId:{TransportId}", Id);
 
         if(dataConsumerOptions.DataProducerId.IsNullOrWhiteSpace())
         {
@@ -1141,7 +1141,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
                     await DataConsumersLock.WaitAsync();
                     try
                     {
-                        DataConsumers.Remove(dataConsumer.DataConsumerId);
+                        DataConsumers.Remove(dataConsumer.Id);
                         lock(sctpStreamIdsLock)
                         {
                             if(sctpStreamIds != null && sctpStreamId.HasValue)
@@ -1168,7 +1168,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
                     await DataConsumersLock.WaitAsync();
                     try
                     {
-                        DataConsumers.Remove(dataConsumer.DataConsumerId);
+                        DataConsumers.Remove(dataConsumer.Id);
                         lock(sctpStreamIdsLock)
                         {
                             if(sctpStreamIds != null && sctpStreamId.HasValue)
@@ -1191,7 +1191,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
             await DataConsumersLock.WaitAsync();
             try
             {
-                DataConsumers[dataConsumer.DataConsumerId] = dataConsumer;
+                DataConsumers[dataConsumer.Id] = dataConsumer;
             }
             catch(Exception ex)
             {
@@ -1214,7 +1214,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task EnableTraceEventAsync(List<TraceEventType> types)
     {
-        logger.LogDebug("EnableTraceEventAsync() | Transport:{TransportId}", TransportId);
+        logger.LogDebug("EnableTraceEventAsync() | Transport:{TransportId}", Id);
 
         await using(await CloseLock.ReadLockAsync())
         {

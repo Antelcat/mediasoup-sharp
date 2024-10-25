@@ -123,7 +123,7 @@ public class WebRtcTransport : Transport.Transport
     /// </summary>
     protected override async Task OnConnectAsync(object parameters)
     {
-        logger.LogDebug("OnConnectAsync() | WebRtcTransportId:{WebRtcTransportId}", TransportId);
+        logger.LogDebug("OnConnectAsync() | WebRtcTransportId:{WebRtcTransportId}", Id);
 
         if(parameters is not ConnectRequestT connectRequestT)
         {
@@ -152,7 +152,7 @@ public class WebRtcTransport : Transport.Transport
     /// </summary>
     public async Task<IceParametersT> RestartIceAsync()
     {
-        logger.LogDebug("RestartIceAsync() | WebRtcTransportId:{WebRtcTransportId}", TransportId);
+        logger.LogDebug("RestartIceAsync() | WebRtcTransportId:{WebRtcTransportId}", Id);
 
         await using(await CloseLock.ReadLockAsync())
         {
@@ -272,7 +272,7 @@ public class WebRtcTransport : Transport.Transport
             }
             default:
             {
-                logger.LogError("OnNotificationHandle() | WebRtcTransport:{TransportId} Ignoring unknown event:{@event}", TransportId, @event);
+                logger.LogError("OnNotificationHandle() | WebRtcTransport:{TransportId} Ignoring unknown event:{@event}", Id, @event);
                 break;
             }
         }

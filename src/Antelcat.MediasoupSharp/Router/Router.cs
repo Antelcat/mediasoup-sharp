@@ -664,21 +664,21 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
     {
         await using (await transportsLock.WriteLockAsync())
         {
-            transports[transport.TransportId] = transport;
+            transports[transport.Id] = transport;
         }
 
         transport.On("@close", async (_, _) =>
         {
             await using (await transportsLock.WriteLockAsync())
             {
-                transports.Remove(transport.TransportId);
+                transports.Remove(transport.Id);
             }
         });
         transport.On("@listenserverclose", async (_, _) =>
         {
             await using (await transportsLock.WriteLockAsync())
             {
-                transports.Remove(transport.TransportId);
+                transports.Remove(transport.Id);
             }
         });
         transport.On("@newproducer", async (_, obj) =>
@@ -686,7 +686,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
             var producer = (Producer.Producer)obj!;
             await using (await producersLock.WriteLockAsync())
             {
-                producers[producer.ProducerId] = producer;
+                producers[producer.Id] = producer;
             }
         });
         transport.On("@producerclose", async (_, obj) =>
@@ -694,7 +694,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
             var producer = (Producer.Producer)obj!;
             await using (await producersLock.WriteLockAsync())
             {
-                producers.Remove(producer.ProducerId);
+                producers.Remove(producer.Id);
             }
         });
         transport.On("@newdataproducer", async (_, obj) =>
@@ -702,7 +702,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
             var dataProducer = (DataProducer.DataProducer)obj!;
             await using (await dataProducersLock.WriteLockAsync())
             {
-                dataProducers[dataProducer.DataProducerId] = dataProducer;
+                dataProducers[dataProducer.Id] = dataProducer;
             }
         });
         transport.On("@dataproducerclose", async (_, obj) =>
@@ -710,7 +710,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
             var dataProducer = (DataProducer.DataProducer)obj!;
             await using (await dataProducersLock.WriteLockAsync())
             {
-                dataProducers.Remove(dataProducer.DataProducerId);
+                dataProducers.Remove(dataProducer.Id);
             }
         });
 
@@ -901,7 +901,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
 
                     pipeProducer = await remotePipeTransport.ProduceAsync(new ProducerOptions
                     {
-                        Id            = producer.ProducerId,
+                        Id            = producer.Id,
                         Kind          = pipeConsumer.Data.Kind,
                         RtpParameters = pipeConsumer.Data.RtpParameters,
                         Paused        = pipeConsumer.ProducerPaused,
@@ -964,7 +964,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
 
                     pipeDataProducer = await remotePipeTransport.ProduceDataAsync(new DataProducerOptions
                     {
-                        Id                   = dataProducer.DataProducerId,
+                        Id                   = dataProducer.Id,
                         SctpStreamParameters = pipeDataConsumer.Data.SctpStreamParameters,
                         Label                = pipeDataConsumer.Data.Label,
                         Protocol             = pipeDataConsumer.Data.Protocol,

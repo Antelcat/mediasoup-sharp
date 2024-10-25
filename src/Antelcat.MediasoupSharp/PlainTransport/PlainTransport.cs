@@ -119,7 +119,7 @@ public class PlainTransport : Transport.Transport
     /// </summary>
     protected override async Task OnConnectAsync(object parameters)
     {
-        logger.LogDebug("OnConnectAsync() | PlainTransport:{TransportId}", TransportId);
+        logger.LogDebug("OnConnectAsync() | PlainTransport:{TransportId}", Id);
 
         if(parameters is not ConnectRequestT connectRequestT)
         {
@@ -221,7 +221,7 @@ public class PlainTransport : Transport.Transport
             }
             default:
             {
-                logger.LogError("OnNotificationHandle() | PlainTransport:{TransportId} Ignoring unknown event:{@event}", TransportId, @event);
+                logger.LogError("OnNotificationHandle() | PlainTransport:{TransportId} Ignoring unknown event:{@event}", Id, @event);
                 break;
             }
         }

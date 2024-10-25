@@ -125,7 +125,7 @@ public class PipeTransport : Transport.Transport
     /// </summary>
     protected override async Task OnConnectAsync(object parameters)
     {
-        logger.LogDebug("OnConnectAsync() | PipeTransport:{TransportId}", TransportId);
+        logger.LogDebug("OnConnectAsync() | PipeTransport:{TransportId}", Id);
 
         if(parameters is not ConnectRequestT connectRequestT)
         {
@@ -226,7 +226,7 @@ public class PipeTransport : Transport.Transport
                 await ConsumersLock.WaitAsync();
                 try
                 {
-                    Consumers.Remove(consumer.ConsumerId);
+                    Consumers.Remove(consumer.Id);
                 }
                 catch(Exception ex)
                 {
@@ -245,7 +245,7 @@ public class PipeTransport : Transport.Transport
                 await ConsumersLock.WaitAsync();
                 try
                 {
-                    Consumers.Remove(consumer.ConsumerId);
+                    Consumers.Remove(consumer.Id);
                 }
                 catch(Exception ex)
                 {
@@ -261,7 +261,7 @@ public class PipeTransport : Transport.Transport
         await ConsumersLock.WaitAsync();
         try
         {
-            Consumers[consumer.ConsumerId] = consumer;
+            Consumers[consumer.Id] = consumer;
         }
         catch(Exception ex)
         {
@@ -320,7 +320,7 @@ public class PipeTransport : Transport.Transport
             }
             default:
             {
-                logger.LogError("OnNotificationHandle() | PipeTransport:{TransportId} Ignoring unknown event:{@event}", TransportId, @event);
+                logger.LogError("OnNotificationHandle() | PipeTransport:{TransportId} Ignoring unknown event:{@event}", Id, @event);
                 break;
             }
         }

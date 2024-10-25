@@ -39,7 +39,7 @@ public class Consumer : EnhancedEvent.EnhancedEventEmitter
     /// <summary>
     /// Consumer id.
     /// </summary>
-    public string ConsumerId => @internal.ConsumerId;
+    public string Id => @internal.ConsumerId;
 
     /// <summary>
     /// Consumer data.
@@ -148,7 +148,7 @@ public class Consumer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task CloseAsync()
     {
-        logger.LogDebug("CloseAsync() | Consumer:{ConsumerId}", ConsumerId);
+        logger.LogDebug("CloseAsync() | Consumer:{ConsumerId}", Id);
 
         await using(await closeLock.WriteLockAsync())
         {
@@ -192,7 +192,7 @@ public class Consumer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task TransportClosedAsync()
     {
-        logger.LogDebug("TransportClosed() | Consumer:{ConsumerId}", ConsumerId);
+        logger.LogDebug("TransportClosed() | Consumer:{ConsumerId}", Id);
 
         await using(await closeLock.WriteLockAsync())
         {
@@ -218,7 +218,7 @@ public class Consumer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task<DumpResponseT> DumpAsync()
     {
-        logger.LogDebug("DumpAsync() | Consumer:{ConsumerId}", ConsumerId);
+        logger.LogDebug("DumpAsync() | Consumer:{ConsumerId}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -239,7 +239,7 @@ public class Consumer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task<List<StatsT>> GetStatsAsync()
     {
-        logger.LogDebug("GetStatsAsync() | Consumer:{ConsumerId}", ConsumerId);
+        logger.LogDebug("GetStatsAsync() | Consumer:{ConsumerId}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -260,7 +260,7 @@ public class Consumer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task PauseAsync()
     {
-        logger.LogDebug("PauseAsync() | Consumer:{ConsumerId}", ConsumerId);
+        logger.LogDebug("PauseAsync() | Consumer:{ConsumerId}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -304,7 +304,7 @@ public class Consumer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task ResumeAsync()
     {
-        logger.LogDebug("ResumeAsync() | Consumer:{ConsumerId}", ConsumerId);
+        logger.LogDebug("ResumeAsync() | Consumer:{ConsumerId}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -348,7 +348,7 @@ public class Consumer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task SetPreferredLayersAsync(SetPreferredLayersRequestT setPreferredLayersRequest)
     {
-        logger.LogDebug("SetPreferredLayersAsync() | Consumer:{ConsumerId}", ConsumerId);
+        logger.LogDebug("SetPreferredLayersAsync() | Consumer:{ConsumerId}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -379,7 +379,7 @@ public class Consumer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task SetPriorityAsync(SetPriorityRequestT setPriorityRequest)
     {
-        logger.LogDebug("SetPriorityAsync() | Consumer:{ConsumerId}", ConsumerId);
+        logger.LogDebug("SetPriorityAsync() | Consumer:{ConsumerId}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -410,7 +410,7 @@ public class Consumer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public Task UnsetPriorityAsync()
     {
-        logger.LogDebug("UnsetPriorityAsync() | Consumer:{ConsumerId}", ConsumerId);
+        logger.LogDebug("UnsetPriorityAsync() | Consumer:{ConsumerId}", Id);
 
         return SetPriorityAsync(new SetPriorityRequestT
         {
@@ -423,7 +423,7 @@ public class Consumer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task RequestKeyFrameAsync()
     {
-        logger.LogDebug("RequestKeyFrameAsync() | Consumer:{ConsumerId}", ConsumerId);
+        logger.LogDebug("RequestKeyFrameAsync() | Consumer:{ConsumerId}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -447,7 +447,7 @@ public class Consumer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task EnableTraceEventAsync(List<TraceEventType> types)
     {
-        logger.LogDebug("EnableTraceEventAsync() | Consumer:{ConsumerId}", ConsumerId);
+        logger.LogDebug("EnableTraceEventAsync() | Consumer:{ConsumerId}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -488,7 +488,7 @@ public class Consumer : EnhancedEvent.EnhancedEventEmitter
     private async void OnNotificationHandle(string handlerId, Event @event, Notification notification)
 #pragma warning restore VSTHRD100 // Avoid async void methods
     {
-        if(handlerId != ConsumerId)
+        if(handlerId != Id)
         {
             return;
         }

@@ -143,7 +143,7 @@ namespace Antelcat.MediasoupSharp.Meeting.Controllers
 
             var recorderPrepareResult = new RecorderPrepareResult
             {
-                TransportId = transport.TransportId,
+                TransportId = transport.Id,
                 Ip = plainTransportConnectParameters.Ip,
                 Port = plainTransportConnectParameters.Port.Value,
                 RtcpPort = plainTransportConnectParameters.RtcpPort,
@@ -162,7 +162,7 @@ namespace Antelcat.MediasoupSharp.Meeting.Controllers
                 {
                     return new ApiResult { Code = 400, Message = $"生产者尚未生产 {source}" };
                 }
-                var consumer = await scheduler.ConsumeAsync(recorderPrepareRequest.ProducerPeerId, recorderPrepareRequest.PeerId, producer.ProducerId);
+                var consumer = await scheduler.ConsumeAsync(recorderPrepareRequest.ProducerPeerId, recorderPrepareRequest.PeerId, producer.Id);
                 if(consumer == null)
                 {
                     return new ApiResult { Code = 400, Message = $"已经在消费 {source}" };

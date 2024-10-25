@@ -6,6 +6,7 @@ using FBS.Request;
 using FBS.RtpStream;
 using Google.FlatBuffers;
 using Antelcat.MediasoupSharp.Internals.Extensions;
+using FBS.RtpParameters;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
 
@@ -17,11 +18,18 @@ public class Producer : EnhancedEvent.EnhancedEventEmitter
     /// Logger
     /// </summary>
     private readonly ILogger<Producer> logger;
+    
+    /// <summary>
+    /// Producer id.
+    /// </summary>
+    public string Id => @internal.ProducerId;
 
     /// <summary>
     /// Whether the Producer is closed.
     /// </summary>
     public bool Closed { get; private set; }
+
+    public MediaKind Kind => Data.Kind;
 
     private readonly AsyncReaderWriterLock closeLock = new();
 
@@ -47,10 +55,7 @@ public class Producer : EnhancedEvent.EnhancedEventEmitter
         private const int CheckConsumersTimeSeconds = 10;
 #endif
 
-    /// <summary>
-    /// Producer id.
-    /// </summary>
-    public string ProducerId => @internal.ProducerId;
+
 
     /// <summary>
     /// Producer data.
@@ -138,7 +143,7 @@ public class Producer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task CloseAsync()
     {
-        logger.LogDebug("CloseAsync() | Producer:{ProducerId}", ProducerId);
+        logger.LogDebug("CloseAsync() | Producer:{ProducerId}", Id);
 
         await using(await closeLock.WriteLockAsync())
         {
@@ -187,7 +192,7 @@ public class Producer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task TransportClosedAsync()
     {
-        logger.LogDebug("TransportClosedAsync() | Producer:{ProducerId}", ProducerId);
+        logger.LogDebug("TransportClosedAsync() | Producer:{ProducerId}", Id);
 
         await using(await closeLock.WriteLockAsync())
         {
@@ -212,7 +217,7 @@ public class Producer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task<DumpResponseT> DumpAsync()
     {
-        logger.LogDebug("DumpAsync() | Producer:{ProducerId}", ProducerId);
+        logger.LogDebug("DumpAsync() | Producer:{ProducerId}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -233,7 +238,7 @@ public class Producer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task<List<StatsT>> GetStatsAsync()
     {
-        logger.LogDebug("GetStatsAsync() | Producer:{ProducerId}", ProducerId);
+        logger.LogDebug("GetStatsAsync() | Producer:{ProducerId}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -254,7 +259,7 @@ public class Producer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task PauseAsync()
     {
-        logger.LogDebug("PauseAsync() | Producer:{ProducerId}", ProducerId);
+        logger.LogDebug("PauseAsync() | Producer:{ProducerId}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -297,7 +302,7 @@ public class Producer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task ResumeAsync()
     {
-        logger.LogDebug("ResumeAsync() | Producer:{ProducerId}", ProducerId);
+        logger.LogDebug("ResumeAsync() | Producer:{ProducerId}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -340,7 +345,7 @@ public class Producer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task EnableTraceEventAsync(List<TraceEventType> types)
     {
-        logger.LogDebug("EnableTraceEventAsync() | Producer:{ProducerId}", ProducerId);
+        logger.LogDebug("EnableTraceEventAsync() | Producer:{ProducerId}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -406,13 +411,13 @@ public class Producer : EnhancedEvent.EnhancedEventEmitter
                 throw new InvalidStateException("Producer closed");
             }
 
-            consumers[consumer.ConsumerId] = consumer;
+            consumers[consumer.Id] = consumer;
         }
     }
 
     public async Task RemoveConsumerAsync(string consumerId)
     {
-        logger.LogDebug("RemoveConsumer() | Producer:{ProducerId} ConsumerId:{ConsumerId}", ProducerId, consumerId);
+        logger.LogDebug("RemoveConsumer() | Producer:{ProducerId} ConsumerId:{ConsumerId}", Id, consumerId);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -430,7 +435,7 @@ public class Producer : EnhancedEvent.EnhancedEventEmitter
 
     private void OnNotificationHandle(string handlerId, Event @event, Notification notification)
     {
-        if(handlerId != ProducerId)
+        if(handlerId != Id)
         {
             return;
         }

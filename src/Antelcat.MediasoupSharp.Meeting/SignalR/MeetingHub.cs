@@ -249,7 +249,7 @@ namespace Antelcat.MediasoupSharp.Meeting.SignalR
 
                 return MeetingMessage<CreateWebRtcTransportResult>.Success(new CreateWebRtcTransportResult
                 {
-                    TransportId = transport.TransportId,
+                    TransportId = transport.Id,
                     IceParameters = transport.Data.IceParameters,
                     IceCandidates = transport.Data.IceCandidates,
                     DtlsParameters = transport.Data.DtlsParameters,
@@ -618,7 +618,7 @@ namespace Antelcat.MediasoupSharp.Meeting.SignalR
                     // Notification: producerScore
                     SendNotification(peerId, "producerScore", new ProducerScoreNotification
                     {
-                        ProducerId = producer.ProducerId,
+                        ProducerId = producer.Id,
                         Score = obj
                     });
                     return Task.CompletedTask;
@@ -632,7 +632,7 @@ namespace Antelcat.MediasoupSharp.Meeting.SignalR
                     // Notification: producerVideoOrientationChanged
                     SendNotification(peerId, "producerVideoOrientationChanged", new ProducerVideoOrientationChangedNotification
                     {
-                        ProducerId = producer.ProducerId,
+                        ProducerId = producer.Id,
                         VideoOrientation = obj
                     });
                     return Task.CompletedTask;
@@ -645,7 +645,7 @@ namespace Antelcat.MediasoupSharp.Meeting.SignalR
 
                 producer.On("trace", (_, obj) =>
                 {
-                    logger.LogDebug("producer \"trace\" event [producerId:{ProducerId}, trace:{Trace}]", producer.ProducerId, obj);
+                    logger.LogDebug("producer \"trace\" event [producerId:{ProducerId}, trace:{Trace}]", producer.Id, obj);
                     return Task.CompletedTask;
                 });
 
@@ -654,14 +654,14 @@ namespace Antelcat.MediasoupSharp.Meeting.SignalR
                     // Notification: producerClosed
                     SendNotification(peerId, "producerClosed", new ProducerClosedNotification
                     {
-                        ProducerId = producer.ProducerId
+                        ProducerId = producer.Id
                     });
                     return Task.CompletedTask;
                 });
 
                 return MeetingMessage<ProduceRespose>.Success(new ProduceRespose
                 {
-                    Id = producer.ProducerId,
+                    Id = producer.Id,
                     Source = produceRequest.Source
                 },
                     "Produce 成功");
@@ -815,7 +815,7 @@ namespace Antelcat.MediasoupSharp.Meeting.SignalR
                     // Notification: consumerScore
                     SendNotification(UserId, "consumerScore", new ConsumerScoreNotification
                     {
-                        ConsumerId = consumer.ConsumerId,
+                        ConsumerId = consumer.Id,
                         Score = consumer.Score
                     });
                 }
@@ -1142,7 +1142,7 @@ namespace Antelcat.MediasoupSharp.Meeting.SignalR
                 "CreateConsumer() | [ConsumerPeerId:\"{ConsumerPeerId}\", ProducerPeerId:\"{ProducerPeerId}\", ProducerId:\"{ProducerId}\"]",
                 consumerPeerId,
                 producerPeerId,
-                producer.ProducerId
+                producer.Id
                 );
 
             // Create the Consumer in paused mode.
@@ -1150,7 +1150,7 @@ namespace Antelcat.MediasoupSharp.Meeting.SignalR
 
             try
             {
-                consumer = await scheduler.ConsumeAsync(producerPeerId, consumerPeerId, producer.ProducerId);
+                consumer = await scheduler.ConsumeAsync(producerPeerId, consumerPeerId, producer.Id);
                 if(consumer == null)
                 {
                     return;
@@ -1173,7 +1173,7 @@ namespace Antelcat.MediasoupSharp.Meeting.SignalR
                 {
                     ProducerPeerId = producerPeerId,
                     Kind = producer.Data.Kind,
-                    ConsumerId = consumer.ConsumerId,
+                    ConsumerId = consumer.Id,
                     Score = obj
                 });
                 return Task.CompletedTask;
@@ -1190,7 +1190,7 @@ namespace Antelcat.MediasoupSharp.Meeting.SignalR
                 {
                     ProducerPeerId = producerPeerId,
                     Kind = producer.Data.Kind,
-                    ConsumerId = consumer.ConsumerId
+                    ConsumerId = consumer.Id
                 });
                 return Task.CompletedTask;
             });
@@ -1202,7 +1202,7 @@ namespace Antelcat.MediasoupSharp.Meeting.SignalR
                 {
                     ProducerPeerId = producerPeerId,
                     Kind = producer.Data.Kind,
-                    ConsumerId = consumer.ConsumerId
+                    ConsumerId = consumer.Id
                 });
                 return Task.CompletedTask;
             });
@@ -1214,7 +1214,7 @@ namespace Antelcat.MediasoupSharp.Meeting.SignalR
                 {
                     ProducerPeerId = producerPeerId,
                     Kind = producer.Data.Kind,
-                    ConsumerId = consumer.ConsumerId
+                    ConsumerId = consumer.Id
                 });
                 return Task.CompletedTask;
             });
@@ -1229,7 +1229,7 @@ namespace Antelcat.MediasoupSharp.Meeting.SignalR
                 {
                     ProducerPeerId = producerPeerId,
                     Kind = producer.Data.Kind,
-                    ConsumerId = consumer.ConsumerId,
+                    ConsumerId = consumer.Id,
                     Layers = obj
                 });
                 return Task.CompletedTask;
@@ -1242,7 +1242,7 @@ namespace Antelcat.MediasoupSharp.Meeting.SignalR
 
             consumer.On("trace", (_, obj) =>
             {
-                logger.LogDebug("consumer \"trace\" event [consumerId:{ConsumerId}, trace:{Trace}]", consumer.ConsumerId, obj);
+                logger.LogDebug("consumer \"trace\" event [consumerId:{ConsumerId}, trace:{Trace}]", consumer.Id, obj);
                 return Task.CompletedTask;
             });
 
@@ -1252,8 +1252,8 @@ namespace Antelcat.MediasoupSharp.Meeting.SignalR
             {
                 ProducerPeerId = producerPeerId,
                 Kind = consumer.Data.Kind,
-                ProducerId = producer.ProducerId,
-                ConsumerId = consumer.ConsumerId,
+                ProducerId = producer.Id,
+                ConsumerId = consumer.Id,
                 RtpParameters = consumer.Data.RtpParameters,
                 Type = consumer.Data.Type,
                 ProducerAppData = producer.AppData,

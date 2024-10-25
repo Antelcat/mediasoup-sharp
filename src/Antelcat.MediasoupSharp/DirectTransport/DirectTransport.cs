@@ -116,8 +116,8 @@ public class DirectTransport : Transport.Transport
     /// </summary>
     public override Task<string> SetMaxIncomingBitrateAsync(uint bitrate)
     {
-        logger.LogError("SetMaxIncomingBitrateAsync() | DiectTransport:{TransportId} Bitrate:{bitrate}", TransportId,
-            TransportId);
+        logger.LogError("SetMaxIncomingBitrateAsync() | DiectTransport:{TransportId} Bitrate:{bitrate}", Id,
+            Id);
         throw new NotImplementedException("SetMaxIncomingBitrateAsync() not implemented in DirectTransport");
     }
 
@@ -126,8 +126,8 @@ public class DirectTransport : Transport.Transport
     /// </summary>
     public override Task<string> SetMaxOutgoingBitrateAsync(uint bitrate)
     {
-        logger.LogError("SetMaxOutgoingBitrateAsync() | DiectTransport:{TransportId} Bitrate:{bitrate}", TransportId,
-            TransportId);
+        logger.LogError("SetMaxOutgoingBitrateAsync() | DiectTransport:{TransportId} Bitrate:{bitrate}", Id,
+            Id);
         throw new NotImplementedException("SetMaxOutgoingBitrateAsync is not implemented in DirectTransport");
     }
 
@@ -136,8 +136,8 @@ public class DirectTransport : Transport.Transport
     /// </summary>
     public override Task<string> SetMinOutgoingBitrateAsync(uint bitrate)
     {
-        logger.LogError("SetMinOutgoingBitrateAsync() | DiectTransport:{TransportId} Bitrate:{bitrate}", TransportId,
-            TransportId);
+        logger.LogError("SetMinOutgoingBitrateAsync() | DiectTransport:{TransportId} Bitrate:{bitrate}", Id,
+            Id);
         throw new NotImplementedException("SetMinOutgoingBitrateAsync is not implemented in DirectTransport");
     }
 
@@ -146,7 +146,7 @@ public class DirectTransport : Transport.Transport
     /// </summary>
     public override Task<Producer.Producer> ProduceAsync(ProducerOptions producerOptions)
     {
-        logger.LogError("ProduceAsync() | DiectTransport:{TransportId}", TransportId);
+        logger.LogError("ProduceAsync() | DiectTransport:{TransportId}", Id);
         throw new NotImplementedException("ProduceAsync() is not implemented in DirectTransport");
     }
 
@@ -155,7 +155,7 @@ public class DirectTransport : Transport.Transport
     /// </summary>
     public override Task<Consumer.Consumer> ConsumeAsync(ConsumerOptions consumerOptions)
     {
-        logger.LogError("ConsumeAsync() | DiectTransport:{TransportId}", TransportId);
+        logger.LogError("ConsumeAsync() | DiectTransport:{TransportId}", Id);
         throw new NotImplementedException("ConsumeAsync() not implemented in DirectTransport");
     }
 
@@ -217,7 +217,7 @@ public class DirectTransport : Transport.Transport
             default:
             {
                 logger.LogError("OnNotificationHandle() | DirectTransport:{TransportId} Ignoring unknown event:{@event}",
-                    TransportId, @event);
+                    Id, @event);
                 break;
             }
         }

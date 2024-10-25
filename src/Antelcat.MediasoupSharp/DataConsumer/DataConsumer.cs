@@ -25,7 +25,7 @@ public class DataConsumer : EnhancedEvent.EnhancedEventEmitter
     /// <summary>
     /// DataConsumer id.
     /// </summary>
-    public string DataConsumerId => @internal.DataConsumerId;
+    public string Id => @internal.DataConsumerId;
 
     /// <summary>
     /// DataConsumer data.
@@ -112,7 +112,7 @@ public class DataConsumer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task CloseAsync()
     {
-        logger.LogDebug("CloseAsync() | DataConsumer:{DataConsumerId}", DataConsumerId);
+        logger.LogDebug("CloseAsync() | DataConsumer:{DataConsumerId}", Id);
 
         await using(await closeLock.WriteLockAsync())
         {
@@ -157,7 +157,7 @@ public class DataConsumer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task TransportClosedAsync()
     {
-        logger.LogDebug("TransportClosedAsync() | DataConsumer:{DataConsumerId}", DataConsumerId);
+        logger.LogDebug("TransportClosedAsync() | DataConsumer:{DataConsumerId}", Id);
 
         await using(await closeLock.WriteLockAsync())
         {
@@ -183,7 +183,7 @@ public class DataConsumer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task<DumpResponseT> DumpAsync()
     {
-        logger.LogDebug("DumpAsync() | DataConsumer:{DataConsumerId}", DataConsumerId);
+        logger.LogDebug("DumpAsync() | DataConsumer:{DataConsumerId}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -211,7 +211,7 @@ public class DataConsumer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task<GetStatsResponseT[]> GetStatsAsync()
     {
-        logger.LogDebug("GetStatsAsync() | DataConsumer:{DataConsumerId}", DataConsumerId);
+        logger.LogDebug("GetStatsAsync() | DataConsumer:{DataConsumerId}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -240,7 +240,7 @@ public class DataConsumer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task PauseAsync()
     {
-        logger.LogDebug("PauseAsync() | DataConsumer:{DataConsumerId}", DataConsumerId);
+        logger.LogDebug("PauseAsync() | DataConsumer:{DataConsumerId}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -275,7 +275,7 @@ public class DataConsumer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task ResumeAsync()
     {
-        logger.LogDebug("ResumeAsync() | DataConsumer:{DataConsumerId}", DataConsumerId);
+        logger.LogDebug("ResumeAsync() | DataConsumer:{DataConsumerId}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -344,7 +344,7 @@ public class DataConsumer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task SendAsync(string message, uint? ppid)
     {
-        logger.LogDebug("SendAsync() | DataConsumer:{DataConsumerId}", DataConsumerId);
+        logger.LogDebug("SendAsync() | DataConsumer:{DataConsumerId}", Id);
 
         /*
          * +-------------------------------+----------+
@@ -378,7 +378,7 @@ public class DataConsumer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task SendAsync(byte[] message, uint? ppid)
     {
-        logger.LogDebug("SendAsync() | DataConsumer:{DataConsumerId}", DataConsumerId);
+        logger.LogDebug("SendAsync() | DataConsumer:{DataConsumerId}", Id);
 
         ppid ??= !message.IsNullOrEmpty() ? 53u : 57u;
 
@@ -567,7 +567,7 @@ public class DataConsumer : EnhancedEvent.EnhancedEventEmitter
     private async void OnNotificationHandle(string handlerId, Event @event, Notification notification)
 #pragma warning restore VSTHRD100 // Avoid async void methods
     {
-        if(handlerId != DataConsumerId)
+        if(handlerId != Id)
         {
             return;
         }

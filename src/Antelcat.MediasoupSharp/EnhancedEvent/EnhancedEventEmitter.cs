@@ -1,16 +1,13 @@
 ﻿namespace Antelcat.MediasoupSharp.EnhancedEvent;
 
-public class EnhancedEventEmitter : Antelcat.NodeSharp.Events.EventEmitter, IEventEmitter
+public class EnhancedEventEmitter : NodeSharp.Events.EventEmitter, IEventEmitter
 {
     public void On(string eventName, Func<string, object?, Task> method) =>
         base.On(eventName, args => method(eventName, args[0]));
 
     public void Emit(string eventName, object? data = null) => base.Emit(eventName, data);
 
-    public void RemoveListener(string eventName, Func<string, object?, Task> method)
-    {
-        throw new NotImplementedException();
-    }
+    public void RemoveListener(string eventName, Func<string, object?, Task> method) => throw new NotImplementedException();
 
     public new void RemoveAllListeners(string eventName) => base.RemoveAllListeners(eventName);
 }

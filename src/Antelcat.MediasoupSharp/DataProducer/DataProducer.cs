@@ -37,7 +37,7 @@ public class DataProducer : EnhancedEvent.EnhancedEventEmitter
     /// <summary>
     /// DataProducer id.
     /// </summary>
-    public string DataProducerId => @internal.DataProducerId;
+    public string Id => @internal.DataProducerId;
 
     /// <summary>
     /// DataProducer data.
@@ -91,7 +91,7 @@ public class DataProducer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task CloseAsync()
     {
-        logger.LogDebug("CloseAsync() | DataProducer:{DataProducerId}", DataProducerId);
+        logger.LogDebug("CloseAsync() | DataProducer:{DataProducerId}", Id);
 
         await using(await closeLock.WriteLockAsync())
         {
@@ -134,7 +134,7 @@ public class DataProducer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task TransportClosedAsync()
     {
-        logger.LogDebug("TransportClosedAsync() | DataProducer:{DataProducerId}", DataProducerId);
+        logger.LogDebug("TransportClosedAsync() | DataProducer:{DataProducerId}", Id);
 
         await using(await closeLock.WriteLockAsync())
         {
@@ -160,7 +160,7 @@ public class DataProducer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task<DumpResponseT> DumpAsync()
     {
-        logger.LogDebug("DumpAsync() | DataProducer:{DataProducerId}", DataProducerId);
+        logger.LogDebug("DumpAsync() | DataProducer:{DataProducerId}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -188,7 +188,7 @@ public class DataProducer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task<GetStatsResponseT[]> GetStatsAsync()
     {
-        logger.LogDebug("GetStatsAsync() | DataProducer:{DataProducerId}", DataProducerId);
+        logger.LogDebug("GetStatsAsync() | DataProducer:{DataProducerId}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -216,7 +216,7 @@ public class DataProducer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task PauseAsync()
     {
-        logger.LogDebug("PauseAsync() | DataProducer:{DataProducerId}", DataProducerId);
+        logger.LogDebug("PauseAsync() | DataProducer:{DataProducerId}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -250,7 +250,7 @@ public class DataProducer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task ResumeAsync()
     {
-        logger.LogDebug("ResumeAsync() | DataProducer:{DataProducerId}", DataProducerId);
+        logger.LogDebug("ResumeAsync() | DataProducer:{DataProducerId}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -282,9 +282,12 @@ public class DataProducer : EnhancedEvent.EnhancedEventEmitter
     /// <summary>
     /// Send data (just valid for DataProducers created on a DirectTransport).
     /// </summary>
-    public async Task SendAsync(string message, uint? ppid, List<ushort>? subchannels, ushort? requiredSubchannel)
+    public async Task SendAsync(string message, 
+                                uint? ppid = null, 
+                                List<ushort>? subchannels = null, 
+                                ushort? requiredSubchannel = null)
     {
-        logger.LogDebug("SendAsync() | DataProducer:{DataProducerId}", DataProducerId);
+        logger.LogDebug("SendAsync() | DataProducer:{DataProducerId}", Id);
 
         /*
          * +-------------------------------+----------+
@@ -318,7 +321,7 @@ public class DataProducer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task SendAsync(byte[] message, uint? ppid, List<ushort>? subchannels, ushort? requiredSubchannel)
     {
-        logger.LogDebug("SendAsync() | DataProducer:{DataProducerId}", DataProducerId);
+        logger.LogDebug("SendAsync() | DataProducer:{DataProducerId}", Id);
 
         ppid ??= !message.IsNullOrEmpty() ? 53u : 57u;
 

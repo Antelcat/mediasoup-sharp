@@ -116,7 +116,7 @@ namespace Antelcat.MediasoupSharp.Meeting.Controllers
 
             var result = new CreatePlainTransportResult
             {
-                TransportId = transport.TransportId,
+                TransportId = transport.Id,
                 Ip = transport.Data.Tuple.LocalAddress,
                 Port = transport.Data.Tuple.LocalPort,
             };

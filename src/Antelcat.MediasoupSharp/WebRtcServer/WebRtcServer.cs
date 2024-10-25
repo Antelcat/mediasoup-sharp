@@ -190,7 +190,7 @@ public class WebRtcServer : EnhancedEvent.EnhancedEventEmitter
     {
         await using(await webRtcTransportsLock.WriteLockAsync())
         {
-            webRtcTransports[webRtcTransport.TransportId] = webRtcTransport;
+            webRtcTransports[webRtcTransport.Id] = webRtcTransport;
         }
 
         // Emit observer event.
@@ -200,7 +200,7 @@ public class WebRtcServer : EnhancedEvent.EnhancedEventEmitter
         {
             await using(await webRtcTransportsLock.WriteLockAsync())
             {
-                webRtcTransports.Remove(webRtcTransport.TransportId);
+                webRtcTransports.Remove(webRtcTransport.Id);
             }
 
             // Emit observer event.
