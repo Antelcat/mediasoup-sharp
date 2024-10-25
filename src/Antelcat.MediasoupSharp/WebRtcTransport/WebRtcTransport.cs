@@ -235,7 +235,7 @@ public class WebRtcTransport : Transport.Transport
 
                 if(Data.DtlsState == DtlsState.CONNECTED)
                 {
-                    // TODO: DtlsRemoteCert donot exists.
+                    // TODO: DtlsRemoteCert do not exists.
                     // Data.DtlsRemoteCert = dtlsStateChangeNotification.RemoteCert;
                 }
 

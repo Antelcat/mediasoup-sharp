@@ -7,7 +7,7 @@ public class EnhancedEventEmitter : NodeSharp.Events.EventEmitter, IEventEmitter
 
     public void Emit(string eventName, object? data = null) => base.Emit(eventName, data);
 
-    public void RemoveListener(string eventName, Func<string, object?, Task> method) => throw new NotImplementedException();
+    public void RemoveListener(string eventName, Func<string, object?, Task> method) => throw new NotSupportedException();
 
     public new void RemoveAllListeners(string eventName) => base.RemoveAllListeners(eventName);
 }
