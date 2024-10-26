@@ -42,7 +42,7 @@ public abstract class RtpObserver : EnhancedEvent.EnhancedEventEmitter
     /// <summary>
     /// App custom data.
     /// </summary>
-    public Dictionary<string, object>? AppData { get; }
+    public AppData AppData { get; }
 
     /// <summary>
     /// Method to retrieve a Producer.
@@ -69,7 +69,7 @@ public abstract class RtpObserver : EnhancedEvent.EnhancedEventEmitter
         ILoggerFactory loggerFactory,
         RtpObserverInternal @internal,
         IChannel channel,
-        Dictionary<string, object>? appData,
+        AppData? appData,
         Func<string, Task<Producer.Producer?>> getProducerById
     )
     {

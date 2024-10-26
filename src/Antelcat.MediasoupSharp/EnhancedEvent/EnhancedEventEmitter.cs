@@ -1,6 +1,8 @@
-﻿namespace Antelcat.MediasoupSharp.EnhancedEvent;
+﻿using Antelcat.NodeSharp.Events;
 
-public class EnhancedEventEmitter : NodeSharp.Events.EventEmitter, IEventEmitter
+namespace Antelcat.MediasoupSharp.EnhancedEvent;
+
+public class EnhancedEventEmitter : EventEmitter
 {
     public void On(string eventName, Func<string, object?, Task> method) =>
         base.On(eventName, (object[] args) => method(eventName, args[0]));

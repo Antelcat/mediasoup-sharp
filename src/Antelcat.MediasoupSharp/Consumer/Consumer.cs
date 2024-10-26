@@ -59,7 +59,7 @@ public class Consumer : EnhancedEvent.EnhancedEventEmitter
     /// <summary>
     /// App custom data.
     /// </summary>
-    public Dictionary<string, object> AppData { get; }
+    public AppData AppData { get; }
 
     /// <summary>
     /// [扩展]Source.
@@ -121,7 +121,7 @@ public class Consumer : EnhancedEvent.EnhancedEventEmitter
         ConsumerInternal @internal,
         ConsumerData data,
         IChannel channel,
-        Dictionary<string, object>? appData,
+        AppData? appData,
         bool paused,
         bool producerPaused,
         ConsumerScoreT? score,

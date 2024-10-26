@@ -1,8 +1,10 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
 using Antelcat.MediasoupSharp.RtpParameters;
+using Antelcat.MediasoupSharp.Settings;
 using Antelcat.MediasoupSharp.Worker;
 using Force.DeepCloner;
+using Microsoft.Extensions.Logging;
 
 namespace Antelcat.MediasoupSharp;
 
@@ -25,6 +27,20 @@ public class Mediasoup
     /// Observer instance.
     /// </summary>
     public static EnhancedEvent.EnhancedEventEmitter Observer { get; } = new();
+
+    public static Task<WorkerBase> CreateWorkerAsync(ILoggerFactory loggerFactory, MediasoupOptions workerSettings)
+    {
+        var source = new TaskCompletionSource<WorkerBase>();
+        var worker = new Worker.Worker(loggerFactory, workerSettings);
+        worker
+            .On("@success", () =>
+            {
+                Observer.Emit("newworker", worker);
+                source.SetResult(worker);
+            })
+            .On("@failure", () => source.SetException(new Exception("Worker create failed")));
+        return source.Task;
+    }
 
     /// <summary>
     /// Get a cloned copy of the mediasoup supported RTP capabilities.

@@ -1,13 +1,14 @@
-﻿using Antelcat.MediasoupSharp.EnhancedEvent;
-using Antelcat.MediasoupSharp.Router;
+﻿using Antelcat.MediasoupSharp.Router;
 using Antelcat.MediasoupSharp.Settings;
+using Antelcat.NodeSharp.Events;
 using FBS.Worker;
 
 namespace Antelcat.MediasoupSharp.Worker;
 
 public interface IWorker : IEventEmitter, IDisposable
 {
-    Dictionary<string, object> AppData { get; }
+    public int Pid     { get; }
+    AppData       AppData { get; }
 
     EnhancedEvent.EnhancedEventEmitter Observer { get; }
 

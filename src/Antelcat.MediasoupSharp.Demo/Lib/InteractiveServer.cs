@@ -24,76 +24,72 @@ public class Interactive
 
 	private static void RunMediasoupObserver()
 	{
-		mediasoup.Observer.On("newworker", (Worker.Worker worker) =>
+		Mediasoup.Observer.On("newworker", (Worker.Worker worker) =>
 		{
 			// Store the latest worker in a global variable.
 			Interactive.worker = worker;
 
 			workers.Add(worker.Pid, worker);
-			worker.Observer.On("close", () => workers.Remove(worker.Pid));
-
-			worker.Observer.On("newwebrtcserver", (WebRtcServer.WebRtcServer webRtcServer) =>
-			{
-				// Store the latest webRtcServer in a global variable.
-				Interactive.webRtcServer = webRtcServer;
-
-				webRtcServers.Add(webRtcServer.Id, webRtcServer);
-				webRtcServer.Observer.On("close", () => webRtcServers.Remove(webRtcServer.Id));
-			});
-
-			worker.Observer.On("newrouter", (Router.Router router) =>
-			{
-				// Store the latest router in a global variable.
-				Interactive.router = router;
-
-				routers.Add(router.Id, router);
-				router.Observer.On("close", () => routers.Remove(router.Id));
-
-				router.Observer.On("newtransport", (Transport.Transport transport) =>
+			worker.Observer
+				.On("close", () => workers.Remove(worker.Pid))
+				.On("newwebrtcserver", (WebRtcServer.WebRtcServer webRtcServer) =>
 				{
-					// Store the latest transport in a global variable.
-					Interactive.transport = transport;
+					// Store the latest webRtcServer in a global variable.
+					Interactive.webRtcServer = webRtcServer;
 
-					transports.Add(transport.Id, transport);
-					transport.Observer.On("close", () => transports.Remove(transport.Id));
+					webRtcServers.Add(webRtcServer.Id, webRtcServer);
+					webRtcServer.Observer.On("close", () => webRtcServers.Remove(webRtcServer.Id));
+				})
+				.On("newrouter", (Router.Router router) =>
+				{
+					// Store the latest router in a global variable.
+					Interactive.router = router;
 
-					transport.Observer.On("newproducer", (Producer.Producer producer) =>
-					{
-						// Store the latest producer in a global variable.
-						Interactive.producer = producer;
+					routers.Add(router.Id, router);
+					router.Observer
+						.On("close", () => routers.Remove(router.Id))
+						.On("newtransport", (Transport.Transport transport) =>
+						{
+							// Store the latest transport in a global variable.
+							Interactive.transport = transport;
 
-						producers.Add(producer.Id, producer);
-						producer.Observer.On("close", () => producers.Remove(producer.Id));
-					});
+							transports.Add(transport.Id, transport);
+							transport.Observer
+								.On("close", () => transports.Remove(transport.Id))
+								.On("newproducer", (Producer.Producer producer) =>
+								{
+									// Store the latest producer in a global variable.
+									Interactive.producer = producer;
 
-					transport.Observer.On("newconsumer", (Consumer.Consumer consumer) =>
-					{
-						// Store the latest consumer in a global variable.
-						Interactive.consumer = consumer;
+									producers.Add(producer.Id, producer);
+									producer.Observer.On("close", () => producers.Remove(producer.Id));
+								})
+								.On("newconsumer", (Consumer.Consumer consumer) =>
+								{
+									// Store the latest consumer in a global variable.
+									Interactive.consumer = consumer;
 
-						consumers.Add(consumer.Id, consumer);
-						consumer.Observer.On("close", () => consumers.Remove(consumer.Id));
-					});
+									consumers.Add(consumer.Id, consumer);
+									consumer.Observer.On("close", () => consumers.Remove(consumer.Id));
+								})
+								.On("newdataproducer", (DataProducer.DataProducer dataProducer) =>
+								{
+									// Store the latest dataProducer in a global variable.
+									Interactive.dataProducer = dataProducer;
 
-					transport.Observer.On("newdataproducer", (DataProducer.DataProducer dataProducer) =>
-					{
-						// Store the latest dataProducer in a global variable.
-						Interactive.dataProducer = dataProducer;
+									dataProducers.Add(dataProducer.Id, dataProducer);
+									dataProducer.Observer.On("close", () => dataProducers.Remove(dataProducer.Id));
+								})
+								.On("newdataconsumer", (DataConsumer.DataConsumer dataConsumer) =>
+								{
+									// Store the latest dataConsumer in a global variable.
+									Interactive.dataConsumer = dataConsumer;
 
-						dataProducers.Add(dataProducer.Id, dataProducer);
-						dataProducer.Observer.On("close", () => dataProducers.Remove(dataProducer.Id));
-					});
-
-					transport.Observer.On("newdataconsumer", (DataConsumer.DataConsumer dataConsumer) =>
-					{
-						// Store the latest dataConsumer in a global variable.
-						Interactive.dataConsumer = dataConsumer;
-
-						dataConsumers.Add(dataConsumer.Id, dataConsumer);
-						dataConsumer.Observer.On("close", () => dataConsumers.Remove(dataConsumer.Id));
-					});
+									dataConsumers.Add(dataConsumer.Id, dataConsumer);
+									dataConsumer.Observer.On("close", () => dataConsumers.Remove(dataConsumer.Id));
+								});
+						});
 				});
-			});
 		});
 	}
 

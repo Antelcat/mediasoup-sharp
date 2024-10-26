@@ -62,7 +62,7 @@ public class DataConsumer : EnhancedEvent.EnhancedEventEmitter
     /// <summary>
     /// App custom data.
     /// </summary>
-    public Dictionary<string, object> AppData { get; }
+    public AppData AppData { get; }
 
     /// <summary>
     /// Observer instance.
@@ -91,7 +91,7 @@ public class DataConsumer : EnhancedEvent.EnhancedEventEmitter
         bool paused,
         bool dataProducerPaused,
         List<ushort> subchannels,
-        Dictionary<string, object>? appData
+        AppData? appData
     )
     {
         logger = loggerFactory.CreateLogger<DataConsumer>();
@@ -102,7 +102,7 @@ public class DataConsumer : EnhancedEvent.EnhancedEventEmitter
         this.paused             = paused;
         this.dataProducerPaused = dataProducerPaused;
         this.subchannels        = subchannels;
-        AppData                 = appData ?? [];
+        AppData                 = appData ?? new Dictionary<string, object>();
 
         HandleWorkerNotifications();
     }

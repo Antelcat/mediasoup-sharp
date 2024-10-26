@@ -100,7 +100,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
     /// <summary>
     /// App custom data.
     /// </summary>
-    public Dictionary<string, object> AppData { get; }
+    public AppData AppData { get; }
 
     /// <summary>
     /// Observer instance.
@@ -120,7 +120,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
                   RouterInternal @internal,
                   RouterData data,
                   IChannel channel,
-                  Dictionary<string, object>? appData
+                  AppData? appData
     )
     {
         this.loggerFactory = loggerFactory;

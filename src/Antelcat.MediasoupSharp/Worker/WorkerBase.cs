@@ -64,10 +64,12 @@ public abstract class WorkerBase : EnhancedEvent.EnhancedEventEmitter, IWorker
 
     #endregion Protected Fields
 
+    public abstract int Pid { get; }
+
     /// <summary>
     /// Custom app data.
     /// </summary>
-    public Dictionary<string, object> AppData { get; }
+    public AppData AppData { get; }
 
     /// <summary>
     /// Observer instance.
@@ -195,7 +197,7 @@ public abstract class WorkerBase : EnhancedEvent.EnhancedEventEmitter, IWorker
         {
             if(Closed)
             {
-                throw new InvalidStateException("Workder closed");
+                throw new InvalidStateException("Worker closed");
             }
 
             // Build the request.

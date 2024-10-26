@@ -61,7 +61,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
     /// <summary>
     /// App custom data.
     /// </summary>
-    public Dictionary<string, object> AppData { get; }
+    public AppData AppData { get; }
 
     /// <summary>
     /// Method to retrieve Router RTP capabilities.
@@ -170,7 +170,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
         TransportInternal @internal,
         DumpT data,
         IChannel channel,
-        Dictionary<string, object>? appData,
+        AppData? appData,
         Func<RtpCapabilities> getRouterRtpCapabilities,
         Func<string, Task<Producer.Producer?>> getProducerById,
         Func<string, Task<DataProducer.DataProducer?>> getDataProducerById

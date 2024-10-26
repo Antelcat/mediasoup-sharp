@@ -52,7 +52,7 @@ public class DataProducer : EnhancedEvent.EnhancedEventEmitter
     /// <summary>
     /// App custom data.
     /// </summary>
-    public Dictionary<string, object> AppData { get; }
+    public AppData AppData { get; }
 
     /// <summary>
     /// Observer instance.
@@ -72,7 +72,7 @@ public class DataProducer : EnhancedEvent.EnhancedEventEmitter
         DataProducerData data,
         IChannel channel,
         bool paused,
-        Dictionary<string, object>? appData
+        AppData? appData
     )
     {
         logger = loggerFactory.CreateLogger<DataProducer>();

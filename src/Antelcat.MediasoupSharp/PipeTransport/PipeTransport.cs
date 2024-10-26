@@ -47,7 +47,7 @@ public class PipeTransport : Transport.Transport
         TransportInternal @internal,
         DumpResponseT data,
         IChannel channel,
-        Dictionary<string, object>? appData,
+        AppData? appData,
         Func<RtpCapabilities> getRouterRtpCapabilities,
         Func<string, Task<Producer.Producer?>> getProducerById,
         Func<string, Task<DataProducer.DataProducer?>> getDataProducerById

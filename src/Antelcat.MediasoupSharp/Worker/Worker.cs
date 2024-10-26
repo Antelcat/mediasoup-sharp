@@ -30,7 +30,7 @@ public class Worker : WorkerBase
     /// <summary>
     /// Worker process PID.
     /// </summary>
-    public int Pid { get; }
+    public override int Pid { get; }
 
     /// <summary>
     /// Is spawn done?
@@ -57,9 +57,8 @@ public class Worker : WorkerBase
         : base(loggerFactory, mediasoupOptions)
     {
         var workerPath = mediasoupOptions.MediasoupStartupSettings.WorkerPath;
-        if(workerPath.IsNullOrWhiteSpace())
+        if (workerPath.IsNullOrWhiteSpace())
         {
-            // 见：https://docs.microsoft.com/en-us/dotnet/core/rid-catalog
             var rid = RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
                 ? "linux"
                 : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
@@ -84,10 +83,7 @@ public class Worker : WorkerBase
 
         if(!workerSettings.LogTags.IsNullOrEmpty())
         {
-            foreach (var logTag in workerSettings.LogTags)
-            {
-                argv.Add($"--logTag={logTag.GetEnumText()}");
-            }
+            argv.AddRange(workerSettings.LogTags.Select(logTag => $"--logTag={logTag.GetEnumText()}"));
         }
 
         if(workerSettings.RtcMinPort.HasValue)
@@ -119,7 +115,7 @@ public class Worker : WorkerBase
 
         pipes = new UVStream[StdioCount];
 
-        // fd 0 (stdin)   : Just ignore it. (忽略标准输入)
+        // fd 0 (stdin)   : Just ignore it.
         // fd 1 (stdout)  : Pipe it for 3rd libraries that log their own stuff.
         // fd 2 (stderr)  : Same as stdout.
         // fd 3 (channel) : Producer Channel fd.
@@ -145,7 +141,7 @@ public class Worker : WorkerBase
                     Arguments   = argv.ToArray(),
                     Environment = env,
                     Detached    = false,
-                    Streams     = pipes,
+                    Streams     = pipes!,
                 },
                 OnExit
             );
@@ -172,7 +168,10 @@ public class Worker : WorkerBase
             }
         }
 
-        Channel = new Channel.Channel(LoggerFactory.CreateLogger<Channel.Channel>(), pipes[3], pipes[4], Pid);
+        Channel = new Channel.Channel(LoggerFactory.CreateLogger<Channel.Channel>(),
+            pipes[3]!,
+            pipes[4]!, 
+            Pid);
         
         Channel.OnNotification += OnNotificationHandle;
 
@@ -207,10 +206,7 @@ public class Worker : WorkerBase
             }
 
             // Close the Channel instance.
-            if(Channel != null)
-            {
-                await Channel.CloseAsync();
-            }
+            await Channel.CloseAsync();
 
             // Close every Router.
             Router.Router[] routersForClose;

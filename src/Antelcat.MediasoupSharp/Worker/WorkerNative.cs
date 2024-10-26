@@ -18,17 +18,17 @@ public class WorkerNative : WorkerBase
         : base(loggerFactory, mediasoupOptions)
     {
         var workerSettings = mediasoupOptions.MediasoupSettings.WorkerSettings;
-        var args = new List<string>
+        var args = new List<string?>
         {
             "" // Ignore `workerPath`
         };
 
-        if(workerSettings.LogLevel.HasValue)
+        if (workerSettings.LogLevel.HasValue)
         {
             args.Add($"--logLevel={workerSettings.LogLevel.Value.GetEnumText()}");
         }
 
-        if(!workerSettings.LogTags.IsNullOrEmpty())
+        if (!workerSettings.LogTags.IsNullOrEmpty())
         {
             foreach (var logTag in workerSettings.LogTags)
             {
@@ -36,42 +36,41 @@ public class WorkerNative : WorkerBase
             }
         }
 
-        if(workerSettings.RtcMinPort.HasValue)
+        if (workerSettings.RtcMinPort.HasValue)
         {
             args.Add($"--rtcMinPort={workerSettings.RtcMinPort}");
         }
 
-        if(workerSettings.RtcMaxPort.HasValue)
+        if (workerSettings.RtcMaxPort.HasValue)
         {
             args.Add($"--rtcMaxPort={workerSettings.RtcMaxPort}");
         }
 
-        if(!workerSettings.DtlsCertificateFile.IsNullOrWhiteSpace())
+        if (!workerSettings.DtlsCertificateFile.IsNullOrWhiteSpace())
         {
             args.Add($"--dtlsCertificateFile={workerSettings.DtlsCertificateFile}");
         }
 
-        if(!workerSettings.DtlsPrivateKeyFile.IsNullOrWhiteSpace())
+        if (!workerSettings.DtlsPrivateKeyFile.IsNullOrWhiteSpace())
         {
             args.Add($"--dtlsPrivateKeyFile={workerSettings.DtlsPrivateKeyFile}");
         }
 
-        if(!workerSettings.LibwebrtcFieldTrials.IsNullOrWhiteSpace())
+        if (!workerSettings.LibwebrtcFieldTrials.IsNullOrWhiteSpace())
         {
             args.Add($"--libwebrtcFieldTrials={workerSettings.LibwebrtcFieldTrials}");
         }
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-        args.Add(null);
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
 
-        argv    = args.ToArray();
-        version = mediasoupOptions.MediasoupStartupSettings.MediasoupVersion;
+        args.Add(null);
+
+        argv    = args.ToArray()!;
+        version = Mediasoup.Version.ToString();
 
         var threadId = Environment.CurrentManagedThreadId;
 
         Channel                =  new ChannelNative(LoggerFactory.CreateLogger<ChannelNative>(), threadId);
         Channel.OnNotification += OnNotificationHandle;
-        channelPtr              =  GCHandle.ToIntPtr(GCHandle.Alloc(Channel, GCHandleType.Normal));
+        channelPtr             =  GCHandle.ToIntPtr(GCHandle.Alloc(Channel, GCHandleType.Normal));
     }
 
     public void Run()
@@ -92,12 +91,12 @@ public class WorkerNative : WorkerBase
 
         void OnExit()
         {
-            if(workerRunResult == 42)
+            if (workerRunResult == 42)
             {
                 Logger.LogError("OnExit() | Worker run failed due to wrong settings");
                 Emit("@failure", new Exception("Worker run failed due to wrong settings"));
             }
-            else if(workerRunResult == 0)
+            else if (workerRunResult == 0)
             {
                 Logger.LogError("OnExit() | Worker died unexpectedly");
                 Emit("died", new Exception("Worker died unexpectedly"));
@@ -112,6 +111,8 @@ public class WorkerNative : WorkerBase
         OnExit();
     }
 
+    public override int Pid => throw new NotSupportedException();
+
     public override Task CloseAsync()
     {
         throw new NotImplementedException();
@@ -121,7 +122,7 @@ public class WorkerNative : WorkerBase
     {
         if (channelPtr == IntPtr.Zero) return;
         var handle = GCHandle.FromIntPtr(channelPtr);
-        if(handle.IsAllocated)
+        if (handle.IsAllocated)
         {
             handle.Free();
         }
@@ -131,7 +132,7 @@ public class WorkerNative : WorkerBase
 
     private void OnNotificationHandle(string handlerId, Event @event, Notification notification)
     {
-        if(@event != Event.WORKER_RUNNING)
+        if (@event != Event.WORKER_RUNNING)
         {
             return;
         }

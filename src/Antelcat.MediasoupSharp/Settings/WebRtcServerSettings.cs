@@ -2,7 +2,7 @@
 
 namespace Antelcat.MediasoupSharp.Settings;
 
-public class WebRtcServerSettings
+public record WebRtcServerSettings
 {
     public ListenInfoT[] ListenInfos { get; set; }
 }
