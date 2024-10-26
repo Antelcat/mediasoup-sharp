@@ -19,7 +19,7 @@ public class WebRtcServer : EnhancedEvent.EnhancedEventEmitter
 
     private readonly WebRtcServerInternal @internal;
 
-    public string WebRtcServerId => @internal.WebRtcServerId;
+    public string Id => @internal.WebRtcServerId;
 
     #endregion Internal data.
 
@@ -80,7 +80,7 @@ public class WebRtcServer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task CloseAsync()
     {
-        logger.LogDebug("CloseAsync() | WebRtcServerId:{WebRtcServerId}", WebRtcServerId);
+        logger.LogDebug("CloseAsync() | WebRtcServerId:{WebRtcServerId}", Id);
 
         await using(await closeLock.WriteLockAsync())
         {
@@ -121,7 +121,7 @@ public class WebRtcServer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task WorkerClosedAsync()
     {
-        logger.LogDebug("WorkerClosedAsync() | WebRtcServerId:{WebRtcServerId}", WebRtcServerId);
+        logger.LogDebug("WorkerClosedAsync() | WebRtcServerId:{WebRtcServerId}", Id);
 
         await using(await closeLock.WriteLockAsync())
         {
@@ -163,7 +163,7 @@ public class WebRtcServer : EnhancedEvent.EnhancedEventEmitter
     /// </summary>
     public async Task<DumpResponseT> DumpAsync()
     {
-        logger.LogDebug("DumpAsync() | WebRtcServerId:{WebRtcServerId}", WebRtcServerId);
+        logger.LogDebug("DumpAsync() | WebRtcServerId:{WebRtcServerId}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {

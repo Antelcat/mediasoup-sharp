@@ -1,15 +1,15 @@
-﻿using System.Text;
+﻿using System.Runtime.InteropServices;
+using System.Text;
 using Antelcat.AspNetCore.ProtooSharp;
 using Antelcat.MediasoupSharp.DataConsumer;
 using Antelcat.MediasoupSharp.DataProducer;
 using Antelcat.MediasoupSharp.DirectTransport;
+using FBS.DataConsumer;
 
 namespace Antelcat.MediasoupSharp.Demo.Lib;
 
 public class Bot(ILogger logger,DirectTransport.DirectTransport transport, DataProducer.DataProducer dataProducer)
 {
-    
-    
     public static async Task<Bot> CreateAsync(ILoggerFactory loggerFactory, Router.Router mediasoupRouter)
     {
         var transport = await mediasoupRouter.CreateDirectTransportAsync(new DirectTransportOptions
@@ -41,16 +41,18 @@ public class Bot(ILogger logger,DirectTransport.DirectTransport transport, DataP
             DataProducerId = dataProducerId
         });
         
-        dataConsumer.On("message", async args =>
+        dataConsumer.On("message", async (MessageNotificationT args) =>
         {
-            if (args is not [byte[] message, 51])
+            if (args.Ppid != 51)
             {
                 logger.LogWarning("ignoring non string message from a Peer");
                 return;
             }
 
-            var text = Encoding.UTF8.GetString(message);
-            logger.LogDebug("SCTP message received [{PeerId}, {Size}]", peer.Id, message.Length);
+            var message = args.Data;
+
+            var text = Encoding.UTF8.GetString(CollectionsMarshal.AsSpan(message));
+            logger.LogDebug("SCTP message received [{PeerId}, {Size}]", peer.Id, message.Count);
             
             // Create a message to send it back to all Peers in behalf of the sending
             // Peer.

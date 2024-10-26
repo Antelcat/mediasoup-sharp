@@ -13,10 +13,10 @@ public static class MediasoupApplicationBuilderExtensions
     public static IApplicationBuilder UseMediasoup(this IApplicationBuilder app)
     {
         var loggerFactory               = app.ApplicationServices.GetRequiredService<ILoggerFactory>();
-        var logger                      = loggerFactory.CreateLogger<MediasoupServer>();
+        var logger                      = loggerFactory.CreateLogger<Mediasoup>();
         var mediasoupOptions            = app.ApplicationServices.GetRequiredService<MediasoupOptions>();
         var defaultWebRtcServerSettings = mediasoupOptions.MediasoupSettings.WebRtcServerSettings;
-        var mediasoupServer             = app.ApplicationServices.GetRequiredService<MediasoupServer>();
+        var mediasoupServer             = app.ApplicationServices.GetRequiredService<Mediasoup>();
         var numberOfWorkers             = mediasoupOptions.MediasoupStartupSettings.NumberOfWorkers;
         numberOfWorkers = numberOfWorkers is null or <= 0 ? Environment.ProcessorCount : numberOfWorkers;
 
@@ -60,7 +60,7 @@ public static class MediasoupApplicationBuilderExtensions
                         worker.On("@success", async (_, _) =>
                         {
                             mediasoupServer.AddWorker(worker);
-                            logger.LogInformation("Worker[{ProcessId}] create success", worker.ProcessId);
+                            logger.LogInformation("Worker[{ProcessId}] create success", worker.Pid);
                             if(mediasoupOptions.MediasoupStartupSettings.UseWebRtcServer is true)
                             {
                                 await CreateWebRtcServerAsync(worker, (ushort)c, defaultWebRtcServerSettings);

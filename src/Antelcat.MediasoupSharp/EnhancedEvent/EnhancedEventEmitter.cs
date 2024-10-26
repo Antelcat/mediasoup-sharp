@@ -3,7 +3,7 @@
 public class EnhancedEventEmitter : NodeSharp.Events.EventEmitter, IEventEmitter
 {
     public void On(string eventName, Func<string, object?, Task> method) =>
-        base.On(eventName, args => method(eventName, args[0]));
+        base.On(eventName, (object[] args) => method(eventName, args[0]));
 
     public void Emit(string eventName, object? data = null) => base.Emit(eventName, data);
 

@@ -5,7 +5,7 @@ using Force.DeepCloner;
 
 namespace Antelcat.MediasoupSharp;
 
-public class MediasoupServer
+public class Mediasoup
 {
     private readonly List<IWorker> workers = [];
 
@@ -62,10 +62,7 @@ public class MediasoupServer
     /// </summary>
     public void AddWorker(IWorker worker)
     {
-        if(worker == null)
-        {
-            throw new ArgumentNullException(nameof(worker));
-        }
+        ArgumentNullException.ThrowIfNull(worker);
 
         workersLock.EnterWriteLock();
         try

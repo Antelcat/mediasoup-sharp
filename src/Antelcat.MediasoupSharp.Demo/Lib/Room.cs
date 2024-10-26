@@ -19,7 +19,9 @@ using Antelcat.NodeSharp.Events;
 using FBS.AudioLevelObserver;
 using FBS.Common;
 using FBS.Consumer;
+using FBS.Producer;
 using FBS.RtpParameters;
+using FBS.SctpAssociation;
 using FBS.SctpParameters;
 using FBS.WebRtcTransport;
 using Force.DeepCloner;
@@ -31,148 +33,150 @@ namespace Antelcat.MediasoupSharp.Demo.Lib;
 
 public class Room : EventEmitter
 {
-    private readonly ILogger                              logger;
-    private readonly string                               roomId;
-    private          bool                                 closed;
-    private readonly Antelcat.AspNetCore.ProtooSharp.Room protooRoom;
+	private          bool                                 closed;
+	private readonly ILogger                              logger;
+	private readonly string                               roomId;
+	private readonly Antelcat.AspNetCore.ProtooSharp.Room protooRoom;
 
-    
-    /// <summary>
-    /// Map of broadcasters indexed by id. Each Object has:
-    /// - {string} id
-    /// - {object} data
-    ///   - {string} displayName
-    ///   - {object} device
-    ///   - {RTCRtpCapabilities} rtpCapabilities
-    ///   - Dictionary{string, Transport} transports
-    ///   - Dictionary{string, Producer} producers
-    ///   - Dictionary{string, Consumers} consumers
-    ///   - Dictionary{string, DataProducer} dataProducers
-    ///   - Dictionary{string, DataConsumer} dataConsumers
-    /// </summary>
-    private readonly Dictionary<string, Broadcaster> broadcasters = [];
-    private readonly WebRtcServer.WebRtcServer                   webRtcServer;
-    private readonly Router.Router                               mediasoupRouter;
-    private readonly AudioLevelObserver.AudioLevelObserver       audioLevelObserver;
-    private readonly ActiveSpeakerObserver.ActiveSpeakerObserver activeSpeakerObserver;
-    private readonly Bot                                         bot;
-    private readonly int                                         consumerReplicas;
-    private          bool                                        networkThrottled;
-    
-    public static async Task<Room> CreateAsync(
-        ILoggerFactory loggerFactory,
-        MediasoupOptions options,
-        Worker.Worker mediasoupWorker, 
-        string roomId, 
-        int consumerReplicas)
-    {
-        // Create a protoo Room instance.
-        var protooRoom = new Antelcat.AspNetCore.ProtooSharp.Room(loggerFactory);
 
-        // Router media codecs.
-        var  mediaCodecs  = options.MediasoupSettings.RouterSettings.RtpCodecCapabilities;
+	/// <summary>
+	/// Map of broadcasters indexed by id. Each Object has:
+	/// - {string} id
+	/// - {object} data
+	///   - {string} displayName
+	///   - {object} device
+	///   - {RTCRtpCapabilities} rtpCapabilities
+	///   - Dictionary{string, Transport} transports
+	///   - Dictionary{string, Producer} producers
+	///   - Dictionary{string, Consumers} consumers
+	///   - Dictionary{string, DataProducer} dataProducers
+	///   - Dictionary{string, DataConsumer} dataConsumers
+	/// </summary>
+	private readonly Dictionary<string, Broadcaster> broadcasters = [];
 
-        // Create a mediasoup Router.
-        var mediasoupRouter = await mediasoupWorker.CreateRouterAsync(new()
-        {
-            MediaCodecs = mediaCodecs
-        });
+	private readonly WebRtcServer.WebRtcServer                   webRtcServer;
+	private readonly Router.Router                               mediasoupRouter;
+	private readonly AudioLevelObserver.AudioLevelObserver       audioLevelObserver;
+	private readonly ActiveSpeakerObserver.ActiveSpeakerObserver activeSpeakerObserver;
+	private readonly Bot                                         bot;
+	private readonly int                                         consumerReplicas;
+	private          bool                                        networkThrottled;
 
-        // Create a mediasoup AudioLevelObserver.
-        var audioLevelObserver = await mediasoupRouter.CreateAudioLevelObserverAsync(new()
-        {
-            MaxEntries = 1,
-            Threshold  = -80,
-            Interval   = 800
-        });
+	public static async Task<Room> CreateAsync(
+		ILoggerFactory loggerFactory,
+		MediasoupOptions options,
+		Worker.Worker mediasoupWorker,
+		string roomId,
+		int consumerReplicas)
+	{
+		// Create a protoo Room instance.
+		var protooRoom = new Antelcat.AspNetCore.ProtooSharp.Room(loggerFactory);
 
-        // Create a mediasoup ActiveSpeakerObserver.
-        var activeSpeakerObserver = await mediasoupRouter.CreateActiveSpeakerObserverAsync(new());
+		// Router media codecs.
+		var mediaCodecs = options.MediasoupSettings.RouterSettings.RtpCodecCapabilities;
 
-        var bot = await Bot.CreateAsync(loggerFactory, mediasoupRouter);
+		// Create a mediasoup Router.
+		var mediasoupRouter = await mediasoupWorker.CreateRouterAsync(new()
+		{
+			MediaCodecs = mediaCodecs
+		});
 
-        return new Room(
-            loggerFactory.CreateLogger<Room>(),
-            roomId,
-            protooRoom,
-            webRtcServer : mediasoupWorker.AppData["webRtcServer"] as WebRtcServer.WebRtcServer ?? throw new ArgumentNullException(),
-            mediasoupRouter,
-            audioLevelObserver,
-            activeSpeakerObserver,
-            consumerReplicas,
-            bot
-        );
-    }
+		// Create a mediasoup AudioLevelObserver.
+		var audioLevelObserver = await mediasoupRouter.CreateAudioLevelObserverAsync(new()
+		{
+			MaxEntries = 1,
+			Threshold  = -80,
+			Interval   = 800
+		});
 
-    public Room(ILogger logger,
-                string roomId,
-                Antelcat.AspNetCore.ProtooSharp.Room protooRoom,
-                WebRtcServer.WebRtcServer webRtcServer,
-                Router.Router mediasoupRouter,
-                AudioLevelObserver.AudioLevelObserver audioLevelObserver,
-                ActiveSpeakerObserver.ActiveSpeakerObserver activeSpeakerObserver,
-                int consumerReplicas,
-                Bot bot)
-    {
-        MaxListeners               = int.MaxValue;
-        this.logger                = logger;
-        this.roomId                = roomId;
-        this.protooRoom            = protooRoom;
-        this.webRtcServer          = webRtcServer;
-        this.mediasoupRouter       = mediasoupRouter;
-        this.audioLevelObserver    = audioLevelObserver;
-        this.activeSpeakerObserver = activeSpeakerObserver;
-        this.consumerReplicas      = consumerReplicas;
-        this.bot                   = bot;
-        
-        HandleAudioLevelObserver();
-        
-        HandleActiveSpeakerObserver();
-    }
+		// Create a mediasoup ActiveSpeakerObserver.
+		var activeSpeakerObserver = await mediasoupRouter.CreateActiveSpeakerObserverAsync(new());
 
-    public async Task CloseAsync()
-    {
-        logger.LogDebug($"{nameof(CloseAsync)}()");
+		var bot = await Bot.CreateAsync(loggerFactory, mediasoupRouter);
 
-        closed = true;
-        
-        // Close the protoo Room.
-        await protooRoom.CloseAsync();
-        
-        // Close the mediasoup Router.
-        await mediasoupRouter.CloseAsync();
-        
-        // Close the Bot.
-        bot.Close(); 
-        
-        // Close the Bot.
-        Emit("close");
-        
-        // Stop network throttling.
-        if (networkThrottled)
-        {
-            logger.LogDebug($"{nameof(CloseAsync)}() | stopping network throttle");
+		return new Room(
+			loggerFactory.CreateLogger<Room>(),
+			roomId,
+			protooRoom,
+			webRtcServer: mediasoupWorker.AppData["webRtcServer"] as WebRtcServer.WebRtcServer ??
+			              throw new ArgumentNullException(),
+			mediasoupRouter,
+			audioLevelObserver,
+			activeSpeakerObserver,
+			consumerReplicas,
+			bot
+		);
+	}
 
-            //TODO: watt is that
-            /*throttle.stop({})
-            .catch((error) =>
-            {
-                logger.error($"close() | failed to stop network throttle:${error}");
-            });*/
-        }
-    }
-    
-    private void LogStatus()
-    {
-        logger.LogInformation(
-            $"{nameof(LogStatus)}() [{{roomId}}, protoo {{Peers}}]",
-            roomId,
-            protooRoom.Peers.Count);
-    }
+	public Room(ILogger logger,
+	            string roomId,
+	            Antelcat.AspNetCore.ProtooSharp.Room protooRoom,
+	            WebRtcServer.WebRtcServer webRtcServer,
+	            Router.Router mediasoupRouter,
+	            AudioLevelObserver.AudioLevelObserver audioLevelObserver,
+	            ActiveSpeakerObserver.ActiveSpeakerObserver activeSpeakerObserver,
+	            int consumerReplicas,
+	            Bot bot)
+	{
+		MaxListeners               = int.MaxValue;
+		this.logger                = logger;
+		this.roomId                = roomId;
+		this.protooRoom            = protooRoom;
+		this.webRtcServer          = webRtcServer;
+		this.mediasoupRouter       = mediasoupRouter;
+		this.audioLevelObserver    = audioLevelObserver;
+		this.activeSpeakerObserver = activeSpeakerObserver;
+		this.consumerReplicas      = consumerReplicas;
+		this.bot                   = bot;
 
-    private void HandleProtooConnection(string peerId, bool consume, WebSocketTransport protooWebSocketTransport)
-    {
-        var existingPeer = protooRoom.GetPeer(peerId);
+		HandleAudioLevelObserver();
+
+		HandleActiveSpeakerObserver();
+	}
+
+	public async Task CloseAsync()
+	{
+		logger.LogDebug($"{nameof(CloseAsync)}()");
+
+		closed = true;
+
+		// Close the protoo Room.
+		await protooRoom.CloseAsync();
+
+		// Close the mediasoup Router.
+		await mediasoupRouter.CloseAsync();
+
+		// Close the Bot.
+		bot.Close();
+
+		// Close the Bot.
+		Emit("close");
+
+		// Stop network throttling.
+		if (networkThrottled)
+		{
+			logger.LogDebug($"{nameof(CloseAsync)}() | stopping network throttle");
+
+			//TODO: watt is that
+			/*throttle.stop({})
+			.catch((error) =>
+			{
+			    logger.error($"close() | failed to stop network throttle:${error}");
+			});*/
+		}
+	}
+
+	private void LogStatus()
+	{
+		logger.LogInformation(
+			$"{nameof(LogStatus)}() [{{roomId}}, protoo {{Peers}}]",
+			roomId,
+			protooRoom.Peers.Count);
+	}
+
+	private void HandleProtooConnection(string peerId, bool consume, WebSocketTransport protooWebSocketTransport)
+	{
+		var existingPeer = protooRoom.GetPeer(peerId);
 
 		if (existingPeer != null)
 		{
@@ -192,7 +196,8 @@ public class Room : EventEmitter
 		}
 		catch (Exception ex)
 		{
-			logger.LogError($"{nameof(protooRoom)}.{nameof(Antelcat.AspNetCore.ProtooSharp.Room.CreatePeer)}() {{Exception}}", ex);
+			logger.LogError(
+				$"{nameof(protooRoom)}.{nameof(Antelcat.AspNetCore.ProtooSharp.Room.CreatePeer)}() {{Exception}}", ex);
 			return;
 		}
 
@@ -216,7 +221,7 @@ public class Room : EventEmitter
 			DataProducers = [],
 			DataConsumers = []
 		});
-		
+
 		peer.Request += async request =>
 		{
 			logger.LogDebug(
@@ -249,7 +254,7 @@ public class Room : EventEmitter
 			// If the Peer was joined, notify all Peers.
 			if (peer.Data.As<PeerData>().Joined)
 			{
-				foreach (var otherPeer in GetJoinedPeers( peer))
+				foreach (var otherPeer in GetJoinedPeers(peer))
 				{
 					otherPeer.NotifyAsync("peerClosed", new { peerId = peer.Id })
 						.Catch(() => { });
@@ -272,11 +277,11 @@ public class Room : EventEmitter
 				await CloseAsync();
 			}
 		};
-    }
+	}
 
-    public RtpCapabilities RouterRtpCapabilities => mediasoupRouter.Data.RtpCapabilities;
-    
-    /**
+	public RtpCapabilities RouterRtpCapabilities => mediasoupRouter.Data.RtpCapabilities;
+
+	/**
 	 * Create a Broadcaster. This is for HTTP API requests (see server.js).
 	 *
 	 * @async
@@ -287,16 +292,16 @@ public class Room : EventEmitter
 	 * @type {RTCRtpCapabilities} [rtpCapabilities] - Device RTP capabilities.
 	 */
 	private async Task<object> CreateBroadcasterAsync(string id,
-	                                          string displayName,
-	                                          Dictionary<string,object> device, 
-	                                          RtpCapabilities? rtpCapabilities)
+	                                                  string displayName,
+	                                                  Dictionary<string, object> device,
+	                                                  RtpCapabilities? rtpCapabilities)
 	{
 		if (device["name"] is not string name)
 		{
 			throw new ArgumentException("missing body.device.name");
 		}
 
-		if (broadcasters.ContainsKey(id)) 
+		if (broadcasters.ContainsKey(id))
 			throw new DuplicateNameException($"broadcaster with id {id} already exists");
 
 		var broadcaster = new Broadcaster
@@ -305,7 +310,7 @@ public class Room : EventEmitter
 			Data = new BroadcasterData
 			{
 				DisplayName     = displayName,
-				Device          = new ("broadcaster",name,device["version"] as string),
+				Device          = new("broadcaster", name, device["version"] as string),
 				RtpCapabilities = rtpCapabilities,
 				Transports      = [],
 				Producers       = [],
@@ -356,18 +361,18 @@ public class Room : EventEmitter
 						continue;
 					}
 
-					peerInfo.producers.Add(new 
-						{
-							id   = producer.Id,
-							kind = producer.Kind
-						});
+					peerInfo.producers.Add(new
+					{
+						id   = producer.Id,
+						kind = producer.Kind
+					});
 				}
 
 				peerInfos.Add(peerInfo);
 			}
 		}
 
-		return peerInfos ;
+		return peerInfos;
 	}
 
 	public async Task DeleteBroadcasterAsync(string broadcasterId)
@@ -390,7 +395,7 @@ public class Room : EventEmitter
 				.Catch(() => { });
 		}
 	}
-	
+
 	public async Task<object> CreateBroadcasterTransportAsync(
 		string broadcasterId,
 		string type,
@@ -410,10 +415,10 @@ public class Room : EventEmitter
 				var options = MediasoupOptions.Default.MediasoupSettings.WebRtcTransportSettings;
 				var webRtcTransportOptions = new WebRtcTransportOptions
 				{
-					EnableSctp         = sctpCapabilities is not null,
-					NumSctpStreams     = sctpCapabilities?.NumStreams,
-					ListenInfos        = options.ListenInfos,
-					MaxSctpMessageSize = options.MaxSctpMessageSize ?? 0,
+					EnableSctp                      = sctpCapabilities is not null,
+					NumSctpStreams                  = sctpCapabilities?.NumStreams,
+					ListenInfos                     = options.ListenInfos,
+					MaxSctpMessageSize              = options.MaxSctpMessageSize              ?? 0,
 					InitialAvailableOutgoingBitrate = options.InitialAvailableOutgoingBitrate ?? 0
 				};
 
@@ -425,7 +430,8 @@ public class Room : EventEmitter
 				// Store it.
 				broadcaster.Data.Transports.Add(transport.Id, transport);
 
-				return new {
+				return new
+				{
 					id             = transport.Id,
 					iceParameters  = transport.Data.IceParameters,
 					iceCandidates  = transport.Data.IceParameters,
@@ -465,7 +471,7 @@ public class Room : EventEmitter
 			}
 		}
 	}
-	
+
 	public async Task ConnectBroadcasterTransportAsync(
 		string broadcasterId,
 		string transportId,
@@ -488,7 +494,7 @@ public class Room : EventEmitter
 
 		await transport.ConnectAsync(dtlsParameters);
 	}
-	
+
 	public async Task<string> CreateBroadcasterProducerAsync(
 		string broadcasterId,
 		string transportId,
@@ -509,7 +515,7 @@ public class Room : EventEmitter
 		var producer =
 			await transport.ProduceAsync(new ProducerOptions
 			{
-				Kind = kind,
+				Kind          = kind,
 				RtpParameters = rtpParameters
 			});
 
@@ -524,11 +530,11 @@ public class Room : EventEmitter
 		// 		producer.id, score);
 		// });
 
-		producer.On("videoorientationchange", async videoOrientation =>
+		producer.On("videoorientationchange", (VideoOrientationChangeNotificationT videoOrientation) =>
 		{
 			logger.LogDebug(
 				"broadcaster producer 'videoorientationchange' event [{ProducerId}, {VideoOrientation}]",
-				producer.Id, videoOrientation[0]);
+				producer.Id, videoOrientation);
 		});
 
 		// Optimization: Create a server-side Consumer for each Peer.
@@ -555,17 +561,17 @@ public class Room : EventEmitter
 
 		return producer.Id;
 	}
-	
+
 	public async Task<(
-		string id,
-		string producerId,
-		MediaKind kindind,
-		RtpParameters.RtpParameters rtpParameters,
-		FBS.RtpParameters.Type type)>  
+			string id,
+			string producerId,
+			MediaKind kindind,
+			RtpParameters.RtpParameters rtpParameters,
+			FBS.RtpParameters.Type type)>
 		CreateBroadcasterConsumerAsync(
-		string broadcasterId,
-		string transportId,
-		string producerId)
+			string broadcasterId,
+			string transportId,
+			string producerId)
 	{
 		var broadcaster = broadcasters.GetValueOrDefault(broadcasterId);
 
@@ -590,13 +596,13 @@ public class Room : EventEmitter
 		broadcaster.Data.Consumers.Add(consumer.Id, consumer);
 
 		// Set Consumer events.
-		consumer.On("transportclose",async _ =>
+		consumer.On("transportclose", () =>
 		{
 			// Remove from its map.
 			broadcaster.Data.Consumers.Remove(consumer.Id);
 		});
 
-		consumer.On("producerclose", async _ =>
+		consumer.On("producerclose", () =>
 		{
 			// Remove from its map.
 			broadcaster.Data.Consumers.Remove(consumer.Id);
@@ -608,8 +614,8 @@ public class Room : EventEmitter
 			consumer.Data.RtpParameters,
 			consumer.Data.Type);
 	}
-	
-	public async Task<(string id,ushort? streamId)> CreateBroadcasterDataConsumerAsync(
+
+	public async Task<(string id, ushort? streamId)> CreateBroadcasterDataConsumerAsync(
 		string broadcasterId,
 		string transportId,
 		string dataProducerId)
@@ -636,31 +642,31 @@ public class Room : EventEmitter
 		broadcaster.Data.DataConsumers.Add(dataConsumer.Id, dataConsumer);
 
 		// Set Consumer events.
-		dataConsumer.On("transportclose", async _ =>
+		dataConsumer.On("transportclose", () =>
 		{
 			// Remove from its map.
 			broadcaster.Data.DataConsumers.Remove(dataConsumer.Id);
 		});
 
-		dataConsumer.On("dataproducerclose", async _ =>
+		dataConsumer.On("dataproducerclose", () =>
 		{
 			// Remove from its map.
 			broadcaster.Data.DataConsumers.Remove(dataConsumer.Id);
 		});
 
 		return (
-			dataConsumer.Id, 
+			dataConsumer.Id,
 			dataConsumer.Data.SctpStreamParameters?.StreamId
-			);
+		);
 	}
-	
+
 	public async Task<string> CreateBroadcasterDataProducerAsync(
 		string broadcasterId,
 		string transportId,
 		string label,
 		string protocol,
 		SctpStreamParametersT sctpStreamParameters,
-		Dictionary<string,object> appData
+		Dictionary<string, object> appData
 	)
 	{
 		var broadcaster = broadcasters.GetValueOrDefault(broadcasterId);
@@ -688,7 +694,7 @@ public class Room : EventEmitter
 		broadcaster.Data.DataProducers.Add(dataProducer.Id, dataProducer);
 
 		// Set Consumer events.
-		dataProducer.On("transportclose", async _ =>
+		dataProducer.On("transportclose", () =>
 		{
 			// Remove from its map.
 			broadcaster.Data.DataProducers.Remove(dataProducer.Id);
@@ -709,62 +715,56 @@ public class Room : EventEmitter
 	}
 
 	private void HandleAudioLevelObserver()
-    {
-        audioLevelObserver.On("volumes",async volumes =>
-        {
-            if (volumes is not [Producer.Producer producer, VolumeT volume]) return;
+	{
+		audioLevelObserver.On("volumes", (Producer.Producer producer, VolumeT volume) =>
+		{
+			logger.LogDebug("audioLevelObserver 'volumes' event [{ProducerId}, {Volume}]", producer.Id, volume);
 
-            logger.LogDebug(
-                "audioLevelObserver 'volumes' event [{ProducerId}, {Volume}]",
-                producer.Id, volume);
+			// Notify all Peers.
+			foreach (var peer in GetJoinedPeers())
+			{
+				peer.NotifyAsync(
+					"activeSpeaker",
+					new
+					{
+						peerId = producer.AppData["peerId"],
+						volume
+					}).Catch(() => { });
+			}
+		});
 
-            // Notify all Peers.
-            foreach (var peer in GetJoinedPeers())
-            {
-                peer.NotifyAsync(
-                    "activeSpeaker",
-                    new
-                    {
-                        peerId = producer.AppData["peerId"],
-                        volume
-                    }).Catch(() => { });
-            }
-        });
+		audioLevelObserver.On("silence", () =>
+		{
+			logger.LogDebug("audioLevelObserver 'silence' event");
 
-        audioLevelObserver.On("silence", async _ =>
-        {
-            logger.LogDebug("audioLevelObserver 'silence' event");
+			// Notify all Peers.
+			foreach (var peer in GetJoinedPeers())
+			{
+				peer.NotifyAsync("activeSpeaker", new { peerId = (object)null! })
+					.Catch(() => { });
+			}
+		});
+	}
 
-            // Notify all Peers.
-            foreach (var peer in GetJoinedPeers())
-            {
-                peer.NotifyAsync("activeSpeaker", new { peerId = (object)null! })
-                    .Catch(() => { });
-            }
-        });
-    }
+	private void HandleActiveSpeakerObserver()
+	{
+		activeSpeakerObserver.On("dominantspeaker", (ActiveSpeakerObserverDominantSpeaker dominantSpeaker) =>
+		{
+			logger.LogDebug(
+				"activeSpeakerObserver 'dominantspeaker' event [{ProducerId}]",
+				dominantSpeaker.Producer?.Id);
+		});
+	}
 
-    private void HandleActiveSpeakerObserver()
-    {
-        activeSpeakerObserver.On("dominantspeaker", async args =>
-        {
-            if (args is not [ActiveSpeakerObserverDominantSpeaker dominantSpeaker]) return;
-
-            logger.LogDebug(
-                "activeSpeakerObserver 'dominantspeaker' event [{ProducerId}]",
-                dominantSpeaker.Producer?.Id);
-        });
-    }
-
-    private async Task HandleProtooRequestAsync(Peer peer, Peer.RequestHandler handler)
-    {
-	    var request = handler.Request.Request;
+	private async Task HandleProtooRequestAsync(Peer peer, Peer.RequestHandler handler)
+	{
+		var request = handler.Request.Request;
 
 #pragma warning disable VSTHRD200
-	    Task Accept<T>(T? data = default)              => handler.AcceptAsync(data);
-	    Task Reject(int errorCode, string errorReason) => handler.RejectAsync(errorCode, errorReason);
+		Task Accept<T>(T? data = default)              => handler.AcceptAsync(data);
+		Task Reject(int errorCode, string errorReason) => handler.RejectAsync(errorCode, errorReason);
 #pragma warning restore VSTHRD200
-	    switch (request.Method)
+		switch (request.Method)
 		{
 			case "getRouterRtpCapabilities":
 			{
@@ -798,7 +798,7 @@ public class Room : EventEmitter
 				var joinedPeers = GetJoinedPeers()
 					.Select(x => new Broadcaster
 					{
-						Id = x.Id,
+						Id   = x.Id,
 						Data = x.Data()
 					})
 					.Concat(broadcasters.Values).ToArray();
@@ -846,16 +846,16 @@ public class Room : EventEmitter
 				await CreateDataConsumerAsync(peer, null, bot.DataProducer);
 
 				// Notify the new Peer to all other Peers.
-				foreach (var otherPeer in GetJoinedPeers( peer ))
+				foreach (var otherPeer in GetJoinedPeers(peer))
 				{
 					otherPeer.NotifyAsync(
-						"newPeer",new
-						{
-							id          = peer.Id,
-							displayName = peer.Data().DisplayName,
-							device      = peer.Data().Device
-						})
-						.Catch(() => {});
+							"newPeer", new
+							{
+								id          = peer.Id,
+								displayName = peer.Data().DisplayName,
+								device      = peer.Data().Device
+							})
+						.Catch(() => { });
 				}
 
 				break;
@@ -877,13 +877,13 @@ public class Room : EventEmitter
 				var options = MediasoupOptions.Default.MediasoupSettings.WebRtcTransportSettings;
 				var webRtcTransportOptions = new WebRtcTransportOptions
 				{
-					ListenInfos = options.ListenInfos,
-					MaxSctpMessageSize = options.MaxSctpMessageSize ?? 0,
+					ListenInfos                     = options.ListenInfos,
+					MaxSctpMessageSize              = options.MaxSctpMessageSize              ?? 0,
 					InitialAvailableOutgoingBitrate = options.InitialAvailableOutgoingBitrate ?? 0,
-					
-					EnableSctp = sctpCapabilities is not null,
+
+					EnableSctp     = sctpCapabilities is not null,
 					NumSctpStreams = sctpCapabilities?.NumStreams,
-					AppData = new() { { nameof(producing), producing }, { nameof(consuming), consuming } }
+					AppData        = new() { { nameof(producing), producing }, { nameof(consuming), consuming } }
 				};
 
 				if (forceTcp)
@@ -897,14 +897,15 @@ public class Room : EventEmitter
 					WebRtcServer = webRtcServer
 				});
 
-				transport.On("sctpstatechange",async sctpState =>
-				{
-					logger.LogDebug("WebRtcTransport 'sctpstatechange' event [{SctpState}]", sctpState[0]);
-				});
+				transport.On("sctpstatechange",
+					(SctpState sctpState) =>
+					{
+						logger.LogDebug("WebRtcTransport 'sctpstatechange' event [{SctpState}]", sctpState);
+					});
 
-				transport.On("dtlsstatechange", async dtlsState =>
+				transport.On("dtlsstatechange", (DtlsState dtlsState) =>
 				{
-					if (dtlsState is ["failed" or "closed"])
+					if (dtlsState is DtlsState.FAILED or DtlsState.CLOSED)
 						logger.LogWarning("WebRtcTransport 'dtlsstatechange' event [{DtlsState}]", dtlsState);
 				});
 
@@ -912,11 +913,11 @@ public class Room : EventEmitter
 				// await transport.enableTraceEvent([ "probation", "bwe" ]);
 				await transport.EnableTraceEventAsync([FBS.Transport.TraceEventType.BWE]);
 
-				transport.On("trace", async args =>
+				transport.On("trace", (TraceNotificationT trace) =>
 				{
-					if (args is not [TraceNotificationT trace]) return;
 					logger.LogDebug(
-						"transport 'trace' event [{TransportId}, trace.{Type}, {Trace}]", transport.Id, trace.Type, trace);
+						"transport 'trace' event [{TransportId}, trace.{Type}, {Trace}]", transport.Id, trace.Type,
+						trace);
 
 					if (trace is { Type: FBS.Transport.TraceEventType.BWE, Direction: TraceDirection.DIRECTION_OUT })
 					{
@@ -966,7 +967,7 @@ public class Room : EventEmitter
 			{
 				var (transportId, dtlsParameters) =
 					handler.Request.WithData<ConnectWebRtcTransportRequest>()!.Data!;
-				
+
 				var transport = peer.Data().Transports.GetValueOrDefault(transportId);
 
 				if (transport == null)
@@ -1002,7 +1003,7 @@ public class Room : EventEmitter
 
 				var (transportId, kind, rtpParameters, appData) =
 					handler.Request.WithData<ProduceRequest>()!.Data!;
-				
+
 				var transport = peer.Data().Transports.GetValueOrDefault(transportId);
 
 				if (transport == null)
@@ -1024,20 +1025,20 @@ public class Room : EventEmitter
 				peer.Data().Producers.Add(producer.Id, producer);
 
 				// Set Producer events.
-				producer.On("score", async score =>
+				producer.On("score", (int score) =>
 				{
 					// logger.debug(
 					// 	"producer 'score' event [{producerId}, score:%o]",
 					// 	producer.id, score);
-					peer.NotifyAsync("producerScore", new { producerId = producer.Id, score = score[0] })
+					peer.NotifyAsync("producerScore", new { producerId = producer.Id, score })
 						.Catch(() => { });
 				});
 
-				producer.On("videoorientationchange", async (videoOrientation) =>
+				producer.On("videoorientationchange", (VideoOrientationChangeNotificationT videoOrientation) =>
 				{
 					logger.LogDebug(
 						"producer 'videoorientationchange' event [{ProducerId}, {VideoOrientation}]",
-						producer.Id, videoOrientation[0]);
+						producer.Id, videoOrientation);
 				});
 
 				// NOTE: For testing.
@@ -1045,9 +1046,8 @@ public class Room : EventEmitter
 				// await producer.enableTraceEvent([ "pli", "fir" ]);
 				// await producer.enableTraceEvent([ "keyframe" ]);
 
-				producer.On("trace", async args =>
+				producer.On("trace", (TraceNotification trace) =>
 				{
-					if (args is not [TraceNotification trace]) return;
 					logger.LogDebug(
 						"producer 'trace' event [{ProducerId}, trace.{Type}, {Trace}]",
 						producer.Id, trace.Type, trace);
@@ -1109,8 +1109,8 @@ public class Room : EventEmitter
 					throw new InvalidStateException("Peer not yet joined");
 
 				var producerId = handler.Request.WithData<ProducerRequest>()!.Data!.ProducerId;
-				
-				var producer   = peer.Data().Producers.GetValueOrDefault(producerId);
+
+				var producer = peer.Data().Producers.GetValueOrDefault(producerId);
 
 				if (producer == null)
 					throw new KeyNotFoundException($"producer with id '{producerId}' not found");
@@ -1129,8 +1129,8 @@ public class Room : EventEmitter
 					throw new InvalidStateException("Peer not yet joined");
 
 				var producerId = handler.Request.WithData<ProducerRequest>()!.Data!.ProducerId;
-				
-				var producer   = peer.Data().Producers.GetValueOrDefault(producerId);
+
+				var producer = peer.Data().Producers.GetValueOrDefault(producerId);
 
 				if (producer == null)
 					throw new KeyNotFoundException($"producer with id '{producerId}' not found");
@@ -1155,7 +1155,7 @@ public class Room : EventEmitter
 					throw new KeyNotFoundException($"consumer with id '{consumerId}' not found");
 
 				await consumer.PauseAsync();
-				
+
 				await Accept<object>();
 
 				break;
@@ -1186,9 +1186,9 @@ public class Room : EventEmitter
 				if (!peer.Data().Joined)
 					throw new InvalidStateException("Peer not yet joined");
 
-				var ( consumerId, spatialLayer, temporalLayer ) = 
+				var (consumerId, spatialLayer, temporalLayer) =
 					handler.Request.WithData<SetConsumerPreferredLayersRequest>()!.Data!;
-				
+
 				var consumer = peer.Data().Consumers.GetValueOrDefault(consumerId);
 
 				if (consumer == null)
@@ -1234,8 +1234,8 @@ public class Room : EventEmitter
 					throw new InvalidStateException("Peer not yet joined");
 
 				var consumerId = handler.Request.WithData<ConsumerRequest>()!.Data!.ConsumerId;
-				
-				var consumer   = peer.Data().Consumers.GetValueOrDefault(consumerId);
+
+				var consumer = peer.Data().Consumers.GetValueOrDefault(consumerId);
 
 				if (consumer == null)
 					throw new KeyNotFoundException($"consumer with id '{consumerId}' not found");
@@ -1266,7 +1266,7 @@ public class Room : EventEmitter
 				if (transport == null)
 					throw new KeyNotFoundException($"transport with id '{transportId}' not found");
 
-				var dataProducer = await transport.ProduceDataAsync(new ()
+				var dataProducer = await transport.ProduceDataAsync(new()
 				{
 					SctpStreamParameters = sctpStreamParameters,
 					Label                = label,
@@ -1352,11 +1352,11 @@ public class Room : EventEmitter
 			case "getProducerStats":
 			{
 				var producerId = handler.Request.WithData<ProducerRequest>()!.Data!.ProducerId;
-				
-				var producer   = peer.Data().Producers.GetValueOrDefault(producerId);
+
+				var producer = peer.Data().Producers.GetValueOrDefault(producerId);
 
 				if (producer == null)
-					throw new KeyNotFoundException($"producer with id 'producerId' not found");
+					throw new KeyNotFoundException($"producer with id '{producerId}' not found");
 
 				var stats = await producer.GetStatsAsync();
 
@@ -1368,8 +1368,8 @@ public class Room : EventEmitter
 			case "getConsumerStats":
 			{
 				var consumerId = handler.Request.WithData<ConsumerRequest>()!.Data!.ConsumerId;
-				
-				var consumer   = peer.Data().Consumers.GetValueOrDefault(consumerId);
+
+				var consumer = peer.Data().Consumers.GetValueOrDefault(consumerId);
 
 				if (consumer == null)
 					throw new KeyNotFoundException($"consumer with id '{consumerId}' not found");
@@ -1384,11 +1384,11 @@ public class Room : EventEmitter
 			case "getDataProducerStats":
 			{
 				var dataProducerId = handler.Request.WithData<DataProducerRequest>()!.Data!.DataProducerId;
-				
-				var dataProducer   = peer.Data().DataProducers.GetValueOrDefault(dataProducerId);
+
+				var dataProducer = peer.Data().DataProducers.GetValueOrDefault(dataProducerId);
 
 				if (dataProducer == null)
-					throw new KeyNotFoundException($"dataProducer with id 'dataProducerId' not found");
+					throw new KeyNotFoundException($"dataProducer with id '{dataProducerId}' not found");
 
 				var stats = await dataProducer.GetStatsAsync();
 
@@ -1400,11 +1400,11 @@ public class Room : EventEmitter
 			case "getDataConsumerStats":
 			{
 				var dataConsumerId = handler.Request.WithData<DataConsumerRequest>()!.Data!.DataConsumerId;
-				
-				var dataConsumer   = peer.Data().DataConsumers.GetValueOrDefault(dataConsumerId);
+
+				var dataConsumer = peer.Data().DataConsumers.GetValueOrDefault(dataConsumerId);
 
 				if (dataConsumer == null)
-					throw new KeyNotFoundException($"dataConsumer with id 'dataConsumerId' not found");
+					throw new KeyNotFoundException($"dataConsumer with id '{dataConsumerId}' not found");
 
 				var stats = await dataConsumer.GetStatsAsync();
 
@@ -1503,14 +1503,14 @@ public class Room : EventEmitter
 				break;
 			}
 		}
-    }
+	}
 
-    private IEnumerable<Peer> GetJoinedPeers(Peer? excludePeer = null) =>
-	    protooRoom
-		    .Peers
-		    .Where(x => x.Data().Joined && x != excludePeer);
-    
-    private async Task CreateConsumerAsync(Peer consumerPeer,string producerPeerId, Producer.Producer producer )
+	private IEnumerable<Peer> GetJoinedPeers(Peer? excludePeer = null) =>
+		protooRoom
+			.Peers
+			.Where(x => x.Data().Joined && x != excludePeer);
+
+	private async Task CreateConsumerAsync(Peer consumerPeer, string producerPeerId, Producer.Producer producer)
 	{
 		// Optimization:
 		// - Create the server-side Consumer in paused mode.
@@ -1525,7 +1525,8 @@ public class Room : EventEmitter
 		//   fail to associate the RTP stream.
 
 		// NOTE: Don't create the Consumer if the remote Peer cannot consume it.
-		if (consumerPeer.Data().RtpCapabilities == null || !await mediasoupRouter.CanConsumeAsync(producer.Id, consumerPeer.Data().RtpCapabilities!))
+		if (consumerPeer.Data().RtpCapabilities == null ||
+		    !await mediasoupRouter.CanConsumeAsync(producer.Id, consumerPeer.Data().RtpCapabilities!))
 		{
 			return;
 		}
@@ -1545,7 +1546,7 @@ public class Room : EventEmitter
 
 		var consumerCount = 1 + consumerReplicas;
 
-		for (var i=0; i<consumerCount; i++)
+		for (var i = 0; i < consumerCount; i++)
 		{
 			tasks.Add(Task.Run(async () =>
 				{
@@ -1574,13 +1575,13 @@ public class Room : EventEmitter
 					consumerPeer.Data().Consumers.Add(consumer.Id, consumer);
 
 					// Set Consumer events.
-					consumer.On("transportclose", async _ =>
+					consumer.On("transportclose", () =>
 					{
 						// Remove from its map.
 						consumerPeer.Data().Consumers.Remove(consumer.Id);
 					});
 
-					consumer.On("producerclose", async _ =>
+					consumer.On("producerclose", () =>
 					{
 						// Remove from its map.
 						consumerPeer.Data().Consumers.Remove(consumer.Id);
@@ -1589,21 +1590,20 @@ public class Room : EventEmitter
 							.Catch(() => { });
 					});
 
-					consumer.On("producerpause", async _ =>
+					consumer.On("producerpause", () =>
 					{
 						consumerPeer.NotifyAsync("consumerPaused", new { consumerId = consumer.Id })
 							.Catch(() => { });
 					});
 
-					consumer.On("producerresume", async _ =>
+					consumer.On("producerresume", () =>
 					{
 						consumerPeer.NotifyAsync("consumerResumed", new { consumerId = consumer.Id })
 							.Catch(() => { });
 					});
 
-					consumer.On("score", async args =>
+					consumer.On("score", (int score) =>
 					{
-						var score = args[0];
 						// logger.debug(
 						//	 'consumer "score" event [consumerId:%s, score:%o]',
 						//	 consumer.id, score);
@@ -1612,9 +1612,8 @@ public class Room : EventEmitter
 							.Catch(() => { });
 					});
 
-					consumer.On("layerschange", async args =>
+					consumer.On("layerschange", (ConsumerLayersT layers) =>
 					{
-						var layers = args[0] as ConsumerLayersT;
 						consumerPeer.NotifyAsync(
 								"consumerLayersChanged", new
 								{
@@ -1630,9 +1629,8 @@ public class Room : EventEmitter
 					// await consumer.enableTraceEvent([ 'pli', 'fir' ]);
 					// await consumer.enableTraceEvent([ 'keyframe' ]);
 
-					consumer.On("trace", async args =>
+					consumer.On("trace", (TraceNotificationT trace) =>
 					{
-						var trace = args[0] as TraceNotificationT;
 						logger.LogDebug(
 							"consumer 'trace' event [producerId:{ProducerId}, trace.type:{Type}, trace:{Trace}]",
 							consumer.Id, trace.Type, trace);
@@ -1685,11 +1683,11 @@ public class Room : EventEmitter
 			logger.LogWarning($"{nameof(CreateConsumerAsync)}() | failed:{{Ex}}", ex);
 		}
 	}
-    
-    private async Task CreateDataConsumerAsync(
-			Peer dataConsumerPeer,
-			string? dataProducerPeerId, // This is null for the bot DataProducer.
-			DataProducer.DataProducer dataProducer)
+
+	private async Task CreateDataConsumerAsync(
+		Peer dataConsumerPeer,
+		string? dataProducerPeerId, // This is null for the bot DataProducer.
+		DataProducer.DataProducer dataProducer)
 	{
 		// NOTE: Don't create the DataConsumer if the remote Peer cannot consume it.
 		if (dataConsumerPeer.Data().SctpCapabilities == null)
@@ -1729,13 +1727,13 @@ public class Room : EventEmitter
 		dataConsumerPeer.Data().DataConsumers.Add(dataConsumer.Id, dataConsumer);
 
 		// Set DataConsumer events.
-		dataConsumer.On("transportclose",async _ =>
+		dataConsumer.On("transportclose", () =>
 		{
 			// Remove from its map.
 			dataConsumerPeer.Data().DataConsumers.Remove(dataConsumer.Id);
 		});
 
-		dataConsumer.On("dataproducerclose", async _ =>
+		dataConsumer.On("dataproducerclose", () =>
 		{
 			// Remove from its map.
 			dataConsumerPeer.Data().DataConsumers.Remove(dataConsumer.Id);
@@ -1768,11 +1766,13 @@ public class Room : EventEmitter
 	}
 
 	#region Definitions
+
 	private class Broadcaster
 	{
 		public required string          Id   { get; set; }
 		public required BroadcasterData Data { get; set; }
 	}
+
 	internal class BroadcasterData
 	{
 		public required string                                        DisplayName     { get; set; }
@@ -1784,12 +1784,14 @@ public class Room : EventEmitter
 		public          Dictionary<string, DataProducer.DataProducer> DataProducers   { get; set; } = [];
 		public          Dictionary<string, DataConsumer.DataConsumer> DataConsumers   { get; set; } = [];
 	}
+
 	internal class PeerData : BroadcasterData
 	{
 		public bool              Consume          { get; set; }
 		public bool              Joined           { get; set; }
 		public SctpCapabilities? SctpCapabilities { get; set; }
 	}
+
 	#endregion
 
 }

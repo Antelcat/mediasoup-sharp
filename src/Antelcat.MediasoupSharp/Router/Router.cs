@@ -47,7 +47,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
 
     private readonly RouterInternal @internal;
 
-    public string RouterId => @internal.RouterId;
+    public string Id => @internal.RouterId;
 
     #endregion Internal data.
 
@@ -136,7 +136,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
     /// </summary>
     public async Task CloseAsync()
     {
-        logger.LogDebug("CloseAsync() | Router:{RouterId}", RouterId);
+        logger.LogDebug("CloseAsync() | Router:{RouterId}", Id);
 
         await using (await closeLock.WriteLockAsync())
         {
@@ -177,7 +177,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
     /// </summary>
     public async Task WorkerClosedAsync()
     {
-        logger.LogDebug("WorkerClosedAsync() | Router:{RouterId}", RouterId);
+        logger.LogDebug("WorkerClosedAsync() | Router:{RouterId}", Id);
 
         await using (await closeLock.WriteLockAsync())
         {
@@ -202,7 +202,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
     /// </summary>
     public async Task<DumpResponseT> DumpAsync()
     {
-        logger.LogDebug("DumpAsync() | Router:{RouterId}", RouterId);
+        logger.LogDebug("DumpAsync() | Router:{RouterId}", Id);
 
         await using (await closeLock.ReadLockAsync())
         {
@@ -282,7 +282,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
             {
                 webRtcTransportListenServer = new FBS.WebRtcTransport.ListenServerT
                 {
-                    WebRtcServerId = webRtcServer.WebRtcServerId
+                    WebRtcServerId = webRtcServer.Id
                 };
             }
             else
@@ -632,7 +632,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
             var data = response.Value.BodyAsDirectTransport_DumpResponse().UnPack();
 
             var transport = new DirectTransport.DirectTransport(loggerFactory,
-                new TransportInternal(RouterId, transportId),
+                new TransportInternal(Id, transportId),
                 data, // 直接使用返回值
                 channel,
                 directTransportOptions.AppData,
@@ -1152,7 +1152,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
             return false;
         }
 
-        return RouterId == other.RouterId;
+        return Id == other.Id;
     }
 
     public override bool Equals(object? other)
@@ -1162,7 +1162,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
 
     public override int GetHashCode()
     {
-        return RouterId.GetHashCode();
+        return Id.GetHashCode();
     }
 
     #endregion IEquatable<T>

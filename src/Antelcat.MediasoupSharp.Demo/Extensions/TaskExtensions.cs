@@ -1,5 +1,9 @@
-﻿namespace Antelcat.MediasoupSharp.Demo.Extensions;
+﻿using System.Diagnostics.CodeAnalysis;
 
+namespace Antelcat.MediasoupSharp.Demo.Extensions;
+
+[SuppressMessage("Usage", "VSTHRD110:Observe result of async calls")]
+[SuppressMessage("Usage", "VSTHRD105:Avoid method overloads that assume TaskScheduler.Current")]
 internal static class TaskExtensions
 {
 #pragma warning disable VSTHRD200

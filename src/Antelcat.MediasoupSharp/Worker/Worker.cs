@@ -30,7 +30,7 @@ public class Worker : WorkerBase
     /// <summary>
     /// Worker process PID.
     /// </summary>
-    public int ProcessId { get; }
+    public int Pid { get; }
 
     /// <summary>
     /// Is spawn done?
@@ -157,7 +157,7 @@ public class Worker : WorkerBase
             );
 
 
-            ProcessId = child.Id;
+            Pid = child.Id;
         }
         catch(Exception ex)
         {
@@ -167,18 +167,18 @@ public class Worker : WorkerBase
             if(!spawnDone)
             {
                 spawnDone = true;
-                Logger.LogError(ex, "Worker() | Worker process failed [pid:{ProcessId}]", ProcessId);
+                Logger.LogError(ex, "Worker() | Worker process failed [pid:{ProcessId}]", Pid);
                 Emit("@failure", ex);
             }
             else
             {
                 // 执行到这里的可能性？
-                Logger.LogError(ex, "Worker() | Worker process error [pid:{ProcessId}]", ProcessId);
+                Logger.LogError(ex, "Worker() | Worker process error [pid:{ProcessId}]", Pid);
                 Emit("died", ex);
             }
         }
 
-        Channel                =  new Channel.Channel(LoggerFactory.CreateLogger<Channel.Channel>(), pipes[3], pipes[4], ProcessId);
+        Channel                =  new Channel.Channel(LoggerFactory.CreateLogger<Channel.Channel>(), pipes[3], pipes[4], Pid);
         Channel.OnNotification += OnNotificationHandle;
 
         foreach (var pipe in pipes)
@@ -189,7 +189,7 @@ public class Worker : WorkerBase
 
     public override async Task CloseAsync()
     {
-        Logger.LogDebug("CloseAsync() | Worker[{ProcessId}]", ProcessId);
+        Logger.LogDebug("CloseAsync() | Worker[{ProcessId}]", Pid);
 
         await using(await CloseLock.WriteLockAsync())
         {
@@ -263,7 +263,7 @@ public class Worker : WorkerBase
     {
         if (spawnDone || @event != Event.WORKER_RUNNING) return;
         spawnDone = true;
-        Logger.LogDebug("Worker[{ProcessId}] process running", ProcessId);
+        Logger.LogDebug("Worker[{ProcessId}] process running", Pid);
         Emit("@success");
         Channel.OnNotification -= OnNotificationHandle;
     }
@@ -285,25 +285,25 @@ public class Worker : WorkerBase
 
             if(process.ExitCode == 42)
             {
-                Logger.LogError("OnExit() | Worker process failed due to wrong settings [pid:{ProcessId}]", ProcessId);
-                Emit("@failure", new Exception($"Worker process failed due to wrong settings [pid:{ProcessId}]"));
+                Logger.LogError("OnExit() | Worker process failed due to wrong settings [pid:{ProcessId}]", Pid);
+                Emit("@failure", new Exception($"Worker process failed due to wrong settings [pid:{Pid}]"));
             }
             else
             {
-                Logger.LogError("OnExit() | Worker process failed unexpectedly [pid:{ProcessId}, code:{ExitCode}, signal:{TermSignal}]", ProcessId, process.ExitCode, process.TermSignal);
+                Logger.LogError("OnExit() | Worker process failed unexpectedly [pid:{ProcessId}, code:{ExitCode}, signal:{TermSignal}]", Pid, process.ExitCode, process.TermSignal);
                 Emit("@failure",
                     new Exception(
-                        $"Worker process failed unexpectedly [pid:{ProcessId}, code:{process.ExitCode}, signal:{process.TermSignal}]"
+                        $"Worker process failed unexpectedly [pid:{Pid}, code:{process.ExitCode}, signal:{process.TermSignal}]"
                     )
                 );
             }
         }
         else
         {
-            Logger.LogError("OnExit() | Worker process failed unexpectedly [pid:{ProcessId}, code:{ExitCode}, signal:{TermSignal}]", ProcessId, process.ExitCode, process.TermSignal);
+            Logger.LogError("OnExit() | Worker process failed unexpectedly [pid:{ProcessId}, code:{ExitCode}, signal:{TermSignal}]", Pid, process.ExitCode, process.TermSignal);
             Emit("died",
                 new Exception(
-                    $"Worker process died unexpectedly [pid:{ProcessId}, code:{process.ExitCode}, signal:{process.TermSignal}]"
+                    $"Worker process died unexpectedly [pid:{Pid}, code:{process.ExitCode}, signal:{process.TermSignal}]"
                 )
             );
         }

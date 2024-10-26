@@ -27,7 +27,7 @@ namespace Antelcat.MediasoupSharp.Meeting
 
         private readonly MediasoupOptions _mediasoupOptions;
 
-        private readonly MediasoupServer _mediasoupServer;
+        private readonly Mediasoup mediasoup;
 
         private readonly Dictionary<string, Peer> _peers = new();
 
@@ -43,12 +43,12 @@ namespace Antelcat.MediasoupSharp.Meeting
 
         public Scheduler(ILoggerFactory loggerFactory,
             MediasoupOptions mediasoupOptions,
-            MediasoupServer mediasoupServer)
+            Mediasoup mediasoup)
         {
-            _loggerFactory = loggerFactory;
-            _logger = _loggerFactory.CreateLogger<Scheduler>();
+            _loggerFactory    = loggerFactory;
+            _logger           = _loggerFactory.CreateLogger<Scheduler>();
             _mediasoupOptions = mediasoupOptions;
-            _mediasoupServer = mediasoupServer;
+            this.mediasoup    = mediasoup;
 
             // 按创建 Route 时一样方式创建 RtpCodecCapabilities
             var rtpCodecCapabilities = mediasoupOptions.MediasoupSettings.RouterSettings.RtpCodecCapabilities;
@@ -126,7 +126,7 @@ namespace Antelcat.MediasoupSharp.Meeting
                         var mediaCodecs = _mediasoupOptions.MediasoupSettings.RouterSettings.RtpCodecCapabilities;
 
                         // Create a mediasoup Router.
-                        var worker = _mediasoupServer.GetWorker();
+                        var worker = mediasoup.GetWorker();
                         var router = await worker.CreateRouterAsync(new RouterOptions
                         {
                             MediaCodecs = mediaCodecs

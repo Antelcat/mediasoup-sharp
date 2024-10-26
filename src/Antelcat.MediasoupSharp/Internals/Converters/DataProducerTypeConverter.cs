@@ -1,4 +1,5 @@
-﻿using Type = FBS.DataProducer.Type;
+﻿using static FBS.DataProducer.Type;
+using Type = FBS.DataProducer.Type;
 
 namespace Antelcat.MediasoupSharp.Internals.Converters;
 
@@ -6,7 +7,7 @@ internal class DataProducerTypeConverter : EnumStringConverter<Type>
 {
     protected override IEnumerable<(Type Enum, string Text)> Map()
     {
-        yield return (FBS.DataProducer.Type.SCTP, "sctp");
-        yield return (FBS.DataProducer.Type.DIRECT, "direct");
+        yield return (SCTP, "sctp");
+        yield return (DIRECT, "direct");
     }
 }

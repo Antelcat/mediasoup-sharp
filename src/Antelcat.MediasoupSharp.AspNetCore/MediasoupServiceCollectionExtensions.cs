@@ -29,7 +29,7 @@ public static class MediasoupServiceCollectionExtensions
                 configure?.Invoke(mediasoupOptions);
                 return mediasoupOptions;
             })
-            .AddSingleton<MediasoupServer>()
+            .AddSingleton<Mediasoup>()
             .AddTransient<Worker>()
             .AddTransient<WorkerNative>();
         return services;
