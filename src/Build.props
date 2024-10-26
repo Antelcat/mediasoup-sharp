@@ -1,28 +1,31 @@
 <Project>
     <PropertyGroup>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Version>3.14.7</Version>
         <Authors>Antelcat</Authors>
+        <Version>3.14.7</Version>
+        <Title>Antelcat.MediasoupSharp</Title>
+        <FileVersion>3.14.7</FileVersion>
+        <AssemblyVersion>3.14.7</AssemblyVersion>
         <Copyright>Copyright Antelcat. All rights reserved</Copyright>
+        
+        <PackageIcon>Icon.png</PackageIcon>
+        <RepositoryType>git</RepositoryType>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageProjectUrl>https://github.com/Antelcat/mediasoup-sharp</PackageProjectUrl>
         <RepositoryUrl>https://github.com/Antelcat/mediasoup-sharp.git</RepositoryUrl>
-        <RepositoryType>git</RepositoryType>
-        <!--<PackageIcon>Icon.png</PackageIcon>-->
-        <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageTags>mediasoup;webrtc;meeting;stream;channel</PackageTags>
         <PackageReleaseNotes>mediasoup-sharp</PackageReleaseNotes>
     </PropertyGroup>
 
     <ItemGroup>
-        <!--<None Include="..\..\docs\Icon.png">
+        <None Include="..\Icon.png">
             <Pack>True</Pack>
             <PackagePath>\</PackagePath>
-            <Link>Icon.png</Link>
-        </None>-->
+        </None>
         <None Include="..\..\README.md">
             <Pack>True</Pack>
             <PackagePath>\</PackagePath>
-            <Link>README.md</Link>
         </None>
     </ItemGroup>
     

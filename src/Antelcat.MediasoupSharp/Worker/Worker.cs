@@ -126,18 +126,12 @@ public class Worker : WorkerBase
         // fd 4 (channel) : Consumer Channel fd.
         for(var i = 1; i < StdioCount; i++)
         {
-            pipes[i]      =  new Pipe { Writeable = true, Readable = true };
-            pipes[i].Data += data =>
+            var pipe = pipes[i]      =  new Pipe { Writeable = true, Readable = true };
+            pipe.Data += data =>
             {
                 var str = Encoding.UTF8.GetString(data);
-                if(str.Contains("throwing"))
-                {
-                    Logger.LogError(str);
-                }
-                else
-                {
-                    Logger.LogInformation(str);
-                }
+                if (str.Contains("throwing")) Logger.LogError(str);
+                else Logger.LogInformation(str);
             };
         }
 
@@ -167,18 +161,19 @@ public class Worker : WorkerBase
             if(!spawnDone)
             {
                 spawnDone = true;
-                Logger.LogError(ex, "Worker() | Worker process failed [pid:{ProcessId}]", Pid);
+                Logger.LogError(ex, $"{nameof(Worker)}() | Worker process failed [pid:{{ProcessId}}]", Pid);
                 Emit("@failure", ex);
             }
             else
             {
                 // 执行到这里的可能性？
-                Logger.LogError(ex, "Worker() | Worker process error [pid:{ProcessId}]", Pid);
+                Logger.LogError(ex, $"{nameof(Worker)}() | Worker process error [pid:{{ProcessId}}]", Pid);
                 Emit("died", ex);
             }
         }
 
-        Channel                =  new Channel.Channel(LoggerFactory.CreateLogger<Channel.Channel>(), pipes[3], pipes[4], Pid);
+        Channel = new Channel.Channel(LoggerFactory.CreateLogger<Channel.Channel>(), pipes[3], pipes[4], Pid);
+        
         Channel.OnNotification += OnNotificationHandle;
 
         foreach (var pipe in pipes)
@@ -193,7 +188,7 @@ public class Worker : WorkerBase
 
         await using(await CloseLock.WriteLockAsync())
         {
-            if(Closed)
+            if (Closed)
             {
                 throw new InvalidStateException("Worker closed");
             }
@@ -203,7 +198,7 @@ public class Worker : WorkerBase
             // Kill the worker process.
             if(child != null)
             {
-                // Remove event listeners but leave a fake 'error' hander to avoid
+                // Remove event listeners but leave a fake 'error' handler to avoid
                 // propagation.
                 child.Kill(
                     15 /*SIGTERM*/

@@ -13,7 +13,7 @@ using Microsoft.VisualStudio.Threading;
 
 namespace Antelcat.MediasoupSharp.Worker;
 
-public abstract class WorkerBase : EnhancedEvent.EnhancedEventEmitter, IDisposable, IWorker
+public abstract class WorkerBase : EnhancedEvent.EnhancedEventEmitter, IWorker
 {
     #region Protected Fields
 

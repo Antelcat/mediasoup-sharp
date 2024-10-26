@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-    <Import Project="../Build.props"/>
+    <Import Project="../Build.props" />
     
     <PropertyGroup>
         <TargetFrameworks>net7.0;net8.0;net9.0</TargetFrameworks>
@@ -14,7 +14,7 @@
         <PackageReference Include="Antelcat.FlatBuffers" Version="1.0.0-preview9" />
         <PackageReference Include="Antelcat.NodeSharp" Version="0.3.0" />
         <PackageReference Include="Google.FlatBuffers" Version="24.3.25" />
-        <PackageReference Include="Libuv" Version="1.10.0"/>
+        <PackageReference Include="Libuv" Version="1.10.0" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0-rc.2.24473.5" />
         <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="9.0.0-rc.2.24474.3" />
         <PackageReference Include="Microsoft.VisualStudio.Threading" Version="17.11.20" />
@@ -22,11 +22,11 @@
     </ItemGroup>
 
     <ItemGroup>
-        <InternalsVisibleTo Include="Antelcat.MediasoupSharp.Test"/>
-        <InternalsVisibleTo Include="Antelcat.MediasoupSharp.AspNetCore"/>
-        <InternalsVisibleTo Include="Antelcat.MediasoupSharp.Demo"/>
-        <InternalsVisibleTo Include="Antelcat.MediasoupSharp.Meeting"/>
-        <AdditionalFiles LinkBase="fbs" Include="..\..\mediasoup\worker\fbs\*.fbs"/>
+        <InternalsVisibleTo Include="Antelcat.MediasoupSharp.Test" />
+        <InternalsVisibleTo Include="Antelcat.MediasoupSharp.AspNetCore" />
+        <InternalsVisibleTo Include="Antelcat.MediasoupSharp.Demo" />
+        <InternalsVisibleTo Include="Antelcat.MediasoupSharp.Meeting" />
+        <AdditionalFiles LinkBase="fbs" Include="..\..\mediasoup\worker\fbs\*.fbs" />
     </ItemGroup>
 
     <ItemGroup>

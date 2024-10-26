@@ -18,13 +18,15 @@ public record WorkerSettings
     public WorkerLogTag[]? LogTags { get; set; }
 
     /// <summary>
-    /// Minimun RTC port for ICE, DTLS, RTP, etc. Default 10000.
+    /// Minimum RTC port for ICE, DTLS, RTP, etc. Default 10000.
     /// </summary>
+    [Obsolete("Use |PortRange| in TransportListenInfo object instead.")]
     public int? RtcMinPort { get; set; } = 10000;
 
     /// <summary>
     /// Maximum RTC port for ICE, DTLS, RTP, etc. Default 59999.
     /// </summary>
+    [Obsolete("Use |PortRange| in TransportListenInfo object instead.")]
     public int? RtcMaxPort { get; set; } = 59999;
 
     /// <summary>

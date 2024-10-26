@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Reflection;
 using Antelcat.MediasoupSharp.RtpParameters;
 using Antelcat.MediasoupSharp.Worker;
 using Force.DeepCloner;
@@ -7,6 +8,13 @@ namespace Antelcat.MediasoupSharp;
 
 public class Mediasoup
 {
+    public static Version Version { get; } = Version.Parse((string)typeof(Mediasoup)
+        .Assembly
+        .CustomAttributes
+        .First(static x => x.AttributeType == typeof(AssemblyFileVersionAttribute))?
+        .ConstructorArguments.First().Value!);
+    
+    
     private readonly List<IWorker> workers = [];
 
     private int nextMediasoupWorkerIndex;
@@ -16,7 +24,7 @@ public class Mediasoup
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EnhancedEvent.EnhancedEventEmitter Observer { get; } = new();
+    public static EnhancedEvent.EnhancedEventEmitter Observer { get; } = new();
 
     /// <summary>
     /// Get a cloned copy of the mediasoup supported RTP capabilities.
