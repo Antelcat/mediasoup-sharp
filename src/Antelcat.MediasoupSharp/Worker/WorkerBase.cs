@@ -93,7 +93,7 @@ public abstract class WorkerBase : EnhancedEvent.EnhancedEventEmitter, IWorker
 
         var workerSettings = mediasoupOptions.WorkerSettings;
 
-        AppData = workerSettings?.AppData ?? new Dictionary<string, object>();
+        AppData = workerSettings?.AppData ?? new();
     }
 
     public abstract Task CloseAsync();

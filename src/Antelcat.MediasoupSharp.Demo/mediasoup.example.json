@@ -1,9 +1,22 @@
+/**
+ * IMPORTANT (PLEASE READ THIS):
+ *
+ * This is not the "configuration file" of mediasoup. This is the configuration
+ * file of the mediasoup-demo app. mediasoup itself is a server-side library, it
+ * does not read any "configuration file". Instead it exposes an API. This demo
+ * application just reads settings from this file (once copied to config.js) and
+ * calls the mediasoup API with those settings when appropriate.
+ */
 {
+	// mediasoup settings.
+	// Number of mediasoup workers to launch.
 	"numWorkers": null,
+	// mediasoup WorkerSettings.
+	// See https://mediasoup.org/documentation/v3/mediasoup/api/#WorkerSettings
 	"workerSettings": {
 		"dtlsCertificateFile": null,
 		"dtlsPrivateKeyFile": null,
-		"logLevel": "debug",
+		"logLevel": "warn",
 		"logTags": [
 			"info",
 			"ice",
@@ -20,6 +33,8 @@
 		],
 		"disableLiburing": false
 	},
+	// mediasoup Router options.
+	// See https://mediasoup.org/documentation/v3/mediasoup/api/#RouterOptions
 	"routerOptions": {
 		"mediaCodecs": [
 			{
@@ -69,6 +84,11 @@
 			}
 		]
 	},
+	// mediasoup WebRtcServer options for WebRTC endpoints (mediasoup-client,
+	// libmediasoupclient).
+	// See https://mediasoup.org/documentation/v3/mediasoup/api/#WebRtcServerOptions
+	// NOTE: mediasoup-demo/server/lib/Room.js will increase this port for
+	// each mediasoup Worker since each Worker is a separate process.
 	"webRtcServerOptions": {
 		"listenInfos": [
 			{
@@ -85,7 +105,12 @@
 			}
 		]
 	},
+	// mediasoup WebRtcTransport options for WebRTC endpoints (mediasoup-client,
+	// libmediasoupclient).
+	// See https://mediasoup.org/documentation/v3/mediasoup/api/#WebRtcTransportOptions
 	"webRtcTransportOptions": {
+		// listenInfos is not needed since webRtcServer is used.
+		// However passing MEDIASOUP_USE_WEBRTC_SERVER=false will change it.
 		"listenInfos": [
 			{
 				"protocol": "udp",
@@ -109,8 +134,12 @@
 		"initialAvailableOutgoingBitrate": 1000000,
 		"minimumAvailableOutgoingBitrate": 600000,
 		"maxSctpMessageSize": 262144,
+		// Additional options that are not part of WebRtcTransportOptions.
 		"maxIncomingBitrate": 1500000
 	},
+	// mediasoup PlainTransport options for legacy RTP endpoints (FFmpeg,
+	// GStreamer).
+	// See https://mediasoup.org/documentation/v3/mediasoup/api/#PlainTransportOptions
 	"plainTransportOptions": {
 		"listenInfo": {
 			"protocol": "udp",

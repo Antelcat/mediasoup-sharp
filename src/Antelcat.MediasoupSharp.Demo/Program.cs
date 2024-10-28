@@ -26,11 +26,21 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var app           = builder.Build();
-var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
-var logger        = loggerFactory.CreateLogger<Program>();
+var app                   = builder.Build();
+var loggerFactory         = app.Services.GetRequiredService<ILoggerFactory>();
+var logger                = loggerFactory.CreateLogger<Program>();
+var jsonSerializerOptions = new JsonSerializerOptions
+{
+    PropertyNameCaseInsensitive = true,
+    PropertyNamingPolicy        = JsonNamingPolicy.CamelCase
+};
+foreach (var converter in Mediasoup.JsonConverters)
+{
+    jsonSerializerOptions.Converters.Add(converter); 
+}
+
 var options = JsonSerializer.Deserialize<MediasoupOptions>(
-    File.ReadAllText(Path.Combine(current, "mediasoup.config.json")));
+    File.ReadAllText(Path.Combine(current, "mediasoup.config.json")), jsonSerializerOptions);
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

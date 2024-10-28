@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using Antelcat.MediasoupSharp.EnhancedEvent;
 using Antelcat.MediasoupSharp.Exceptions;
 using Antelcat.MediasoupSharp.PooledObjectPolicies;
 using FBS.Log;
@@ -14,7 +15,7 @@ using Microsoft.VisualStudio.Threading;
 
 namespace Antelcat.MediasoupSharp.Channel;
 
-public abstract class ChannelBase : IChannel
+public abstract class ChannelBase : EnhancedEventEmitter, IChannel
 {
     #region Constants
 
@@ -76,7 +77,7 @@ public abstract class ChannelBase : IChannel
     {
         Logger   = logger;
         WorkerId = workerId;
-
+        
         var policy = new FlatBufferBuilderPooledObjectPolicy(1024);
         BufferPool = objectPoolProvider.Create(policy);
     }

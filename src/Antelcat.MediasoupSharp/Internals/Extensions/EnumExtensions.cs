@@ -13,7 +13,7 @@ internal static class EnumExtensions
 {
     public static string GetEnumText<TEnum>(this TEnum @enum)
         where TEnum : Enum =>
-        IEnumStringConverter.Converters().OfType<EnumStringConverter<TEnum>>().FirstOrDefault() is { } converter
+        IEnumStringConverter.JsonConverters.OfType<EnumStringConverter<TEnum>>().FirstOrDefault() is { } converter
             ? converter.Convert(@enum) ?? throw new InvalidEnumArgumentException(@enum.ToString())
             : throw new EnumNotMappedException(typeof(TEnum));
 }

@@ -43,6 +43,8 @@ public class Worker : WorkerBase
     /// </summary>
     private readonly UVStream?[] pipes;
 
+    private bool subprocessClosed;
+
     #endregion Private Fields
 
     /// <summary>
@@ -75,9 +77,7 @@ public class Worker : WorkerBase
                           Architecture.Arm64 => "arm64",
                           _                  => throw new NotSupportedException("Unsupported architecture")
                       };
-            var location  = Assembly.GetEntryAssembly()!.Location;
-            var directory = Path.GetDirectoryName(location)!;
-            workerPath = Path.Combine(directory, "runtimes", rid, "native", "mediasoup-worker");
+            workerPath = Path.Combine("runtimes", rid, "native", "mediasoup-worker.exe");
         }
 
         var workerSettings = mediasoupOptions.WorkerSettings!;
@@ -143,14 +143,14 @@ public class Worker : WorkerBase
         try
         {
             // 和 Node.js 不同，_child 没有 error 事件。不过，Process.Spawn 可抛出异常。
-            child = Process.Spawn(
-                new ProcessOptions
+            child = Process.Spawn(new ProcessOptions
                 {
                     File        = workerPath,
                     Arguments   = argv.ToArray(),
                     Environment = env,
                     Detached    = false,
                     Streams     = pipes!,
+                    CurrentWorkingDirectory = AppContext.BaseDirectory 
                 },
                 OnExit
             );
@@ -175,13 +175,42 @@ public class Worker : WorkerBase
                 Logger.LogError(ex, $"{nameof(Worker)}() | Worker process error [pid:{{ProcessId}}]", Pid);
                 Emit("died", ex);
             }
+
+            return;
         }
 
         Channel = new Channel.Channel(LoggerFactory.CreateLogger<Channel.Channel>(),
             pipes[3]!,
             pipes[4]!, 
             Pid);
-        
+
+
+        Channel.Once($"{Pid}", (Event @event) =>
+        {
+            if (!spawnDone && @event == Event.WORKER_RUNNING)
+            {
+                spawnDone = true;
+
+                Logger.LogDebug("worker process running [pid:{Pid}]", Pid);
+
+                Emit("@success");
+            }
+        });
+
+        child.Closed += () =>
+        {
+            Logger.LogDebug(
+                "worker subprocess closed [pid:{Pid}, code:{Code}, signal:{Signal}]",
+                Pid,
+                child.ExitCode,
+                child.TermSignal
+            );
+
+            subprocessClosed = true;
+
+            Emit("subprocessclose");
+        };
+
         Channel.OnNotification += OnNotificationHandle;
 
         foreach (var pipe in pipes)

@@ -1,4 +1,5 @@
-﻿using FBS.Message;
+﻿using Antelcat.NodeSharp.Events;
+using FBS.Message;
 using FBS.Notification;
 using FBS.Request;
 using FBS.Response;
@@ -7,7 +8,7 @@ using Microsoft.Extensions.ObjectPool;
 
 namespace Antelcat.MediasoupSharp.Channel;
 
-public interface IChannel
+public interface IChannel : IEventEmitter
 {
     event Action<string, Event, Notification>? OnNotification;
 

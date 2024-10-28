@@ -25,7 +25,7 @@ builder.Host.UseSerilog();
 builder.Services.AddMvc()
     .AddJsonOptions(options =>
     {
-        foreach (var converter in IEnumStringConverter.Converters())
+        foreach (var converter in IEnumStringConverter.JsonConverters)
         {
             options.JsonSerializerOptions.Converters.Add(converter);
         }
@@ -110,7 +110,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 });
 builder.Services.AddSignalR().AddJsonProtocol(c =>
 {
-    foreach (var converter in IEnumStringConverter.Converters())
+    foreach (var converter in IEnumStringConverter.JsonConverters)
     {
         c.PayloadSerializerOptions.Converters.Add(converter);
     }

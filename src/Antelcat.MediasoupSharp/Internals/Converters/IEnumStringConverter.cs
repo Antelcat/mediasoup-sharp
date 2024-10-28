@@ -18,7 +18,7 @@ internal interface IEnumStringConverter
                 PropertyNamingPolicy        = JsonNamingPolicy.CamelCase,
                 PropertyNameCaseInsensitive = true,
             };
-            foreach (var converter in Converters())
+            foreach (var converter in JsonConverters)
             {
                 options.Converters.Add(converter);
             }
@@ -26,8 +26,10 @@ internal interface IEnumStringConverter
             return options;
         }
     }
+
+    public static IReadOnlyCollection<JsonConverter> JsonConverters { get; set; } = [..Converters()];
     
-    public static IEnumerable<JsonConverter> Converters()
+    private static IEnumerable<JsonConverter> Converters()
     {
         yield return new BweTypeConverter();
         yield return new ConsumerTraceEventTypeConverter();

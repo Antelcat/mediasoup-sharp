@@ -11,17 +11,17 @@ public record WorkerSettings
     /// Minimum RTC port for ICE, DTLS, RTP, etc. Default 10000.
     /// </summary>
     [Obsolete("Use |PortRange| in TransportListenInfo object instead.")]
-    public int? RtcMinPort { get; set; } = 10000;
+    public int? RtcMinPort { get; set; }
 
     /// <summary>
     /// Maximum RTC port for ICE, DTLS, RTP, etc. Default 59999.
     /// </summary>
     [Obsolete("Use |PortRange| in TransportListenInfo object instead.")]
-    public int? RtcMaxPort { get; set; } = 59999;
+    public int? RtcMaxPort { get; set; }
     
     public string? LibwebrtcFieldTrials { get; set; }
 
-    public bool DisableLiburing { get; set; }
+    public bool? DisableLiburing { get; set; }
     
     public Dictionary<string,object>? AppData { get; set; }
 }

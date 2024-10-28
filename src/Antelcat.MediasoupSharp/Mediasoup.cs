@@ -1,7 +1,9 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
+using System.Text.Json.Serialization;
 using Antelcat.MediasoupSharp.RtpParameters;
 using Antelcat.MediasoupSharp;
+using Antelcat.MediasoupSharp.Internals.Converters;
 using Antelcat.MediasoupSharp.Settings;
 using Antelcat.MediasoupSharp.Worker;
 using Force.DeepCloner;
@@ -16,8 +18,8 @@ public class Mediasoup
         .CustomAttributes
         .First(static x => x.AttributeType == typeof(AssemblyFileVersionAttribute))?
         .ConstructorArguments.First().Value!);
-    
-    
+
+
     private readonly List<IWorker> workers = [];
 
     private int nextMediasoupWorkerIndex;
@@ -33,8 +35,7 @@ public class Mediasoup
     {
         var source = new TaskCompletionSource<WorkerBase>();
         var worker = new Worker.Worker(loggerFactory, workerSettings);
-        worker
-            .On("@success", () =>
+        worker.On("@success", () =>
             {
                 Observer.Emit("newworker", worker);
                 source.SetResult(worker);
@@ -59,19 +60,19 @@ public class Mediasoup
         workersLock.EnterReadLock();
         try
         {
-            if(nextMediasoupWorkerIndex > workers.Count - 1)
+            if (nextMediasoupWorkerIndex > workers.Count - 1)
             {
                 throw new Exception("None worker");
             }
 
-            if(++nextMediasoupWorkerIndex == workers.Count)
+            if (++nextMediasoupWorkerIndex == workers.Count)
             {
                 nextMediasoupWorkerIndex = 0;
             }
 
             return workers[nextMediasoupWorkerIndex];
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             Debug.WriteLine($"Get worker failure: {ex.Message}");
             throw;
@@ -97,7 +98,7 @@ public class Mediasoup
             // Emit observer event.
             Observer.Emit("newworker", worker);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             Debug.WriteLine($"Add worker failure: {ex.Message}");
             throw;
@@ -107,4 +108,6 @@ public class Mediasoup
             workersLock.ExitWriteLock();
         }
     }
+
+    public static IReadOnlyCollection<JsonConverter> JsonConverters => IEnumStringConverter.JsonConverters;
 }
