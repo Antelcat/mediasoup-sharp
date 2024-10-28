@@ -147,7 +147,6 @@ public class RtpCapabilities
                         {
                             Type = "transport-cc",
                         }
-
                     ]
                 },
 
@@ -163,7 +162,6 @@ public class RtpCapabilities
                         {
                             Type = "transport-cc",
                         }
-
                     ]
                 },
 
@@ -178,7 +176,6 @@ public class RtpCapabilities
                         {
                             Type = "transport-cc",
                         }
-
                     ]
                 },
 
@@ -193,7 +190,6 @@ public class RtpCapabilities
                         {
                             Type = "transport-cc",
                         }
-
                     ]
                 },
 
@@ -209,7 +205,6 @@ public class RtpCapabilities
                         {
                             Type = "transport-cc",
                         }
-
                     ]
                 },
 
@@ -224,7 +219,6 @@ public class RtpCapabilities
                         {
                             Type = "transport-cc",
                         }
-
                     ]
                 },
 
@@ -239,7 +233,6 @@ public class RtpCapabilities
                         {
                             Type = "transport-cc",
                         }
-
                     ]
                 },
 
@@ -254,7 +247,6 @@ public class RtpCapabilities
                         {
                             Type = "transport-cc",
                         }
-
                     ]
                 },
 
@@ -269,7 +261,6 @@ public class RtpCapabilities
                         {
                             Type = "transport-cc",
                         }
-
                     ]
                 },
 
@@ -284,7 +275,6 @@ public class RtpCapabilities
                         {
                             Type = "transport-cc",
                         }
-
                     ]
                 },
 
@@ -406,7 +396,6 @@ public class RtpCapabilities
                         {
                             Type = "transport-cc",
                         }
-
                     ]
                 },
 
@@ -445,7 +434,6 @@ public class RtpCapabilities
                         {
                             Type = "transport-cc",
                         }
-
                     ]
                 },
 
@@ -484,7 +472,6 @@ public class RtpCapabilities
                         {
                             Type = "transport-cc",
                         }
-
                     ]
                 },
 
@@ -523,7 +510,6 @@ public class RtpCapabilities
                         {
                             Type = "transport-cc",
                         }
-
                     ]
                 }
             ],
@@ -635,6 +621,22 @@ public class RtpCapabilities
                     PreferredId      = 13,
                     PreferredEncrypt = false,
                     Direction        = RtpHeaderExtensionDirection.SendReceive
+                },
+                new()
+                {
+                    Kind             = MediaKind.AUDIO,
+                    Uri              = RtpHeaderExtensionUri.PlayoutDelay,
+                    PreferredId      = 14,
+                    PreferredEncrypt = false,
+                    Direction        = RtpHeaderExtensionDirection.SendReceive,
+                },
+                new()
+                {
+                    Kind             = MediaKind.VIDEO,
+                    Uri              = RtpHeaderExtensionUri.PlayoutDelay,
+                    PreferredId      = 14,
+                    PreferredEncrypt = false,
+                    Direction        = RtpHeaderExtensionDirection.SendReceive,
                 }
             ]
         };
