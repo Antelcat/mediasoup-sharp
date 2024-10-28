@@ -2,12 +2,12 @@
 
 namespace Antelcat.MediasoupSharp.WebRtcServer;
 
-public class WebRtcServerOptions
+public record WebRtcServerOptions
 {
     /// <summary>
     /// Listen infos.
     /// </summary>
-    public ListenInfoT[] ListenInfos { get; set; }
+    public required ListenInfoT[] ListenInfos { get; set; }
 
     /// <summary>
     /// Custom application data.

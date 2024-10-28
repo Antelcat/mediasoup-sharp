@@ -1,18 +1,25 @@
+using System.Net;
+using System.Net.Mime;
+using System.Text.Json;
 using Antelcat.AspNetCore.ProtooSharp;
 using Antelcat.MediasoupSharp;
 using Antelcat.MediasoupSharp.Demo;
 using Antelcat.MediasoupSharp.Demo.Extensions;
 using Antelcat.MediasoupSharp.Demo.Lib;
+using Antelcat.MediasoupSharp.Settings;
 using Antelcat.MediasoupSharp.Worker;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Primitives;
 using Room = Antelcat.MediasoupSharp.Demo.Lib.Room;
 
-List<WorkerBase>         mediasoupWorkers       = [];
-Dictionary<string, Room> rooms                  = [];
-var                      nextMediasoupWorkerIdx = 0;
-WebSocketServer          protooWebSocketServer;
-AwaitQueue               queue = new();
+List<WorkerBase>                 mediasoupWorkers       = [];
+Dictionary<string, Room>         rooms                  = [];
+var                              nextMediasoupWorkerIdx = 0;
+WebSocketServer                  protooWebSocketServer;
+AwaitQueue                       queue    = new();
+FileExtensionContentTypeProvider provider = new();
+var                              current  = AppContext.BaseDirectory;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,7 +29,8 @@ builder.Services.AddSwaggerGen();
 var app           = builder.Build();
 var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
 var logger        = loggerFactory.CreateLogger<Program>();
-var options       = app.Services.GetRequiredService<MediasoupOptions>();
+var options = JsonSerializer.Deserialize<MediasoupOptions>(
+    File.ReadAllText(Path.Combine(current, "mediasoup.config.json")));
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -51,11 +59,13 @@ async Task Run()
     
     // Run a protoo WebSocketServer.
     RunProtooWebSocketServer();
+    
+    MapHtml();
 }
 
 async Task RunMediasoupWorkersAsync()
 {
-    var numWorkers = options.MediasoupStartupSettings.NumberOfWorkers ?? Environment.ProcessorCount;
+    var numWorkers = options.NumWorkers ?? Environment.ProcessorCount;
 
     logger.LogInformation("running {Num} mediasoup Workers...", numWorkers);
 
@@ -79,7 +89,7 @@ async Task RunMediasoupWorkersAsync()
         // Each mediasoup Worker will run its own WebRtcServer, so those cannot
         // share the same listening ports. Hence we increase the value in config.js
         // for each Worker.
-        var webRtcServerOptions = options.MediasoupSettings.WebRtcServerSettings with { };
+        var webRtcServerOptions = options.WebRtcServerOptions with { };
         var portIncrement       = mediasoupWorkers.Count - 1;
 
         foreach (var listenInfo in webRtcServerOptions.ListenInfos)
@@ -314,6 +324,25 @@ async Task<Room> GetOrCreateRoomAsync(string roomId, int consumerReplicas)
     return room;
 }
 
+// map html
+void MapHtml()
+{
+    app.MapGet("/",
+        () => Results.File(Path.Combine(AppContext.BaseDirectory, "wwwroot", "index.html"), MediaTypeNames.Text.Html));
+    app.MapGet("/{**rest}", ([FromRoute] string rest) =>
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "wwwroot", WebUtility.HtmlDecode(rest));
+        try
+        {
+            return Results.File(path,
+                provider.TryGetContentType(rest, out var type) ? type : MediaTypeNames.Text.Plain);
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem("file not found");
+        }
+    });
+}
 
 file static class HttpContextExtension
 {

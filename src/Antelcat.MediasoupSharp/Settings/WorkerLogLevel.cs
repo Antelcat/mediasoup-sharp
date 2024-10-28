@@ -1,4 +1,4 @@
-﻿namespace Antelcat.MediasoupSharp.Constants;
+﻿namespace Antelcat.MediasoupSharp.Settings;
 
 public enum WorkerLogLevel
 {

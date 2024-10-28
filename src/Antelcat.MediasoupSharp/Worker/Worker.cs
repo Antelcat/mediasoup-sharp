@@ -5,6 +5,7 @@ using FBS.Notification;
 using Antelcat.LibuvSharp;
 using Antelcat.MediasoupSharp.Exceptions;
 using Antelcat.MediasoupSharp.Internals.Extensions;
+using Antelcat.MediasoupSharp.Settings;
 using Microsoft.Extensions.Logging;
 
 namespace Antelcat.MediasoupSharp.Worker;
@@ -56,7 +57,7 @@ public class Worker : WorkerBase
     public Worker(ILoggerFactory loggerFactory, MediasoupOptions mediasoupOptions)
         : base(loggerFactory, mediasoupOptions)
     {
-        var workerPath = mediasoupOptions.MediasoupStartupSettings.WorkerPath;
+        var workerPath = "";
         if (workerPath.IsNullOrWhiteSpace())
         {
             var rid = (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
@@ -79,9 +80,9 @@ public class Worker : WorkerBase
             workerPath = Path.Combine(directory, "runtimes", rid, "native", "mediasoup-worker");
         }
 
-        var workerSettings = mediasoupOptions.MediasoupSettings.WorkerSettings;
+        var workerSettings = mediasoupOptions.WorkerSettings!;
 
-        var env = new[] { $"MEDIASOUP_VERSION={mediasoupOptions.MediasoupStartupSettings.MediasoupVersion}" };
+        var env = new[] { $"MEDIASOUP_VERSION={Mediasoup.Version.ToString()}" };
 
         var argv = new List<string> { workerPath };
         if(workerSettings.LogLevel.HasValue)

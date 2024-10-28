@@ -2,9 +2,9 @@
 
 namespace Antelcat.MediasoupSharp.Settings;
 
-public record WebRtcTransportSettings
+public record WebRtcTransportOptions
 {
-    public ListenInfoT[]? ListenInfos { get; set; }
+    public ListenInfoT[] ListenInfos { get; set; } = [];
 
     public uint? InitialAvailableOutgoingBitrate { get; set; }
 

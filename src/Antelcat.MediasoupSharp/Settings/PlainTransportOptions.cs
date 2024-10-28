@@ -2,7 +2,7 @@
 
 namespace Antelcat.MediasoupSharp.Settings;
 
-public record PlainTransportSettings
+public record PlainTransportOptions
 {
     public ListenInfoT? ListenInfo { get; set; }
 

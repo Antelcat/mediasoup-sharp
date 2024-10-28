@@ -1,7 +1,4 @@
-﻿using System.Runtime.Serialization;
-using System.Text.Json.Serialization;
-
-namespace Antelcat.MediasoupSharp.Constants;
+﻿namespace Antelcat.MediasoupSharp.Settings;
 
 public enum WorkerLogTag
 {

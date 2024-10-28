@@ -17,12 +17,12 @@ namespace Antelcat.MediasoupSharp.AspNetCore;
                
                """,
     Trailing = "};}")]
-[AutoMetadataFrom(typeof(WebRtcTransportSettings), MemberTypes.Property,
+[AutoMetadataFrom(typeof(WebRtcTransportOptions), MemberTypes.Property,
     BindingFlags = BindingFlags.Public,
     Leading = """
-              public static global::Antelcat.MediasoupSharp.Settings.WebRtcTransportSettings Apply(
-              this global::Antelcat.MediasoupSharp.Settings.WebRtcTransportSettings current,
-              global::Antelcat.MediasoupSharp.Settings.WebRtcTransportSettings another
+              public static global::Antelcat.MediasoupSharp.Settings.WebRtcTransportOptions Apply(
+              this global::Antelcat.MediasoupSharp.Settings.WebRtcTransportOptions current,
+              global::Antelcat.MediasoupSharp.Settings.WebRtcTransportOptions another
               ){ return current with {
               """,
     Template = """
@@ -30,25 +30,12 @@ namespace Antelcat.MediasoupSharp.AspNetCore;
 
                """,
     Trailing = "};}")]
-[AutoMetadataFrom(typeof(PlainTransportSettings), MemberTypes.Property, 
+[AutoMetadataFrom(typeof(PlainTransportOptions), MemberTypes.Property, 
     BindingFlags = BindingFlags.Public,
     Leading = """
-              public static global::Antelcat.MediasoupSharp.Settings.PlainTransportSettings Apply(
-              this global::Antelcat.MediasoupSharp.Settings.PlainTransportSettings current,
-              global::Antelcat.MediasoupSharp.Settings.PlainTransportSettings another
-              ){ return current with {
-              """,
-    Template = """
-               {Name} = another.{Name} ?? current.{Name},
-
-               """,
-    Trailing = "};}")]
-[AutoMetadataFrom(typeof(MediasoupStartupSettings), MemberTypes.Property,
-    BindingFlags = BindingFlags.Public,
-    Leading = """
-              public static global::Antelcat.MediasoupSharp.Settings.MediasoupStartupSettings Apply(
-              this global::Antelcat.MediasoupSharp.Settings.MediasoupStartupSettings current,
-              global::Antelcat.MediasoupSharp.Settings.MediasoupStartupSettings another
+              public static global::Antelcat.MediasoupSharp.Settings.PlainTransportOptions Apply(
+              this global::Antelcat.MediasoupSharp.Settings.PlainTransportOptions current,
+              global::Antelcat.MediasoupSharp.Settings.PlainTransportOptions another
               ){ return current with {
               """,
     Template = """

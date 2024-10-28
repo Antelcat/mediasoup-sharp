@@ -12,8 +12,10 @@ using Antelcat.MediasoupSharp.Producer;
 using Antelcat.MediasoupSharp.RtpObserver;
 using Antelcat.MediasoupSharp.RtpParameters;
 using Antelcat.MediasoupSharp.SctpParameters;
-using Antelcat.MediasoupSharp.Settings;
+using Antelcat.MediasoupSharp;
 using Microsoft.VisualStudio.Threading;
+using PlainTransportOptions = Antelcat.MediasoupSharp.Settings.PlainTransportOptions;
+using WebRtcTransportOptions = Antelcat.MediasoupSharp.Settings.WebRtcTransportOptions;
 
 namespace Antelcat.MediasoupSharp.Meeting
 {
@@ -71,9 +73,9 @@ namespace Antelcat.MediasoupSharp.Meeting
 
         private readonly AsyncReaderWriterLock _joinedLock = new();
 
-        private readonly WebRtcTransportSettings _webRtcTransportSettings;
+        private readonly WebRtcTransportOptions webRtcTransportOptions;
 
-        private readonly PlainTransportSettings _plainTransportSettings;
+        private readonly PlainTransportOptions plainTransportOptions;
 
         private readonly RtpCapabilities _rtpCapabilities;
 
@@ -124,8 +126,8 @@ namespace Antelcat.MediasoupSharp.Meeting
         public IHubClient? HubClient { get; }
 
         public Peer(ILoggerFactory loggerFactory,
-            WebRtcTransportSettings webRtcTransportSettings,
-            PlainTransportSettings plainTransportSettings,
+            WebRtcTransportOptions webRtcTransportOptions,
+            PlainTransportOptions plainTransportOptions,
             RtpCapabilities rtpCapabilities,
             SctpCapabilities? sctpCapabilities,
             string peerId,
@@ -137,8 +139,8 @@ namespace Antelcat.MediasoupSharp.Meeting
         {
             _loggerFactory = loggerFactory;
             _logger = loggerFactory.CreateLogger<Peer>();
-            _webRtcTransportSettings = webRtcTransportSettings;
-            _plainTransportSettings = plainTransportSettings;
+            this.webRtcTransportOptions = webRtcTransportOptions;
+            this.plainTransportOptions = plainTransportOptions;
             _rtpCapabilities = rtpCapabilities;
             _sctpCapabilities = sctpCapabilities;
             PeerId = peerId;
@@ -159,12 +161,12 @@ namespace Antelcat.MediasoupSharp.Meeting
         {
             var webRtcTransportOptions = new Antelcat.MediasoupSharp.WebRtcTransport.WebRtcTransportOptions
             {
-                ListenInfos = _webRtcTransportSettings.ListenInfos,
-                InitialAvailableOutgoingBitrate = _webRtcTransportSettings.InitialAvailableOutgoingBitrate.Value,
-                MaxSctpMessageSize = _webRtcTransportSettings.MaxSctpMessageSize.Value,
-                EnableSctp = createWebRtcTransportRequest.SctpCapabilities != null,
-                NumSctpStreams = createWebRtcTransportRequest.SctpCapabilities?.NumStreams,
-                WebRtcServer = null, // TODO: Support WebRtcServer
+                ListenInfos                     = this.webRtcTransportOptions.ListenInfos,
+                InitialAvailableOutgoingBitrate = this.webRtcTransportOptions.InitialAvailableOutgoingBitrate.Value,
+                MaxSctpMessageSize              = this.webRtcTransportOptions.MaxSctpMessageSize.Value,
+                EnableSctp                      = createWebRtcTransportRequest.SctpCapabilities != null,
+                NumSctpStreams                  = createWebRtcTransportRequest.SctpCapabilities?.NumStreams,
+                WebRtcServer                    = null, // TODO: Support WebRtcServer
                 AppData = new Dictionary<string, object>
                     {
                         { "Consuming", !isSend },
@@ -214,10 +216,10 @@ namespace Antelcat.MediasoupSharp.Meeting
                     });
 
                     // If set, apply max incoming bitrate limit.
-                    if(_webRtcTransportSettings.MaximumIncomingBitrate > 0)
+                    if(this.webRtcTransportOptions.MaximumIncomingBitrate > 0)
                     {
                         // Fire and forget
-                        transport.SetMaxIncomingBitrateAsync(_webRtcTransportSettings.MaximumIncomingBitrate.Value).ContinueWithOnFaultedHandleLog(_logger);
+                        transport.SetMaxIncomingBitrateAsync(this.webRtcTransportOptions.MaximumIncomingBitrate.Value).ContinueWithOnFaultedHandleLog(_logger);
                     }
 
                     return transport;
@@ -257,12 +259,12 @@ namespace Antelcat.MediasoupSharp.Meeting
         /// </summary>
         public async Task<PlainTransport.PlainTransport> CreatePlainTransportAsync(CreatePlainTransportRequest createPlainTransportRequest)
         {
-            var plainTransportOptions = new PlainTransportOptions
+            var plainTransportOptions = new PlainTransport.PlainTransportOptions
             {
-                ListenInfo = _plainTransportSettings.ListenInfo,
-                MaxSctpMessageSize = _plainTransportSettings.MaxSctpMessageSize.Value,
-                RtcpMux = createPlainTransportRequest.RtcpMux, // 一般为 false
-                Comedia = createPlainTransportRequest.Comedia, // 一般为 true
+                ListenInfo         = this.plainTransportOptions.ListenInfo,
+                MaxSctpMessageSize = this.plainTransportOptions.MaxSctpMessageSize.Value,
+                RtcpMux            = createPlainTransportRequest.RtcpMux, // 一般为 false
+                Comedia            = createPlainTransportRequest.Comedia, // 一般为 true
                 AppData = new Dictionary<string, object>
                     {
                         { "Consuming", createPlainTransportRequest.Consuming },

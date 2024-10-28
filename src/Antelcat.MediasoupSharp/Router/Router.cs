@@ -216,7 +216,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
 
             var response =
                 await channel.RequestAsync(bufferBuilder, Method.ROUTER_DUMP, null, null, @internal.RouterId);
-            var data = response.Value.BodyAsRouter_DumpResponse().UnPack();
+            var data = response!.Value.BodyAsRouter_DumpResponse().UnPack();
 
             return data;
         }
@@ -226,7 +226,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
     /// Create a WebRtcTransport.
     /// </summary>
     public async Task<WebRtcTransport.WebRtcTransport> CreateWebRtcTransportAsync(
-        WebRtcTransportOptions options)
+        Antelcat.MediasoupSharp.WebRtcTransport.WebRtcTransportOptions options)
     {
         var (webRtcServer,
             listenInfos,
@@ -392,7 +392,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
     /// Create a PlainTransport.
     /// </summary>
     public async Task<PlainTransport.PlainTransport> CreatePlainTransportAsync(
-        PlainTransportOptions options)
+        Antelcat.MediasoupSharp.PlainTransport.PlainTransportOptions options)
     {
         logger.LogDebug("CreatePlainTransportAsync()");
 

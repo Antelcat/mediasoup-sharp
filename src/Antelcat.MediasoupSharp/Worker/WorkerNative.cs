@@ -2,6 +2,7 @@
 using Antelcat.MediasoupSharp.Channel;
 using FBS.Notification;
 using Antelcat.MediasoupSharp.Internals.Extensions;
+using Antelcat.MediasoupSharp.Settings;
 using Microsoft.Extensions.Logging;
 
 namespace Antelcat.MediasoupSharp.Worker;
@@ -17,7 +18,7 @@ public class WorkerNative : WorkerBase
     public WorkerNative(ILoggerFactory loggerFactory, MediasoupOptions mediasoupOptions)
         : base(loggerFactory, mediasoupOptions)
     {
-        var workerSettings = mediasoupOptions.MediasoupSettings.WorkerSettings;
+        var workerSettings = mediasoupOptions.WorkerSettings!;
         var args = new List<string?>
         {
             "" // Ignore `workerPath`

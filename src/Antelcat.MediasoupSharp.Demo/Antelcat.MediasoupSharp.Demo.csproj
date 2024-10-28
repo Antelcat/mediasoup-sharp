@@ -4,20 +4,24 @@
         <TargetFramework>net8.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
+        <RootNamespace>Antelcat.MediasoupSharp.Demo</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Antelcat.AspNetCore.ProtooSharp" Version="0.1.1.1" />
+        <PackageReference Include="Antelcat.AspNetCore.ProtooSharp" Version="0.1.1.1"/>
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.8"/>
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0"/>
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Antelcat.MediasoupSharp.AspNetCore\Antelcat.MediasoupSharp.AspNetCore.csproj" />
-      <ProjectReference Include="..\Antelcat.MediasoupSharp.runtime\Antelcat.MediasoupSharp.runtime.win-x64.csproj" />
+        <ProjectReference Include="..\Antelcat.MediasoupSharp.AspNetCore\Antelcat.MediasoupSharp.AspNetCore.csproj"/>
+        <ProjectReference Include="..\Antelcat.MediasoupSharp.runtime\Antelcat.MediasoupSharp.runtime.win-x64.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      
+        <Content Include="../../mediasoup-demo/server/public/**/*.*">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <LinkBase>wwwroot</LinkBase>
+        </Content>
     </ItemGroup>
 </Project>

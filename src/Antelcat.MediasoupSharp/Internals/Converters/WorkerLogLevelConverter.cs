@@ -1,4 +1,5 @@
-﻿using Antelcat.MediasoupSharp.Constants;
+﻿using Antelcat.MediasoupSharp;
+using Antelcat.MediasoupSharp.Settings;
 
 namespace Antelcat.MediasoupSharp.Internals.Converters;
 

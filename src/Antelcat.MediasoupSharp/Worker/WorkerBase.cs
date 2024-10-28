@@ -1,13 +1,13 @@
 ﻿using Antelcat.MediasoupSharp.Channel;
-using Antelcat.MediasoupSharp.Constants;
+using Antelcat.MediasoupSharp;
 using Antelcat.MediasoupSharp.Exceptions;
 using Antelcat.MediasoupSharp.Router;
-using Antelcat.MediasoupSharp.Settings;
 using Antelcat.MediasoupSharp.WebRtcServer;
 using FBS.Request;
 using FBS.Transport;
 using FBS.Worker;
 using Antelcat.MediasoupSharp.Internals.Extensions;
+using Antelcat.MediasoupSharp.Settings;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
 
@@ -91,9 +91,9 @@ public abstract class WorkerBase : EnhancedEvent.EnhancedEventEmitter, IWorker
         LoggerFactory = loggerFactory;
         Logger         = loggerFactory.CreateLogger<Worker>();
 
-        var workerSettings = mediasoupOptions.MediasoupSettings.WorkerSettings;
+        var workerSettings = mediasoupOptions.WorkerSettings;
 
-        AppData = workerSettings.AppData ?? new Dictionary<string, object>();
+        AppData = workerSettings?.AppData ?? new Dictionary<string, object>();
     }
 
     public abstract Task CloseAsync();
@@ -150,7 +150,7 @@ public abstract class WorkerBase : EnhancedEvent.EnhancedEventEmitter, IWorker
     /// <summary>
     /// Updates the worker settings in runtime. Just a subset of the worker settings can be updated.
     /// </summary>
-    public async Task UpdateSettingsAsync(WorkerUpdateableSettings workerUpdateableSettings)
+    /*public async Task UpdateSettingsAsync(WorkerUpdateableSettings workerUpdateableSettings)
     {
         Logger.LogDebug("UpdateSettingsAsync()");
 
@@ -183,7 +183,7 @@ public abstract class WorkerBase : EnhancedEvent.EnhancedEventEmitter, IWorker
                 requestOffset.Value
             ).ContinueWithOnFaultedHandleLog(Logger);
         }
-    }
+    }*/
 
     /// <summary>
     /// Create a WebRtcServer.

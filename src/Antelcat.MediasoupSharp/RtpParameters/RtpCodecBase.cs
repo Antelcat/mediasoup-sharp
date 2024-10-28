@@ -8,7 +8,7 @@ public class RtpCodecBase
     /// <summary>
     /// The codec MIME media type/subtype (e.g. 'audio/opus', 'video/VP8').
     /// </summary>
-    public string MimeType { get; set; }
+    public required string MimeType { get; set; }
 
     /// <summary>
     /// Codec clock rate expressed in Hertz.

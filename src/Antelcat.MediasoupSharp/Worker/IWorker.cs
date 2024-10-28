@@ -1,5 +1,5 @@
 ﻿using Antelcat.MediasoupSharp.Router;
-using Antelcat.MediasoupSharp.Settings;
+using Antelcat.MediasoupSharp;
 using Antelcat.NodeSharp.Events;
 using FBS.Worker;
 
@@ -20,5 +20,5 @@ public interface IWorker : IEventEmitter, IDisposable
 
     Task<ResourceUsageResponseT> GetResourceUsageAsync();
 
-    Task UpdateSettingsAsync(WorkerUpdateableSettings workerUpdateableSettings);
+    //Task UpdateSettingsAsync(WorkerUpdateableSettings workerUpdateableSettings);
 }

@@ -7,6 +7,7 @@ using Antelcat.MediasoupSharp.Meeting.Models;
 using Antelcat.MediasoupSharp.Meeting.SignalR.Models;
 using Antelcat.MediasoupSharp.Router;
 using Antelcat.MediasoupSharp.RtpParameters;
+using Antelcat.MediasoupSharp.Settings;
 using Microsoft.VisualStudio.Threading;
 
 namespace Antelcat.MediasoupSharp.Meeting
@@ -51,7 +52,7 @@ namespace Antelcat.MediasoupSharp.Meeting
             this.mediasoup    = mediasoup;
 
             // 按创建 Route 时一样方式创建 RtpCodecCapabilities
-            var rtpCodecCapabilities = mediasoupOptions.MediasoupSettings.RouterSettings.RtpCodecCapabilities;
+            var rtpCodecCapabilities = mediasoupOptions.RouterOptions.MediaCodecs;
             // This may throw.
             DefaultRtpCapabilities = ORTC.Ortc.GenerateRouterRtpCapabilities(rtpCodecCapabilities);
 
@@ -72,8 +73,8 @@ namespace Antelcat.MediasoupSharp.Meeting
                 }
 
                 peer = new Peer(_loggerFactory,
-                    _mediasoupOptions.MediasoupSettings.WebRtcTransportSettings,
-                    _mediasoupOptions.MediasoupSettings.PlainTransportSettings,
+                    _mediasoupOptions.WebRtcTransportOptions,
+                    _mediasoupOptions.PlainTransportOptions,
                     joinRequest.RtpCapabilities,
                     joinRequest.SctpCapabilities,
                     peerId,
@@ -123,7 +124,7 @@ namespace Antelcat.MediasoupSharp.Meeting
                     if(!_rooms.TryGetValue(joinRoomRequest.RoomId, out var room))
                     {
                         // Router media codecs.
-                        var mediaCodecs = _mediasoupOptions.MediasoupSettings.RouterSettings.RtpCodecCapabilities;
+                        var mediaCodecs = _mediasoupOptions.RouterOptions.MediaCodecs;
 
                         // Create a mediasoup Router.
                         var worker = mediasoup.GetWorker();

@@ -9,7 +9,7 @@ public class PlainTransportOptions
     /// <summary>
     /// Listening information.
     /// </summary>
-    public ListenInfoT ListenInfo { get; set; }
+    public required ListenInfoT ListenInfo { get; set; }
 
     /// <summary>
     /// RTCP listening information. If not given and rtcpPort is not false,

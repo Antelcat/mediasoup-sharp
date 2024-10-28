@@ -15,12 +15,12 @@ public static class MediasoupApplicationBuilderExtensions
         var loggerFactory               = app.ApplicationServices.GetRequiredService<ILoggerFactory>();
         var logger                      = loggerFactory.CreateLogger<Mediasoup>();
         var mediasoupOptions            = app.ApplicationServices.GetRequiredService<MediasoupOptions>();
-        var defaultWebRtcServerSettings = mediasoupOptions.MediasoupSettings.WebRtcServerSettings;
+        var defaultWebRtcServerSettings = mediasoupOptions.WebRtcServerOptions;
         var mediasoupServer             = app.ApplicationServices.GetRequiredService<Mediasoup>();
-        var numberOfWorkers             = mediasoupOptions.MediasoupStartupSettings.NumberOfWorkers;
+        var numberOfWorkers             = mediasoupOptions.NumWorkers;
         numberOfWorkers = numberOfWorkers is null or <= 0 ? Environment.ProcessorCount : numberOfWorkers;
 
-        if(mediasoupOptions.MediasoupStartupSettings.WorkerInProcess is true)
+        if(true)
         {
             for(var c = 0; c < numberOfWorkers; c++)
             {
@@ -34,10 +34,7 @@ public static class MediasoupApplicationBuilderExtensions
                         {
                             mediasoupServer.AddWorker(worker);
                             logger.LogInformation("Worker[{ThreadId}] create success", threadId);
-                            if(mediasoupOptions.MediasoupStartupSettings.UseWebRtcServer is true)
-                            {
-                                await CreateWebRtcServerAsync(worker, (ushort)c, defaultWebRtcServerSettings);
-                            }
+                            await CreateWebRtcServerAsync(worker, (ushort)c, defaultWebRtcServerSettings);
                         });
                         worker.Run();
                     }
@@ -61,10 +58,6 @@ public static class MediasoupApplicationBuilderExtensions
                         {
                             mediasoupServer.AddWorker(worker);
                             logger.LogInformation("Worker[{ProcessId}] create success", worker.Pid);
-                            if(mediasoupOptions.MediasoupStartupSettings.UseWebRtcServer is true)
-                            {
-                                await CreateWebRtcServerAsync(worker, (ushort)c, defaultWebRtcServerSettings);
-                            }
                         });
                     }
                 });
@@ -74,7 +67,7 @@ public static class MediasoupApplicationBuilderExtensions
         return app;
     }
 
-    private static Task<WebRtcServer> CreateWebRtcServerAsync(WorkerBase worker, ushort portIncrement, WebRtcServerSettings defaultWebRtcServerSettings)
+    private static Task<WebRtcServer> CreateWebRtcServerAsync(WorkerBase worker, ushort portIncrement, WebRtcServerOptions defaultWebRtcServerSettings)
     {
         var webRtcServerSettings = defaultWebRtcServerSettings.DeepClone();
         var listenInfos          = webRtcServerSettings.ListenInfos!;

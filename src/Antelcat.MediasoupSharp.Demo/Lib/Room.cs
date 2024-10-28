@@ -15,6 +15,7 @@ using Antelcat.MediasoupSharp.Producer;
 using Antelcat.MediasoupSharp.RtpObserver;
 using Antelcat.MediasoupSharp.RtpParameters;
 using Antelcat.MediasoupSharp.SctpParameters;
+using Antelcat.MediasoupSharp.Settings;
 using Antelcat.NodeSharp.Events;
 using FBS.AudioLevelObserver;
 using FBS.Common;
@@ -23,6 +24,7 @@ using FBS.Producer;
 using FBS.RtpParameters;
 using FBS.SctpAssociation;
 using FBS.SctpParameters;
+using FBS.Transport;
 using FBS.WebRtcTransport;
 using Force.DeepCloner;
 using TraceNotification = FBS.Transport.TraceNotification;
@@ -73,7 +75,7 @@ public class Room : EventEmitter
 		var protooRoom = new Antelcat.AspNetCore.ProtooSharp.Room(loggerFactory);
 
 		// Router media codecs.
-		var mediaCodecs = options.MediasoupSettings.RouterSettings.RtpCodecCapabilities;
+		var mediaCodecs = options.RouterOptions!.MediaCodecs;
 
 		// Create a mediasoup Router.
 		var mediasoupRouter = await mediasoupWorker.CreateRouterAsync(new()
@@ -201,6 +203,10 @@ public class Room : EventEmitter
 			return;
 		}
 
+		// Notify mediasoup version to the peer.
+		peer.NotifyAsync("mediasoup-version", new { version = Mediasoup.Version.ToString() })
+			.Catch(() => { });
+		
 		// Use the peer.data object to store mediasoup related objects.
 
 		peer.Data.Set(new PeerData
@@ -406,20 +412,20 @@ public class Room : EventEmitter
 		{
 			case "webrtc":
 			{
-				var options = MediasoupOptions.Default.MediasoupSettings.WebRtcTransportSettings;
+				var options = MediasoupOptions.Default.WebRtcTransportOptions;
 				var webRtcTransportOptions = new WebRtcTransportOptions
 				{
-					EnableSctp                      = sctpCapabilities is not null,
-					NumSctpStreams                  = sctpCapabilities?.NumStreams,
 					ListenInfos                     = options.ListenInfos,
 					MaxSctpMessageSize              = options.MaxSctpMessageSize              ?? 0,
-					InitialAvailableOutgoingBitrate = options.InitialAvailableOutgoingBitrate ?? 0
+					InitialAvailableOutgoingBitrate = options.InitialAvailableOutgoingBitrate ?? 0,
+
+					WebRtcServer      = webRtcServer,
+					IceConsentTimeout = 20,
+					EnableSctp        = sctpCapabilities is not null,
+					NumSctpStreams    = sctpCapabilities?.NumStreams,
 				};
 
-				var transport = await mediasoupRouter.CreateWebRtcTransportAsync(webRtcTransportOptions with
-				{
-					WebRtcServer = webRtcServer
-				});
+				var transport = await mediasoupRouter.CreateWebRtcTransportAsync(webRtcTransportOptions);
 
 				// Store it.
 				broadcaster.Data.Transports.Add(transport.Id, transport);
@@ -436,8 +442,8 @@ public class Room : EventEmitter
 
 			case "plain":
 			{
-				var options = MediasoupOptions.Default.MediasoupSettings.PlainTransportSettings;
-				var plainTransportOptions = new PlainTransportOptions
+				var options = MediasoupOptions.Default.PlainTransportOptions;
+				var plainTransportOptions = new Antelcat.MediasoupSharp.PlainTransport.PlainTransportOptions
 				{
 					ListenInfo         = options.ListenInfo!,
 					MaxSctpMessageSize = options.MaxSctpMessageSize ?? 0,
@@ -863,39 +869,52 @@ public class Room : EventEmitter
 					) = handler.Request
 					.WithData<CreateWebRtcTransportRequest>()!.Data!;
 
-				var options = MediasoupOptions.Default.MediasoupSettings.WebRtcTransportSettings;
-				var webRtcTransportOptions = new WebRtcTransportOptions
+				var options = MediasoupOptions.Default.WebRtcTransportOptions;
+				var webRtcTransportOptions = new Antelcat.MediasoupSharp.WebRtcTransport.WebRtcTransportOptions
 				{
 					ListenInfos                     = options.ListenInfos,
 					MaxSctpMessageSize              = options.MaxSctpMessageSize              ?? 0,
 					InitialAvailableOutgoingBitrate = options.InitialAvailableOutgoingBitrate ?? 0,
 
-					EnableSctp     = sctpCapabilities is not null,
-					NumSctpStreams = sctpCapabilities?.NumStreams,
-					AppData        = new() { { nameof(producing), producing }, { nameof(consuming), consuming } }
+					WebRtcServer      = webRtcServer,
+					IceConsentTimeout = 20,
+					EnableSctp        = sctpCapabilities is not null,
+					NumSctpStreams    = sctpCapabilities?.NumStreams,
+					AppData           = new() { { nameof(producing), producing }, { nameof(consuming), consuming } }
 				};
 
 				if (forceTcp)
 				{
+					webRtcTransportOptions.ListenInfos = webRtcTransportOptions.ListenInfos!
+						.Where(x => x.Protocol == Protocol.TCP).ToArray();
+					
 					webRtcTransportOptions.EnableUdp = false;
 					webRtcTransportOptions.EnableTcp = true;
 				}
 
-				var transport = await mediasoupRouter.CreateWebRtcTransportAsync(webRtcTransportOptions with
+				var transport = await mediasoupRouter.CreateWebRtcTransportAsync(webRtcTransportOptions);
+
+				transport.On("icestatechange", async (IceState iceState) =>
 				{
-					WebRtcServer = webRtcServer
+					if (iceState == IceState.DISCONNECTED /*|| iceState == IceState.CLOSED*/)
+					{
+						logger.LogWarning($"WebRtcTransport 'icestatechange' event [{nameof(iceState)}:{{State}}]", iceState);
+						await peer.CloseAsync();
+					}
+				});
+				
+				transport.On("sctpstatechange", (SctpState sctpState) =>
+				{
+					logger.LogDebug($"WebRtcTransport 'sctpstatechange' event [{nameof(sctpState)}:{{SctpState}}]", sctpState);
 				});
 
-				transport.On("sctpstatechange",
-					(SctpState sctpState) =>
-					{
-						logger.LogDebug("WebRtcTransport 'sctpstatechange' event [{SctpState}]", sctpState);
-					});
-
-				transport.On("dtlsstatechange", (DtlsState dtlsState) =>
+				transport.On("dtlsstatechange", async (DtlsState dtlsState) =>
 				{
 					if (dtlsState is DtlsState.FAILED or DtlsState.CLOSED)
-						logger.LogWarning("WebRtcTransport 'dtlsstatechange' event [{DtlsState}]", dtlsState);
+					{
+						logger.LogWarning($"WebRtcTransport 'dtlsstatechange' event [{nameof(dtlsState)}:{{DtlsState}}]", dtlsState);
+						await peer.CloseAsync();
+					}
 				});
 
 				// NOTE: For testing.
@@ -933,7 +952,7 @@ public class Room : EventEmitter
 					/*sctpParameters = transport.Data.SctpParameters*/
 				});
 
-				var maxIncomingBitrate = MediasoupOptions.Default.MediasoupSettings.WebRtcTransportSettings
+				var maxIncomingBitrate = MediasoupOptions.Default.WebRtcTransportOptions!
 					.MaximumIncomingBitrate;
 
 				// If set, apply max incoming bitrate limit.
@@ -1550,13 +1569,14 @@ public class Room : EventEmitter
 							RtpCapabilities = consumerPeer.Data().RtpCapabilities,
 							// Enable NACK for OPUS.
 							EnableRtx = true,
-							Paused    = true
+							Paused    = true,
+							IgnoreDtx = true,
 						});
 					}
 					catch (Exception ex)
 					{
 						logger.LogWarning($"{nameof(CreateConsumerAsync)}() | transport.consume():{{Ex}}", ex);
-
+						
 						return;
 					}
 
