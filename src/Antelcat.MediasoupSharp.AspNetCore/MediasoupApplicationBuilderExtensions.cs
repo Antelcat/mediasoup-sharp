@@ -30,7 +30,7 @@ public static class MediasoupApplicationBuilderExtensions
                     {
                         var threadId = Environment.CurrentManagedThreadId;
                         var worker   = app.ApplicationServices.GetRequiredService<WorkerNative>();
-                        worker.On("@success", async (_, _) =>
+                        worker.On("@success", async _ =>
                         {
                             mediasoupServer.AddWorker(worker);
                             logger.LogInformation("Worker[{ThreadId}] create success", threadId);
@@ -54,7 +54,7 @@ public static class MediasoupApplicationBuilderExtensions
                     for(var c = 0; c < numberOfWorkers; c++)
                     {
                         var worker = app.ApplicationServices.GetRequiredService<Worker>();
-                        worker.On("@success", async (_, _) =>
+                        worker.On("@success", async _ =>
                         {
                             mediasoupServer.AddWorker(worker);
                             logger.LogInformation("Worker[{ProcessId}] create success", worker.Pid);

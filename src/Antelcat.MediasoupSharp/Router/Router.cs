@@ -667,21 +667,21 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
             transports[transport.Id] = transport;
         }
 
-        transport.On("@close", async (_, _) =>
+        transport.On("@close", async _ =>
         {
             await using (await transportsLock.WriteLockAsync())
             {
                 transports.Remove(transport.Id);
             }
         });
-        transport.On("@listenserverclose", async (_, _) =>
+        transport.On("@listenserverclose", async _ =>
         {
             await using (await transportsLock.WriteLockAsync())
             {
                 transports.Remove(transport.Id);
             }
         });
-        transport.On("@newproducer", async (_, obj) =>
+        transport.On("@newproducer", async obj =>
         {
             var producer = (Producer.Producer)obj!;
             await using (await producersLock.WriteLockAsync())
@@ -689,7 +689,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
                 producers[producer.Id] = producer;
             }
         });
-        transport.On("@producerclose", async (_, obj) =>
+        transport.On("@producerclose", async obj =>
         {
             var producer = (Producer.Producer)obj!;
             await using (await producersLock.WriteLockAsync())
@@ -697,7 +697,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
                 producers.Remove(producer.Id);
             }
         });
-        transport.On("@newdataproducer", async (_, obj) =>
+        transport.On("@newdataproducer", async obj =>
         {
             var dataProducer = (DataProducer.DataProducer)obj!;
             await using (await dataProducersLock.WriteLockAsync())
@@ -705,7 +705,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
                 dataProducers[dataProducer.Id] = dataProducer;
             }
         });
-        transport.On("@dataproducerclose", async (_, obj) =>
+        transport.On("@dataproducerclose", async obj =>
         {
             var dataProducer = (DataProducer.DataProducer)obj!;
             await using (await dataProducersLock.WriteLockAsync())
@@ -845,7 +845,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
                             })
                         );
 
-                        localPipeTransport.Observer.On("close", async (_, _) =>
+                        localPipeTransport.Observer.On("close", async _ =>
                         {
                             await remotePipeTransport.CloseAsync();
                             await using (await mapRouterPipeTransportsLock.WriteLockAsync())
@@ -854,7 +854,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
                             }
                         });
 
-                        remotePipeTransport.Observer.On("close", async (_, _) =>
+                        remotePipeTransport.Observer.On("close", async _ =>
                         {
                             await localPipeTransport.CloseAsync();
                             await using (await mapRouterPipeTransportsLock.WriteLockAsync())
@@ -923,12 +923,12 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
                     }
 
                     // Pipe events from the pipe Consumer to the pipe Producer.
-                    pipeConsumer.Observer.On("close", async (_, _) => await pipeProducer.CloseAsync());
-                    pipeConsumer.Observer.On("pause", async (_, _) => await pipeProducer.PauseAsync());
-                    pipeConsumer.Observer.On("resume", async (_, _) => await pipeProducer.ResumeAsync());
+                    pipeConsumer.Observer.On("close", async _ => await pipeProducer.CloseAsync());
+                    pipeConsumer.Observer.On("pause", async _ => await pipeProducer.PauseAsync());
+                    pipeConsumer.Observer.On("resume", async _ => await pipeProducer.ResumeAsync());
 
                     // Pipe events from the pipe Producer to the pipe Consumer.
-                    pipeProducer.Observer.On("close", async (_, _) => await pipeConsumer.CloseAsync());
+                    pipeProducer.Observer.On("close", async _ => await pipeConsumer.CloseAsync());
 
                     return new PipeToRouterResult { PipeConsumer = pipeConsumer, PipeProducer = pipeProducer };
                 }
@@ -972,10 +972,10 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
                     });
 
                     // Pipe events from the pipe DataConsumer to the pipe DataProducer.
-                    pipeDataConsumer.Observer.On("close", async (_, _) => await pipeDataProducer.CloseAsync());
+                    pipeDataConsumer.Observer.On("close", async _ => await pipeDataProducer.CloseAsync());
 
                     // Pipe events from the pipe DataProducer to the pipe DataConsumer.
-                    pipeDataProducer.Observer.On("close", async (_, _) => await pipeDataConsumer.CloseAsync());
+                    pipeDataProducer.Observer.On("close", async _ => await pipeDataConsumer.CloseAsync());
 
                     return new PipeToRouterResult
                         { PipeDataConsumer = pipeDataConsumer, PipeDataProducer = pipeDataProducer };
@@ -1213,7 +1213,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
     private Task ConfigureRtpObserverAsync(RtpObserver.RtpObserver rtpObserver)
     {
         rtpObservers[rtpObserver.Internal.RtpObserverId] = rtpObserver;
-        rtpObserver.On("@close", async (_, _) =>
+        rtpObserver.On("@close", async _ =>
         {
             await using (await rtpObserversLock.WriteLockAsync())
             {

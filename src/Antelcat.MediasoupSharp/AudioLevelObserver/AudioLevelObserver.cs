@@ -29,7 +29,7 @@ public class AudioLevelObserver : RtpObserver.RtpObserver
         ILoggerFactory loggerFactory,
         RtpObserverInternal @internal,
         IChannel channel,
-        Dictionary<string, object>? appData,
+        AppData? appData,
         Func<string, Task<Producer.Producer?>> getProducerById
     )
         : base(loggerFactory, @internal, channel, appData, getProducerById)

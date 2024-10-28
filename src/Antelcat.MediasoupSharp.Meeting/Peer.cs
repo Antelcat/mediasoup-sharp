@@ -201,13 +201,13 @@ namespace Antelcat.MediasoupSharp.Meeting
                         };
                     }
 
-                    transport.On("@close", (_, _) =>
+                    transport.On("@close", _ =>
                     {
                         // 因为调用 transport.Close() 之前已经使用 _transportsLock 写锁，所以触发该事件的调用从 _transports 移除无需再次加锁。
                         _transports.Remove(transport.Id);
                         return Task.CompletedTask;
                     });
-                    transport.On("routerclose", async (_, _) =>
+                    transport.On("routerclose", async _ =>
                     {
                         await using(await _transportsLock.WriteLockAsync())
                         {
@@ -288,13 +288,13 @@ namespace Antelcat.MediasoupSharp.Meeting
                         _transports[transport.Id] = transport;
                     }
 
-                    transport.On("@close", (_, _) =>
+                    transport.On("@close", _=>
                     {
                         // 因为调用 transport.CloseAsync() 之前已经使用 _transportsLock 写锁，所以触发该事件的调用从 _transports 移除无需再次加锁。
                         _transports.Remove(transport.Id);
                         return Task.CompletedTask;
                     });
-                    transport.On("routerclose", async (_, _) =>
+                    transport.On("routerclose", async _ =>
                     {
                         await using(await _transportsLock.WriteLockAsync())
                         {
@@ -471,7 +471,7 @@ namespace Antelcat.MediasoupSharp.Meeting
                             // Store producer source
                             producer.Source = produceRequest.Source;
 
-                            producer.On("@close", async (_, _) =>
+                            producer.On("@close", async _ =>
                             {
                                 // 因为调用 producer.Close() 之前已经使用 _producersLock 写锁，所以触发该事件的调用从 _producers 移除无需再次加锁。
                                 _producers.Remove(producer.Id);
@@ -480,7 +480,7 @@ namespace Antelcat.MediasoupSharp.Meeting
                                 _pullPaddings.Clear();
                                 _pullPaddingsLock.Set();
                             });
-                            producer.On("transportclose", async (_, _) =>
+                            producer.On("transportclose", async _ =>
                             {
                                 await using(await _producersLock.WriteLockAsync())
                                 {
@@ -572,13 +572,13 @@ namespace Antelcat.MediasoupSharp.Meeting
 
                                 consumer.Source = producer.Source;
 
-                                consumer.On("@close", async (_, _) =>
+                                consumer.On("@close", async _ =>
                                 {
                                     // 因为调用 consumer.CloseAsync() 之前已经使用 _consumersLock 写锁，所以触发该事件的调用从 _consumers 移除无需再次加锁。
                                     _consumers.Remove(consumer.Id);
                                     await producer.RemoveConsumerAsync(consumer.Id);
                                 });
-                                consumer.On("producerclose,transportclose", async (_, _) =>
+                                consumer.On("producerclose,transportclose", async _ =>
                                 {
                                     await using(await _consumersLock.WriteLockAsync())
                                     {

@@ -1,17 +1,29 @@
-﻿using Antelcat.NodeSharp.Events;
+﻿using System.Linq.Expressions;
+using Antelcat.NodeSharp.Events;
 
 namespace Antelcat.MediasoupSharp.EnhancedEvent;
 
-public class EnhancedEventEmitter : EventEmitter
+public class EnhancedEventEmitter<T> : EventEmitter
 {
-    public void On(string eventName, Func<string, object?, Task> method) =>
-        base.On(eventName, (object[] args) => method(eventName, args[0]));
+    private static string GetMemberNameOrThrow<TProperty>(Expression<Func<T, TProperty>> expression) =>
+        expression is not MemberExpression memberExpression
+            ? throw new InvalidOperationException("event name not qualified")
+            : memberExpression.Member.Name;
 
-    public void Emit(string eventName, object? data = null) => base.Emit(eventName, data);
+    public EnhancedEventEmitter<T> On<TProperty>(Expression<Func<T, TProperty>> eventName, Func<TProperty, Task> method) => 
+        (base.On(GetMemberNameOrThrow(eventName), method) as EnhancedEventEmitter<T>)!;
+    
+    public EnhancedEventEmitter<T> On<TProperty>(Expression<Func<T, TProperty>> eventName, Action<TProperty> method) => 
+        (base.On(GetMemberNameOrThrow(eventName), method) as EnhancedEventEmitter<T>)!;
 
-    public void RemoveListener(string eventName, Func<string, object?, Task> method) => throw new NotSupportedException();
+    public void Emit<TProperty>(Expression<Func<T, TProperty>> eventName, TProperty? arg = default) =>
+        base.Emit(GetMemberNameOrThrow(eventName), arg);
+}
 
-    public new void RemoveAllListeners(string eventName) => base.RemoveAllListeners(eventName);
+public class EnhancedEventEmitter : EnhancedEventEmitter<object>
+{
+    public void On(string eventName, Func<object?, Task> method) =>
+        base.On(eventName, (Func<object[], Task>)(args => method(args[0])));
 }
 
 #if False

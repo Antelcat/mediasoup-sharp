@@ -221,7 +221,7 @@ public class PipeTransport : Transport.Transport
 
         consumer.On(
             "@close",
-            async (_, _) =>
+            async _ =>
             {
                 await ConsumersLock.WaitAsync();
                 try
@@ -240,7 +240,7 @@ public class PipeTransport : Transport.Transport
         );
         consumer.On(
             "@producerclose",
-            async (_, _) =>
+            async _ =>
             {
                 await ConsumersLock.WaitAsync();
                 try

@@ -245,7 +245,7 @@ public abstract class WorkerBase : EnhancedEvent.EnhancedEventEmitter, IWorker
 
             webRtcServer.On(
                 "@close",
-                (_, _) =>
+                _ =>
                 {
                     lock(WebRtcServersLock)
                     {
@@ -312,7 +312,7 @@ public abstract class WorkerBase : EnhancedEvent.EnhancedEventEmitter, IWorker
 
             router.On(
                 "@close",
-                (_, _) =>
+                _ =>
                 {
                     lock(RoutersLock)
                     {

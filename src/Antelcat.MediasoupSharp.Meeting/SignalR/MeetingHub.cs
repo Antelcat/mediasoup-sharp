@@ -206,13 +206,13 @@ namespace Antelcat.MediasoupSharp.Meeting.SignalR
             try
             {
                 var transport = await scheduler.CreateWebRtcTransportAsync(UserId, ConnectionId, createWebRtcTransportRequest, isSend);
-                transport.On("sctpstatechange", (_, obj) =>
+                transport.On("sctpstatechange", obj =>
                 {
                     logger.LogDebug("WebRtcTransport \"sctpstatechange\" event [sctpState:{SctpState}]", obj);
                     return Task.CompletedTask;
                 });
 
-                transport.On("dtlsstatechange", (_, obj) =>
+                transport.On("dtlsstatechange", obj =>
                 {
                     var dtlsState = (DtlsState)obj!;
                     if(dtlsState is DtlsState.FAILED or DtlsState.CLOSED)
@@ -228,7 +228,7 @@ namespace Antelcat.MediasoupSharp.Meeting.SignalR
                 //await transport.EnableTraceEventAsync(new[] { TransportTraceEventType.BWE });
 
                 var peerId = UserId;
-                transport.On("trace", (_, obj) =>
+                transport.On("trace", obj =>
                 {
                     // TODO: Fix this
                     // var traceData = (TransportTraceEventData)obj!;
@@ -592,7 +592,7 @@ namespace Antelcat.MediasoupSharp.Meeting.SignalR
                     await scheduler.UnsetPeerInternalDataAsync(new UnsetPeerInternalDataRequest
                     {
                         PeerId = UserId,
-                        Keys = new[] { inviteKey }
+                        Keys = [inviteKey]
                     });
                 }
 
@@ -613,7 +613,7 @@ namespace Antelcat.MediasoupSharp.Meeting.SignalR
                 //CreateConsumer(producerPeer, producerPeer, producer, "1").ContinueWithOnFaultedHandleLog(_logger);
 
                 // Set Producer events.
-                producer.On("score", (_, obj) =>
+                producer.On("score", obj =>
                 {
                     // Notification: producerScore
                     SendNotification(peerId, "producerScore", new ProducerScoreNotification
@@ -624,7 +624,7 @@ namespace Antelcat.MediasoupSharp.Meeting.SignalR
                     return Task.CompletedTask;
                 });
 
-                producer.On("videoorientationchange", (_, obj) =>
+                producer.On("videoorientationchange", obj =>
                 {
                     // For Testing
                     //var videoOrientation= (ProducerVideoOrientation?)data;
@@ -643,13 +643,13 @@ namespace Antelcat.MediasoupSharp.Meeting.SignalR
                 // await producer.enableTraceEvent([ 'pli', 'fir' ]);
                 // await producer.enableTraceEvent([ 'keyframe' ]);
 
-                producer.On("trace", (_, obj) =>
+                producer.On("trace", obj =>
                 {
                     logger.LogDebug("producer \"trace\" event [producerId:{ProducerId}, trace:{Trace}]", producer.Id, obj);
                     return Task.CompletedTask;
                 });
 
-                producer.Observer.On("close", (_, _) =>
+                producer.Observer.On("close", _ =>
                 {
                     // Notification: producerClosed
                     SendNotification(peerId, "producerClosed", new ProducerClosedNotification
@@ -1163,7 +1163,7 @@ namespace Antelcat.MediasoupSharp.Meeting.SignalR
             }
 
             // Set Consumer events.
-            consumer.On("score", (_, obj) =>
+            consumer.On("score", obj =>
             {
                 // For Testing
                 //var score = (ConsumerScore?)obj;
@@ -1179,11 +1179,11 @@ namespace Antelcat.MediasoupSharp.Meeting.SignalR
                 return Task.CompletedTask;
             });
 
-            // consumer.On("@close", (_, _) => ...);
-            // consumer.On("@producerclose", (_, _) => ...);
-            // consumer.On("producerclose", (_, _) => ...);
-            // consumer.On("transportclose", (_, _) => ...);
-            consumer.Observer.On("close", (_, _) =>
+            // consumer.On("@close", _ => ...);
+            // consumer.On("@producerclose", _ => ...);
+            // consumer.On("producerclose", _ => ...);
+            // consumer.On("transportclose", _ => ...);
+            consumer.Observer.On("close", _ =>
             {
                 // Notification: consumerClosed
                 SendNotification(consumerPeerId, "consumerClosed", new ConsumerClosedNotification
@@ -1195,7 +1195,7 @@ namespace Antelcat.MediasoupSharp.Meeting.SignalR
                 return Task.CompletedTask;
             });
 
-            consumer.On("producerpause", (_, _) =>
+            consumer.On("producerpause", _ =>
             {
                 // Notification: consumerPaused
                 SendNotification(consumerPeerId, "consumerPaused", new ConsumerPausedNotification
@@ -1207,7 +1207,7 @@ namespace Antelcat.MediasoupSharp.Meeting.SignalR
                 return Task.CompletedTask;
             });
 
-            consumer.On("producerresume", (_, _) =>
+            consumer.On("producerresume", _ =>
             {
                 // Notification: consumerResumed
                 SendNotification(consumerPeerId, "consumerResumed", new ConsumerResumedNotification
@@ -1219,7 +1219,7 @@ namespace Antelcat.MediasoupSharp.Meeting.SignalR
                 return Task.CompletedTask;
             });
 
-            consumer.On("layerschange", (_, obj) =>
+            consumer.On("layerschange", obj =>
             {
                 // For Testing
                 //var layers = (ConsumerLayers?)obj;
@@ -1240,7 +1240,7 @@ namespace Antelcat.MediasoupSharp.Meeting.SignalR
             // await consumer.enableTraceEvent([ 'pli', 'fir' ]);
             // await consumer.enableTraceEvent([ 'keyframe' ]);
 
-            consumer.On("trace", (_, obj) =>
+            consumer.On("trace", obj =>
             {
                 logger.LogDebug("consumer \"trace\" event [consumerId:{ConsumerId}, trace:{Trace}]", consumer.Id, obj);
                 return Task.CompletedTask;

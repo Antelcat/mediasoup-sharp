@@ -672,7 +672,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
 
             producer.On(
                 "@close",
-                async (_, _) =>
+                async _ =>
                 {
                     await ProducersLock.WaitAsync();
                     try
@@ -828,7 +828,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
 
             consumer.On(
                 "@close",
-                async (_, _) =>
+                async _ =>
                 {
                     await ConsumersLock.WaitAsync();
                     try
@@ -847,7 +847,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
             );
             consumer.On(
                 "@producerclose",
-                async (_, _) =>
+                async _ =>
                 {
                     await ConsumersLock.WaitAsync();
                     try
@@ -979,7 +979,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
 
             dataProducer.On(
                 "@close",
-                async (_, _) =>
+                async _ =>
                 {
                     await DataProducersLock.WaitAsync();
                     try
@@ -1136,7 +1136,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
 
             dataConsumer.On(
                 "@close",
-                async (_, _) =>
+                async _ =>
                 {
                     await DataConsumersLock.WaitAsync();
                     try
@@ -1163,7 +1163,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
 
             dataConsumer.On(
                 "@dataproducerclose",
-                async (_, _) =>
+                async _ =>
                 {
                     await DataConsumersLock.WaitAsync();
                     try

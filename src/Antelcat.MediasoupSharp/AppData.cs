@@ -6,7 +6,7 @@ public class AppData(object? data = null)
 
     public T As<T>() => Data is T t ? t : throw new InvalidCastException($"data is not {typeof(T)}");
 
-    public static implicit operator AppData(Dictionary<string, object> dictionary) => new(dictionary);
+    public static implicit operator AppData(Dictionary<string, object>? dictionary) => new(dictionary);
 
     public static implicit operator Dictionary<string, object>(AppData appData) =>
         appData.As<Dictionary<string, object>>();

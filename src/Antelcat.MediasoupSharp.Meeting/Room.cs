@@ -186,7 +186,7 @@ namespace Antelcat.MediasoupSharp.Meeting
 
         private void HandleAudioLevelObserver()
         {
-            AudioLevelObserver.On("volumes", async (_, volumes) =>
+            AudioLevelObserver.On("volumes", async volumes =>
             {
                 await using(await _closeLock.ReadLockAsync())
                 {
@@ -210,7 +210,7 @@ namespace Antelcat.MediasoupSharp.Meeting
                 }
             });
 
-            AudioLevelObserver.On("silence", async (_, _) =>
+            AudioLevelObserver.On("silence", async _ =>
             {
                 await using(await _closeLock.ReadLockAsync())
                 {

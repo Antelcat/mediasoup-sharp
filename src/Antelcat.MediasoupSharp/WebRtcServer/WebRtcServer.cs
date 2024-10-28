@@ -196,7 +196,7 @@ public class WebRtcServer : EnhancedEvent.EnhancedEventEmitter
         // Emit observer event.
         Observer.Emit("webrtctransporthandled", webRtcTransport);
 
-        webRtcTransport.On("@close", async (_, _) =>
+        webRtcTransport.On("@close", async _ =>
         {
             await using(await webRtcTransportsLock.WriteLockAsync())
             {
