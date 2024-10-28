@@ -17,6 +17,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_", "_", "{D6F2D417-D704-4C
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Antelcat.MediasoupSharp.Demo", "Antelcat.MediasoupSharp.Demo\Antelcat.MediasoupSharp.Demo.csproj", "{4D77A7A7-EBA0-4794-94A8-D25A08BD829C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Antelcat.MediasoupSharp.runtime.win-x64", "Antelcat.MediasoupSharp.runtime\Antelcat.MediasoupSharp.runtime.win-x64.csproj", "{1ADA8434-0FC1-4C10-A023-4DB69998B93B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Native", "Native", "{6B994943-C70E-462C-BC12-772E45335C36}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Antelcat.MediasoupSharp.runtime.linux-x64", "Antelcat.MediasoupSharp.runtime\Antelcat.MediasoupSharp.runtime.linux-x64.csproj", "{F241E314-DCC7-4EE7-8798-FC68E6F70D74}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -47,5 +53,17 @@ Global
 		{4D77A7A7-EBA0-4794-94A8-D25A08BD829C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4D77A7A7-EBA0-4794-94A8-D25A08BD829C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4D77A7A7-EBA0-4794-94A8-D25A08BD829C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1ADA8434-0FC1-4C10-A023-4DB69998B93B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1ADA8434-0FC1-4C10-A023-4DB69998B93B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1ADA8434-0FC1-4C10-A023-4DB69998B93B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1ADA8434-0FC1-4C10-A023-4DB69998B93B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F241E314-DCC7-4EE7-8798-FC68E6F70D74}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F241E314-DCC7-4EE7-8798-FC68E6F70D74}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F241E314-DCC7-4EE7-8798-FC68E6F70D74}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F241E314-DCC7-4EE7-8798-FC68E6F70D74}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{1ADA8434-0FC1-4C10-A023-4DB69998B93B} = {6B994943-C70E-462C-BC12-772E45335C36}
+		{F241E314-DCC7-4EE7-8798-FC68E6F70D74} = {6B994943-C70E-462C-BC12-772E45335C36}
 	EndGlobalSection
 EndGlobal

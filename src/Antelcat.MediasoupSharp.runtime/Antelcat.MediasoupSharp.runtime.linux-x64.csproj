@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.Build.NoTargets/2.0.1">
+
+    <PropertyGroup>
+        <IsPackable>true</IsPackable>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <TargetFrameworks>netstandard2.0;net40</TargetFrameworks>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <None Include="mediasoup-worker">
+            <Pack>true</Pack>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Link>/runtimes/win-x64/native/mediasoup-worker.exe</Link>
+            <PackagePath>/runtimes/linux-x64/native/mediasoup-worker</PackagePath>
+        </None>
+    </ItemGroup>
+    
+
+</Project>

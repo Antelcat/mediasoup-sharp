@@ -59,13 +59,21 @@ public class Worker : WorkerBase
         var workerPath = mediasoupOptions.MediasoupStartupSettings.WorkerPath;
         if (workerPath.IsNullOrWhiteSpace())
         {
-            var rid = RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
-                ? "linux"
-                : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
-                    ? "osx"
-                    : RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                        ? "win"
-                        : throw new NotSupportedException("Unsupported platform");
+            var rid = (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+                          ? "linux"
+                          : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                              ? "osx"
+                              : RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                                  ? "win"
+                                  : throw new NotSupportedException("Unsupported platform")) + '-' +
+                      RuntimeInformation.OSArchitecture switch
+                      {
+                          Architecture.X64   => "x64",
+                          Architecture.X86   => "x86",
+                          Architecture.Arm   => "arm",
+                          Architecture.Arm64 => "arm64",
+                          _                  => throw new NotSupportedException("Unsupported architecture")
+                      };
             var location  = Assembly.GetEntryAssembly()!.Location;
             var directory = Path.GetDirectoryName(location)!;
             workerPath = Path.Combine(directory, "runtimes", rid, "native", "mediasoup-worker");

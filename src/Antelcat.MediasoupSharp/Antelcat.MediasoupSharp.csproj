@@ -10,7 +10,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Antelcat.AutoGen" Version="2.0.0-preview7" />
+        <PackageReference Include="Antelcat.AutoGen" Version="2.0.0-preview8" />
         <PackageReference Include="Antelcat.FlatBuffers" Version="1.0.0-preview9" />
         <PackageReference Include="Antelcat.NodeSharp" Version="0.3.0" />
         <PackageReference Include="Google.FlatBuffers" Version="24.3.25" />

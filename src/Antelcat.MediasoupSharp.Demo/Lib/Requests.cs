@@ -10,17 +10,19 @@ namespace Antelcat.MediasoupSharp.Demo.Lib;
 
 #region Payloads
 
-internal record Device(string Flag, string Name, string Version);
+public record HasId(string Id);
+
+public record Device(string Flag, string Name, string Version);
 
 [Serializable]
-internal record JoinRequest(
+public record JoinRequest(
     string DisplayName,
     Device Device,
     RtpCapabilities RtpCapabilities,
     SctpCapabilities SctpCapabilities);
 	
 [Serializable]
-internal record CreateWebRtcTransportRequest(
+public record CreateWebRtcTransportRequest(
     bool ForceTcp,
     bool Producing,
     bool Consuming,
@@ -28,16 +30,16 @@ internal record CreateWebRtcTransportRequest(
 );
 
 [Serializable]
-internal record ConnectWebRtcTransportRequest(
+public record ConnectWebRtcTransportRequest(
     string TransportId,
     DtlsParameters DtlsParameters
 );
 
 [Serializable]
-internal record RestartIceRequest(string TransportId);
+public record RestartIceRequest(string TransportId);
 
 [Serializable]
-internal record ProduceRequest(
+public record ProduceRequest(
     string TransportId, 
     MediaKind Kind, 
     RtpParameters.RtpParameters RtpParameters, 
@@ -45,26 +47,26 @@ internal record ProduceRequest(
 );
 
 [Serializable]
-internal record ProducerRequest(string ProducerId);
+public record ProducerRequest(string ProducerId);
 
 [Serializable]
-internal record ConsumerRequest(string ConsumerId);
+public record ConsumerRequest(string ConsumerId);
 
 [Serializable]
-internal record SetConsumerPreferredLayersRequest(
+public record SetConsumerPreferredLayersRequest(
     string ConsumerId,
     byte SpatialLayer,
     byte TemporalLayer) 
     : ConsumerRequest(ConsumerId);
 
 [Serializable]
-internal record SetConsumerPriorityRequest(
+public record SetConsumerPriorityRequest(
     string ConsumerId,
     SetPriorityRequestT Priority) : ConsumerRequest(ConsumerId);
 
 [Serializable]
-internal record ProduceDataRequest(
-    string TransportId,
+public record ProduceDataRequest(
+    string? TransportId,
     SctpStreamParametersT SctpStreamParameters,
     string Label,
     string Protocol,
@@ -72,19 +74,19 @@ internal record ProduceDataRequest(
     );
 
 [Serializable]
-internal record ChangeDisplayNameRequest(string DisplayName);
+public record ChangeDisplayNameRequest(string DisplayName);
 
 [Serializable]
-internal record TransportRequest(string TransportId);
+public record TransportRequest(string TransportId);
 
 [Serializable]
-internal record DataProducerRequest(string DataProducerId);
+public record DataProducerRequest(string DataProducerId);
 
 [Serializable]
-internal record DataConsumerRequest(string DataConsumerId);
+public record DataConsumerRequest(string DataConsumerId);
 
 [Serializable]
-internal record ApplyNetworkThrottleRequest(
+public record ApplyNetworkThrottleRequest(
     bool? Secret,
     int? Uplink,
     int? Downlink,
@@ -93,5 +95,42 @@ internal record ApplyNetworkThrottleRequest(
 );
 
 [Serializable]
-internal record ResetNetworkThrottleRequest(bool? Secret);
+public record ResetNetworkThrottleRequest(bool? Secret);
+
+[Serializable]
+public record PeerProducer(string Id, MediaKind Kind);
+
+[Serializable]
+public record PeerInfo(string Id, string DisplayName, Device Device, List<PeerProducer> Producers);
+
+[Serializable]
+public record PeerInfos(List<PeerInfo> Peers);
+
+public record CreateBroadcasterRequest(
+    string Id,
+    string DisplayName,
+    Device Device,
+    RtpCapabilities? RtpCapabilities);
+
+public record CreateBroadcastTransport(
+    string BroadcasterId,
+    string Type,
+    bool RtcpMux = false,
+    bool Comedia = true,
+    SctpCapabilities? SctpCapabilities = null);
+
+public record ConnectBroadcasterTransportRequest(DtlsParameters DtlsParameters);
+
+public record CreateBroadcasterProducerRequest(
+    MediaKind Kind,
+    RtpParameters.RtpParameters RtpParameters);
+
+public record CreateBroadcastConsumerResponse(
+    string Id,
+    string ProducerId,
+    MediaKind Kind,
+    RtpParameters.RtpParameters RtpParameters,
+    FBS.RtpParameters.Type Type);
+
+public record IdWithStreamId(string Id, ushort StreamId);
 #endregion

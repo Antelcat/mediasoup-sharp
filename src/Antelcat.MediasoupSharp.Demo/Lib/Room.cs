@@ -98,7 +98,7 @@ public class Room : EventEmitter
 			loggerFactory.CreateLogger<Room>(),
 			roomId,
 			protooRoom,
-			webRtcServer: mediasoupWorker.AppData["webRtcServer"] as WebRtcServer.WebRtcServer ??
+			webRtcServer: mediasoupWorker.AppData[nameof(webRtcServer)] as WebRtcServer.WebRtcServer ??
 			              throw new ArgumentNullException(),
 			mediasoupRouter,
 			audioLevelObserver,
@@ -169,12 +169,12 @@ public class Room : EventEmitter
 	private void LogStatus()
 	{
 		logger.LogInformation(
-			$"{nameof(LogStatus)}() [{{roomId}}, protoo {{Peers}}]",
+			$"{nameof(LogStatus)}() [roomId:{{RoomId}}, protoo:{{Peers}}]",
 			roomId,
 			protooRoom.Peers.Count);
 	}
 
-	private void HandleProtooConnection(string peerId, bool consume, WebSocketTransport protooWebSocketTransport)
+	public void HandleProtooConnection(string peerId, bool consume, WebSocketTransport protooWebSocketTransport)
 	{
 		var existingPeer = protooRoom.GetPeer(peerId);
 
@@ -197,7 +197,7 @@ public class Room : EventEmitter
 		catch (Exception ex)
 		{
 			logger.LogError(
-				$"{nameof(protooRoom)}.{nameof(Antelcat.AspNetCore.ProtooSharp.Room.CreatePeer)}() {{Exception}}", ex);
+				$"{nameof(protooRoom)}.{nameof(Antelcat.AspNetCore.ProtooSharp.Room.CreatePeer)}() Exception:{{Exception}}", ex);
 			return;
 		}
 
@@ -225,13 +225,13 @@ public class Room : EventEmitter
 		peer.Request += async request =>
 		{
 			logger.LogDebug(
-				"protoo Peer 'request' event [{Method}, {PeerId}]",
+				"protoo Peer 'request' event [method:{Method}, peerId:{PeerId}]",
 				request.Request.Request.Method, peer.Id);
 
 			HandleProtooRequestAsync(peer, request)
 				.Catch(exception =>
 				{
-					logger.LogError("request {Exception}", exception);
+					logger.LogError("request exception:{Exception}", exception);
 
 					if (exception is ProtooException protooException)
 					{
@@ -249,7 +249,7 @@ public class Room : EventEmitter
 			if (closed)
 				return;
 
-			logger.LogDebug("protoo Peer 'Close' event [{PeerId}]", peer.Id);
+			logger.LogDebug("protoo Peer 'Close' event [peerId:{PeerId}]", peer.Id);
 
 			// If the Peer was joined, notify all Peers.
 			if (peer.Data.As<PeerData>().Joined)
@@ -272,7 +272,7 @@ public class Room : EventEmitter
 			if (protooRoom.Peers.Count == 0)
 			{
 				logger.LogInformation(
-					"last Peer in the room left, closing the room [{RoomId}]", roomId);
+					"last Peer in the room left, closing the room [roomId:{RoomId}]", roomId);
 
 				await CloseAsync();
 			}
@@ -291,12 +291,10 @@ public class Room : EventEmitter
 	 * @type {Object} [device] - Additional info with name, version and flags fields.
 	 * @type {RTCRtpCapabilities} [rtpCapabilities] - Device RTP capabilities.
 	 */
-	private async Task<object> CreateBroadcasterAsync(string id,
-	                                                  string displayName,
-	                                                  Dictionary<string, object> device,
-	                                                  RtpCapabilities? rtpCapabilities)
+	public async Task<PeerInfos> CreateBroadcasterAsync(CreateBroadcasterRequest request)
 	{
-		if (device["name"] is not string name)
+		var (id, displayName, device, rtpCapabilities) = request;
+		if (device.Name is not { } name)
 		{
 			throw new ArgumentException("missing body.device.name");
 		}
@@ -310,7 +308,7 @@ public class Room : EventEmitter
 			Data = new BroadcasterData
 			{
 				DisplayName     = displayName,
-				Device          = new("broadcaster", name, device["version"] as string),
+				Device          = new("broadcaster", name, device.Version),
 				RtpCapabilities = rtpCapabilities,
 				Transports      = [],
 				Producers       = [],
@@ -337,7 +335,7 @@ public class Room : EventEmitter
 		}
 
 		// Reply with the list of Peers and their Producers.
-		var peerInfos   = (List<object>) [];
+		var peerInfos   = (List<PeerInfo>) [];
 		var joinedPeers = GetJoinedPeers();
 
 		// Just fill the list of Peers if the Broadcaster provided its rtpCapabilities.
@@ -345,13 +343,12 @@ public class Room : EventEmitter
 		{
 			foreach (var joinedPeer in joinedPeers)
 			{
-				var peerInfo = new
-				{
-					id          = joinedPeer.Id,
-					displayName = joinedPeer.Data.As<PeerData>().DisplayName,
-					device      = joinedPeer.Data.As<PeerData>().Device,
-					producers   = new List<object>()
-				};
+				var peerInfo = new PeerInfo(
+					joinedPeer.Id,
+					joinedPeer.Data.As<PeerData>().DisplayName,
+					joinedPeer.Data.As<PeerData>().Device,
+					[]
+				);
 
 				foreach (var producer in joinedPeer.Data.As<PeerData>().Producers.Values)
 				{
@@ -361,18 +358,17 @@ public class Room : EventEmitter
 						continue;
 					}
 
-					peerInfo.producers.Add(new
-					{
-						id   = producer.Id,
-						kind = producer.Kind
-					});
+					peerInfo.Producers.Add(new PeerProducer(
+						producer.Id,
+						producer.Kind
+					));
 				}
 
 				peerInfos.Add(peerInfo);
 			}
 		}
 
-		return peerInfos;
+		return new(peerInfos);
 	}
 
 	public async Task DeleteBroadcasterAsync(string broadcasterId)
@@ -396,13 +392,11 @@ public class Room : EventEmitter
 		}
 	}
 
-	public async Task<object> CreateBroadcasterTransportAsync(
-		string broadcasterId,
-		string type,
-		bool rtcpMux = false,
-		bool comedia = true,
-		SctpCapabilities? sctpCapabilities = null)
+	public async Task<object> CreateBroadcasterTransportAsync(CreateBroadcastTransport request)
 	{
+
+		var (broadcasterId, type, rtcpMux, comedia, sctpCapabilities) = request;
+		
 		var broadcaster = broadcasters.GetValueOrDefault(broadcasterId);
 
 		if (broadcaster == null)
@@ -495,7 +489,7 @@ public class Room : EventEmitter
 		await transport.ConnectAsync(dtlsParameters);
 	}
 
-	public async Task<string> CreateBroadcasterProducerAsync(
+	public async Task<HasId> CreateBroadcasterProducerAsync(
 		string broadcasterId,
 		string transportId,
 		MediaKind kind,
@@ -533,7 +527,7 @@ public class Room : EventEmitter
 		producer.On("videoorientationchange", (VideoOrientationChangeNotificationT videoOrientation) =>
 		{
 			logger.LogDebug(
-				"broadcaster producer 'videoorientationchange' event [{ProducerId}, {VideoOrientation}]",
+				"broadcaster producer 'videoorientationchange' event [producerId:{ProducerId}, videoOrientation:{VideoOrientation}]",
 				producer.Id, videoOrientation);
 		});
 
@@ -559,15 +553,10 @@ public class Room : EventEmitter
 				.Catch(() => { });
 		}
 
-		return producer.Id;
+		return new(producer.Id);
 	}
 
-	public async Task<(
-			string id,
-			string producerId,
-			MediaKind kindind,
-			RtpParameters.RtpParameters rtpParameters,
-			FBS.RtpParameters.Type type)>
+	public async Task<CreateBroadcastConsumerResponse>
 		CreateBroadcasterConsumerAsync(
 			string broadcasterId,
 			string transportId,
@@ -608,14 +597,14 @@ public class Room : EventEmitter
 			broadcaster.Data.Consumers.Remove(consumer.Id);
 		});
 
-		return (consumer.Id,
+		return new(consumer.Id,
 			producerId,
 			consumer.Data.Kind,
 			consumer.Data.RtpParameters,
 			consumer.Data.Type);
 	}
 
-	public async Task<(string id, ushort? streamId)> CreateBroadcasterDataConsumerAsync(
+	public async Task<IdWithStreamId> CreateBroadcasterDataConsumerAsync(
 		string broadcasterId,
 		string transportId,
 		string dataProducerId)
@@ -654,9 +643,9 @@ public class Room : EventEmitter
 			broadcaster.Data.DataConsumers.Remove(dataConsumer.Id);
 		});
 
-		return (
+		return new(
 			dataConsumer.Id,
-			dataConsumer.Data.SctpStreamParameters?.StreamId
+			dataConsumer.Data.SctpStreamParameters!.StreamId
 		);
 	}
 
@@ -718,7 +707,7 @@ public class Room : EventEmitter
 	{
 		audioLevelObserver.On("volumes", (Producer.Producer producer, VolumeT volume) =>
 		{
-			logger.LogDebug("audioLevelObserver 'volumes' event [{ProducerId}, {Volume}]", producer.Id, volume);
+			logger.LogDebug("audioLevelObserver 'volumes' event [producerId:{ProducerId}, volume:{Volume}]", producer.Id, volume);
 
 			// Notify all Peers.
 			foreach (var peer in GetJoinedPeers())
@@ -751,7 +740,7 @@ public class Room : EventEmitter
 		activeSpeakerObserver.On("dominantspeaker", (ActiveSpeakerObserverDominantSpeaker dominantSpeaker) =>
 		{
 			logger.LogDebug(
-				"activeSpeakerObserver 'dominantspeaker' event [{ProducerId}]",
+				"activeSpeakerObserver 'dominantspeaker' event [producerId:{ProducerId}]",
 				dominantSpeaker.Producer?.Id);
 		});
 	}
@@ -831,7 +820,7 @@ public class Room : EventEmitter
 					// Create DataConsumers for existing DataProducers.
 					foreach (var dataProducer in joinedPeer.Data.DataProducers.Values)
 					{
-						if (dataProducer.Data.Label == "bot")
+						if (dataProducer.Data.Label == nameof(bot))
 							continue;
 
 						await CreateDataConsumerAsync(
@@ -916,7 +905,7 @@ public class Room : EventEmitter
 				transport.On("trace", (TraceNotificationT trace) =>
 				{
 					logger.LogDebug(
-						"transport 'trace' event [{TransportId}, trace.{Type}, {Trace}]", transport.Id, trace.Type,
+						"transport 'trace' event [transportId:{TransportId}, trace.type:{Type}, trace:{Trace}]", transport.Id, trace.Type,
 						trace);
 
 					if (trace is { Type: FBS.Transport.TraceEventType.BWE, Direction: TraceDirection.DIRECTION_OUT })
@@ -1037,7 +1026,7 @@ public class Room : EventEmitter
 				producer.On("videoorientationchange", (VideoOrientationChangeNotificationT videoOrientation) =>
 				{
 					logger.LogDebug(
-						"producer 'videoorientationchange' event [{ProducerId}, {VideoOrientation}]",
+						"producer 'videoorientationchange' event [producerId:{ProducerId}, videoOrientation:{VideoOrientation}]",
 						producer.Id, videoOrientation);
 				});
 
@@ -1049,7 +1038,7 @@ public class Room : EventEmitter
 				producer.On("trace", (TraceNotification trace) =>
 				{
 					logger.LogDebug(
-						"producer 'trace' event [{ProducerId}, trace.{Type}, {Trace}]",
+						"producer 'trace' event [producerId:{ProducerId}, trace.type:{Type}, trace:{Trace}]",
 						producer.Id, trace.Type, trace);
 				});
 
@@ -1292,7 +1281,7 @@ public class Room : EventEmitter
 						break;
 					}
 
-					case "bot":
+					case nameof(bot):
 					{
 						// Pass it to the bot.
 						await bot.HandlePeerDataProducerAsync(dataProducer.Id, peer);
@@ -1445,7 +1434,7 @@ public class Room : EventEmitter
 					});*/
 
 					logger.LogWarning(
-						"network throttle set [{Uplink}, {Downlink}, {Rtt}, {PacketLoss}]",
+						$"network throttle set [{nameof(uplink)}:{{Uplink}}, {nameof(downlink)}:{{Downlink}}, {nameof(rtt)}:{{Rtt}}, {nameof(packetLoss)}:{{PacketLoss}}]",
 						uplink     ?? DefaultUplink,
 						downlink   ?? DefaultDownlink,
 						rtt        ?? DefaultRtt,
@@ -1632,7 +1621,7 @@ public class Room : EventEmitter
 					consumer.On("trace", (TraceNotificationT trace) =>
 					{
 						logger.LogDebug(
-							"consumer 'trace' event [producerId:{ProducerId}, trace.type:{Type}, trace:{Trace}]",
+							$"consumer 'trace' event [producerId:{{ProducerId}}, trace.type:{{Type}}, {nameof(trace)}:{{Trace}}]",
 							consumer.Id, trace.Type, trace);
 					});
 
@@ -1778,11 +1767,11 @@ public class Room : EventEmitter
 		public required string                                        DisplayName     { get; set; }
 		public required Device                                        Device          { get; set; }
 		public          RtpCapabilities?                              RtpCapabilities { get; set; }
-		public          Dictionary<string, Transport.Transport>       Transports      { get; set; } = [];
-		public          Dictionary<string, Producer.Producer>         Producers       { get; set; } = [];
-		public          Dictionary<string, Consumer.Consumer>         Consumers       { get; set; } = [];
-		public          Dictionary<string, DataProducer.DataProducer> DataProducers   { get; set; } = [];
-		public          Dictionary<string, DataConsumer.DataConsumer> DataConsumers   { get; set; } = [];
+		public          Dictionary<string, Transport.Transport>       Transports      { get; init; } = [];
+		public          Dictionary<string, Producer.Producer>         Producers       { get; init; } = [];
+		public          Dictionary<string, Consumer.Consumer>         Consumers       { get; init; } = [];
+		public          Dictionary<string, DataProducer.DataProducer> DataProducers   { get; init; } = [];
+		public          Dictionary<string, DataConsumer.DataConsumer> DataConsumers   { get; init; } = [];
 	}
 
 	internal class PeerData : BroadcasterData
