@@ -1,5 +1,6 @@
 ﻿using Antelcat.MediasoupSharp.Channel;
 using Antelcat.MediasoupSharp.Consumer;
+using Antelcat.MediasoupSharp.EnhancedEvent;
 using Antelcat.MediasoupSharp.RtpParameters;
 using Antelcat.MediasoupSharp.Transport;
 using FBS.Notification;
@@ -60,7 +61,8 @@ public class PipeTransport : Transport.Transport
             appData,
             getRouterRtpCapabilities,
             getProducerById,
-            getDataProducerById
+            getDataProducerById,
+            new EnhancedEventEmitter()
         )
     {
         this.loggerFactory = loggerFactory;

@@ -1,4 +1,5 @@
 ﻿using Antelcat.MediasoupSharp.Channel;
+using Antelcat.MediasoupSharp.EnhancedEvent;
 using Antelcat.MediasoupSharp.RtpParameters;
 using Antelcat.MediasoupSharp.Transport;
 using FBS.Notification;
@@ -55,7 +56,8 @@ public class PlainTransport : Transport.Transport
             appData,
             getRouterRtpCapabilities,
             getProducerById,
-            getDataProducerById
+            getDataProducerById,
+            new EnhancedEventEmitter()
         )
     {
         logger = loggerFactory.CreateLogger<PlainTransport>();

@@ -1,4 +1,5 @@
 using Antelcat.MediasoupSharp.Channel;
+using Antelcat.MediasoupSharp.EnhancedEvent;
 using Antelcat.MediasoupSharp.Exceptions;
 using FBS.Notification;
 using FBS.Request;
@@ -8,7 +9,7 @@ using Microsoft.VisualStudio.Threading;
 
 namespace Antelcat.MediasoupSharp.RtpObserver;
 
-public abstract class RtpObserver : EnhancedEvent.EnhancedEventEmitter
+public abstract class RtpObserver : EnhancedEventEmitter
 {
     /// <summary>
     /// Logger.
@@ -52,7 +53,7 @@ public abstract class RtpObserver : EnhancedEvent.EnhancedEventEmitter
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EnhancedEvent.EnhancedEventEmitter Observer { get; } = new();
+    public EnhancedEventEmitter Observer { get; } 
 
     /// <summary>
     /// <para>Events:</para>
@@ -70,7 +71,8 @@ public abstract class RtpObserver : EnhancedEvent.EnhancedEventEmitter
         RtpObserverInternal @internal,
         IChannel channel,
         AppData? appData,
-        Func<string, Task<Producer.Producer?>> getProducerById
+        Func<string, Task<Producer.Producer?>> getProducerById,
+        EnhancedEventEmitter observer
     )
     {
         logger = loggerFactory.CreateLogger<RtpObserver>();
@@ -79,6 +81,7 @@ public abstract class RtpObserver : EnhancedEvent.EnhancedEventEmitter
         Channel         = channel;
         AppData         = appData ?? new Dictionary<string, object>();
         GetProducerById = getProducerById;
+        Observer        = observer;
         pauseLock.Set();
 
         HandleWorkerNotifications();

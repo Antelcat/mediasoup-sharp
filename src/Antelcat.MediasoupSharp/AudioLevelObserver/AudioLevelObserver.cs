@@ -32,7 +32,7 @@ public class AudioLevelObserver : RtpObserver.RtpObserver
         AppData? appData,
         Func<string, Task<Producer.Producer?>> getProducerById
     )
-        : base(loggerFactory, @internal, channel, appData, getProducerById)
+        : base(loggerFactory, @internal, channel, appData, getProducerById, new())
     {
         logger = loggerFactory.CreateLogger<AudioLevelObserver>();
     }

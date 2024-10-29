@@ -1,4 +1,5 @@
 ﻿using Antelcat.MediasoupSharp.Channel;
+using Antelcat.MediasoupSharp.EnhancedEvent;
 using Antelcat.MediasoupSharp.RtpObserver;
 using FBS.Notification;
 using Microsoft.Extensions.Logging;
@@ -32,7 +33,7 @@ public class ActiveSpeakerObserver : RtpObserver.RtpObserver
         AppData? appData,
         Func<string, Task<Producer.Producer?>> getProducerById
     )
-        : base(loggerFactory, @internal, channel, appData, getProducerById)
+        : base(loggerFactory, @internal, channel, appData, getProducerById, new())
     {
         logger = loggerFactory.CreateLogger<ActiveSpeakerObserver>();
     }

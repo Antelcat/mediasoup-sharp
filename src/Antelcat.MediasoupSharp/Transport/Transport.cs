@@ -2,6 +2,7 @@
 using Antelcat.MediasoupSharp.Consumer;
 using Antelcat.MediasoupSharp.DataConsumer;
 using Antelcat.MediasoupSharp.DataProducer;
+using Antelcat.MediasoupSharp.EnhancedEvent;
 using Antelcat.MediasoupSharp.Exceptions;
 using Antelcat.MediasoupSharp.Producer;
 using Antelcat.MediasoupSharp.RtpParameters;
@@ -16,7 +17,7 @@ using Microsoft.VisualStudio.Threading;
 
 namespace Antelcat.MediasoupSharp.Transport;
 
-public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
+public abstract class Transport : EnhancedEventEmitter
 {
     /// <summary>
     /// Logger factory for create logger.
@@ -145,7 +146,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EnhancedEvent.EnhancedEventEmitter Observer { get; } = new();
+    public EnhancedEventEmitter Observer { get; }
 
     /// <summary>
     /// <para>Events:</para>
@@ -173,7 +174,8 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
         AppData? appData,
         Func<RtpCapabilities> getRouterRtpCapabilities,
         Func<string, Task<Producer.Producer?>> getProducerById,
-        Func<string, Task<DataProducer.DataProducer?>> getDataProducerById
+        Func<string, Task<DataProducer.DataProducer?>> getDataProducerById,
+        EnhancedEventEmitter observer
     )
     {
         this.loggerFactory = loggerFactory;
@@ -186,7 +188,7 @@ public abstract class Transport : EnhancedEvent.EnhancedEventEmitter
         GetRouterRtpCapabilities = getRouterRtpCapabilities;
         GetProducerById          = getProducerById;
         GetDataProducerById      = getDataProducerById;
-
+        Observer                 = observer;
         ProducersLock.Set();
         ConsumersLock.Set();
         DataProducersLock.Set();

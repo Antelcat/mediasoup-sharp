@@ -3,163 +3,70 @@ using Antelcat.NodeSharp.Events;
 
 namespace Antelcat.MediasoupSharp.EnhancedEvent;
 
-public class EnhancedEventEmitter<T> : EventEmitter
-{
-    private static string GetMemberNameOrThrow<TProperty>(Expression<Func<T, TProperty>> expression) =>
-        expression is not MemberExpression memberExpression
-            ? throw new InvalidOperationException("event name not qualified")
-            : memberExpression.Member.Name;
-
-    public EnhancedEventEmitter<T> On<TProperty>(Expression<Func<T, TProperty>> eventName, Func<TProperty, Task> method) => 
-        (base.On(GetMemberNameOrThrow(eventName), method) as EnhancedEventEmitter<T>)!;
-    
-    public EnhancedEventEmitter<T> On<TProperty>(Expression<Func<T, TProperty>> eventName, Action<TProperty> method) => 
-        (base.On(GetMemberNameOrThrow(eventName), method) as EnhancedEventEmitter<T>)!;
-
-    public void Emit<TProperty>(Expression<Func<T, TProperty>> eventName, TProperty? arg = default) =>
-        base.Emit(GetMemberNameOrThrow(eventName), arg);
-}
-
-public class EnhancedEventEmitter : EnhancedEventEmitter<object>
+public class EnhancedEventEmitter : EventEmitter
 {
     public void On(string eventName, Func<object?, Task> method) =>
         base.On(eventName, (Func<object[], Task>)(args => method(args[0])));
 }
 
-#if False
-public class EventEmitter : IEventEmitter
+public class EnhancedEventEmitter<T>(EnhancedEventEmitter emitter) : IEnhancedEventEmitter<T>
 {
-    /*
+    private readonly EnhancedEventEmitter emitter = emitter;
+    // can be created
+    public EnhancedEventEmitter() : this(new()) { }
+    public static implicit operator EnhancedEventEmitter<T>(EnhancedEventEmitter emitter) => new(emitter);
+    public static implicit operator EnhancedEventEmitter(EnhancedEventEmitter<T> emitter) => emitter.emitter;
+    
+    private static string GetMemberNameOrThrow<TProperty>(Expression<Func<T, TProperty>> eventName) =>
+        eventName is not MemberExpression memberExpression
+            ? throw new ArgumentOutOfRangeException(nameof(eventName))
+            : memberExpression.Member.Name;
+
+    public IEnhancedEventEmitter<T> On<TProperty>(Expression<Func<T, TProperty>> eventName,
+                                                  Func<TProperty?, Task> method) =>
+        (emitter.On(GetMemberNameOrThrow(eventName), method) as IEnhancedEventEmitter<T>)!;
+
+    public IEnhancedEventEmitter<T> On<TProperty>(Expression<Func<T, TProperty>> eventName,
+                                                  Action<TProperty?> method) =>
+        (emitter.On(GetMemberNameOrThrow(eventName), method) as IEnhancedEventEmitter<T>)!;
+
+    public void Emit<TProperty>(Expression<Func<T, TProperty>> eventName, TProperty? arg) =>
+        emitter.Emit(GetMemberNameOrThrow(eventName), arg);
+    
+    public IEventEmitter AddListener(string eventName, Delegate listener) => emitter.AddListener(eventName, listener);
+    public bool Emit(string eventName, params object?[] args) => emitter.Emit(eventName, args);
+    public int ListenerCount(string eventName, Delegate? listener = null) => emitter.ListenerCount(eventName, listener);
+    public IEnumerable<Delegate> Listeners(string eventName) => emitter.Listeners(eventName);
+    public IEventEmitter Off(string eventName, Delegate listener) => emitter.Off(eventName, listener);
+    public IEventEmitter On(string eventName, Delegate listener) => emitter.On(eventName, listener);
+    public IEventEmitter Once(string eventName, Delegate listener) => emitter.Once(eventName, listener);
+    public IEventEmitter PrependListener(string eventName, Delegate listener) => emitter.PrependListener(eventName, listener);
+    public IEventEmitter PrependOnceListener(string eventName, Delegate listener) => emitter.PrependOnceListener(eventName, listener);
+    public IEventEmitter RemoveAllListeners(string eventName) => emitter.RemoveAllListeners(eventName);
+    public IEventEmitter RemoveListener(string eventName, Delegate listener) => emitter.RemoveListener(eventName, listener);
+    public IEnumerable<Delegate> RawListeners(string eventName) => emitter.RawListeners(eventName);
+    public IReadOnlyCollection<string> EventNames => emitter.EventNames;
+    public int MaxListeners
     {
-        "subscribe_event",
-        [
-            HandleSubscribe<List<object>>,
-            DoDbWork<List<object>>,
-            SendInfo<List<object>>
-        ],
-         "listen_event",
-        [
-            HandleListen<List<object>>
-        ]
-    }
-    */
-
-    private const char EventSeparator = ',';
-
-    private readonly Dictionary<string, List<Func<string, object?, Task>>> events;
-
-    private readonly ReaderWriterLockSlim readerWriterLock;
-
-    /// <summary>
-    /// The EventEmitter object to subscribe to events with
-    /// </summary>
-    public EventEmitter()
-    {
-        events           = new Dictionary<string, List<Func<string, object?, Task>>>();
-        readerWriterLock = new ReaderWriterLockSlim();
-    }
-
-    /// <summary>
-    /// Whenever eventName is emitted, the methods attached to this event will be called
-    /// </summary>
-    /// <param name="eventNames">Event name to subscribe to</param>
-    /// <param name="method">Method to add to the event</param>
-    public void On(string eventNames, Func<string, object?, Task> method)
-    {
-        readerWriterLock.EnterWriteLock();
-        var eventNameList = eventNames.Split(EventSeparator, StringSplitOptions.RemoveEmptyEntries);
-        foreach (var eventName in eventNameList)
-        {
-            if (events.TryGetValue(eventName, out var subscribedMethods))
-            {
-                subscribedMethods.Add(method);
-            }
-            else
-            {
-                events.Add(eventName, [method]);
-            }
-        }
-
-        readerWriterLock.ExitWriteLock();
+        get => emitter.MaxListeners;
+        set => emitter.MaxListeners = value;
     }
 
-    /// <summary>
-    /// Emits the event and runs all associated methods asynchronously
-    /// </summary>
-    /// <param name="eventName">The event name to call methods for</param>
-    /// <param name="data">The data to call all the methods with</param>
-    public void Emit(string eventName, object? data = null)
+    public event Action<string, Delegate>? NewListener
     {
-        readerWriterLock.EnterReadLock();
-        if (!events.TryGetValue(eventName, out var subscribedMethods))
-        {
-            //throw new DoesNotExistException($"Event [{eventName}] does not exist in the emitter. Consider calling EventEmitter.On");
-        }
-        else
-        {
-            foreach (var f in subscribedMethods)
-            {
-                _ = f(eventName, data).ContinueWith(val =>
-                {
-                    val.Exception!.Handle(ex =>
-                    {
-                        Debug.WriteLine("Emit fail:{0}", ex);
-                        return true;
-                    });
-                }, TaskContinuationOptions.OnlyOnFaulted);
-            }
-        }
-
-        readerWriterLock.ExitReadLock();
+        add => emitter.NewListener += value;
+        remove => emitter.NewListener -= value;
     }
 
-    /// <summary>
-    /// Removes [method] from the event
-    /// </summary>
-    /// <param name="eventNames">Event name to remove function from</param>
-    /// <param name="method">Method to remove from eventName</param>
-    public void RemoveListener(string eventNames, Func<string, object?, Task> method)
+    public event Action<string, Delegate>? RemovedListener
     {
-        readerWriterLock.EnterWriteLock();
-        var eventNameList = eventNames.Split(EventSeparator, StringSplitOptions.RemoveEmptyEntries);
-        foreach (var eventName in eventNameList)
-        {
-            if (!events.TryGetValue(eventName, out var subscribedMethods))
-            {
-                throw new DoesNotExistException($"Event [{eventName}] does not exist to have listeners removed.");
-            }
-
-            var @event = subscribedMethods.Exists(e => e == method);
-            if (!@event)
-            {
-                throw new DoesNotExistException($"Func [{method.Method}] does not exist to be removed.");
-            }
-
-            subscribedMethods.Remove(method);
-        }
-
-        readerWriterLock.ExitWriteLock();
+        add => emitter.RemovedListener += value;
+        remove => emitter.RemovedListener -= value;
     }
 
-    /// <summary>
-    /// Removes all methods from the event [eventName]
-    /// </summary>
-    /// <param name="eventNames">Event name to remove methods from</param>
-    public void RemoveAllListeners(string eventNames)
+    public event Action<string, Exception>? EmitError
     {
-        readerWriterLock.EnterWriteLock();
-        var eventNameList = eventNames.Split(EventSeparator, StringSplitOptions.RemoveEmptyEntries);
-        foreach (var eventName in eventNameList)
-        {
-            if (!events.TryGetValue(eventName, out var subscribedMethods))
-            {
-                throw new DoesNotExistException($"Event [{eventName}] does not exist to have methods removed.");
-            }
-
-            subscribedMethods.Clear();
-        }
-
-        readerWriterLock.ExitWriteLock();
+        add => emitter.EmitError += value;
+        remove => emitter.EmitError -= value;
     }
 }
-#endif

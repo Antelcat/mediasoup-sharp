@@ -1,5 +1,6 @@
 ﻿using Antelcat.MediasoupSharp.Channel;
 using Antelcat.MediasoupSharp.Consumer;
+using Antelcat.MediasoupSharp.EnhancedEvent;
 using Antelcat.MediasoupSharp.Exceptions;
 using Antelcat.MediasoupSharp.Producer;
 using Antelcat.MediasoupSharp.RtpParameters;
@@ -48,7 +49,8 @@ public class DirectTransport : Transport.Transport
             appData,
             getRouterRtpCapabilities,
             getProducerById,
-            getDataProducerById
+            getDataProducerById,
+            new EnhancedEventEmitter()
         )
     {
         logger = loggerFactory.CreateLogger<DirectTransport>();

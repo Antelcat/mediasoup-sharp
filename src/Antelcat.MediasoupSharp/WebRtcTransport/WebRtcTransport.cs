@@ -1,4 +1,5 @@
 ﻿using Antelcat.MediasoupSharp.Channel;
+using Antelcat.MediasoupSharp.EnhancedEvent;
 using Antelcat.MediasoupSharp.Exceptions;
 using Antelcat.MediasoupSharp.RtpParameters;
 using Antelcat.MediasoupSharp.Transport;
@@ -55,7 +56,8 @@ public class WebRtcTransport : Transport.Transport
             appData,
             getRouterRtpCapabilities,
             getProducerById,
-            getDataProducerById
+            getDataProducerById,
+            new EnhancedEventEmitter()
         )
     {
         logger = loggerFactory.CreateLogger<WebRtcTransport>();
