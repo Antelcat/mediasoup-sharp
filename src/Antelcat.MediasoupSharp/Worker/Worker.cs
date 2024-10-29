@@ -119,7 +119,13 @@ public class Worker : WorkerBase
         {
             argv.Add($"--libwebrtcFieldTrials={workerSettings.LibwebrtcFieldTrials}");
         }
+        
+        if (workerSettings.DisableLiburing is true)
+        {
+            argv.Add("--disableLiburing=true");
+        }
 
+        
         Logger.LogDebug("Worker() | Spawning worker process: {Arguments}", string.Join(" ", argv));
 
         pipes = new UVStream[StdioCount];
