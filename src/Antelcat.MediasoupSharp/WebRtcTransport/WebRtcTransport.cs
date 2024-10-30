@@ -17,7 +17,7 @@ public class WebRtcTransport : Transport.Transport
     /// </summary>
     private readonly ILogger<WebRtcTransport> logger;
 
-    public DumpResponseT Data { get; }
+    public override WebRtcTransportData Data { get; }
 
     /// <summary>
     /// <para>Events:</para>
@@ -40,7 +40,7 @@ public class WebRtcTransport : Transport.Transport
     /// </summary>
     public WebRtcTransport(
         TransportInternal @internal,
-        DumpResponseT data,
+        WebRtcTransportData data,
         IChannel channel,
         Dictionary<string, object>? appData,
         Func<RtpCapabilities> getRouterRtpCapabilities,
@@ -49,7 +49,7 @@ public class WebRtcTransport : Transport.Transport
     )
         : base(
             @internal,
-            data.Base,
+            data,
             channel,
             appData,
             getRouterRtpCapabilities,
@@ -74,9 +74,9 @@ public class WebRtcTransport : Transport.Transport
         Data.IceSelectedTuple = null;
         Data.DtlsState        = DtlsState.CLOSED;
 
-        if(Data.Base.SctpState.HasValue)
+        if(Data.SctpState.HasValue)
         {
-            Data.Base.SctpState = FBS.SctpAssociation.SctpState.CLOSED;
+            Data.SctpState = FBS.SctpAssociation.SctpState.CLOSED;
         }
 
         return Task.CompletedTask;
@@ -250,12 +250,12 @@ public class WebRtcTransport : Transport.Transport
             {
                 var sctpStateChangeNotification = notification.BodyAsTransport_SctpStateChangeNotification().UnPack();
 
-                Data.Base.SctpState = sctpStateChangeNotification.SctpState;
+                Data.SctpState = sctpStateChangeNotification.SctpState;
 
-                Emit("sctpstatechange", Data.Base.SctpState);
+                Emit("sctpstatechange", Data.SctpState);
 
                 // Emit observer event.
-                Observer.Emit("sctpstatechange", Data.Base.SctpState);
+                Observer.Emit("sctpstatechange", Data.SctpState);
 
                 break;
             }

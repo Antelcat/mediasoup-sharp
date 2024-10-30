@@ -85,47 +85,47 @@ public class Worker : WorkerBase
         var env = new[] { $"MEDIASOUP_VERSION={Mediasoup.Version.ToString()}" };
 
         var argv = new List<string> { workerPath };
-        if(workerSettings.LogLevel.HasValue)
+        if (workerSettings.LogLevel.HasValue)
         {
             argv.Add($"--logLevel={workerSettings.LogLevel.Value.GetEnumText()}");
         }
 
-        if(!workerSettings.LogTags.IsNullOrEmpty())
+        if (!workerSettings.LogTags.IsNullOrEmpty())
         {
             argv.AddRange(workerSettings.LogTags.Select(logTag => $"--logTag={logTag.GetEnumText()}"));
         }
 
-        if(workerSettings.RtcMinPort.HasValue)
+        if (workerSettings.RtcMinPort.HasValue)
         {
             argv.Add($"--rtcMinPort={workerSettings.RtcMinPort}");
         }
 
-        if(workerSettings.RtcMaxPort.HasValue)
+        if (workerSettings.RtcMaxPort.HasValue)
         {
             argv.Add($"--rtcMaxPort={workerSettings.RtcMaxPort}");
         }
 
-        if(!workerSettings.DtlsCertificateFile.IsNullOrWhiteSpace())
+        if (!workerSettings.DtlsCertificateFile.IsNullOrWhiteSpace())
         {
             argv.Add($"--dtlsCertificateFile={workerSettings.DtlsCertificateFile}");
         }
 
-        if(!workerSettings.DtlsPrivateKeyFile.IsNullOrWhiteSpace())
+        if (!workerSettings.DtlsPrivateKeyFile.IsNullOrWhiteSpace())
         {
             argv.Add($"--dtlsPrivateKeyFile={workerSettings.DtlsPrivateKeyFile}");
         }
 
-        if(!workerSettings.LibwebrtcFieldTrials.IsNullOrWhiteSpace())
+        if (!workerSettings.LibwebrtcFieldTrials.IsNullOrWhiteSpace())
         {
             argv.Add($"--libwebrtcFieldTrials={workerSettings.LibwebrtcFieldTrials}");
         }
-        
+
         if (workerSettings.DisableLiburing is true)
         {
             argv.Add("--disableLiburing=true");
         }
 
-        
+
         Logger.LogDebug("Worker() | Spawning worker process: {Arguments}", string.Join(" ", argv));
 
         pipes = new UVStream[StdioCount];
@@ -135,9 +135,9 @@ public class Worker : WorkerBase
         // fd 2 (stderr)  : Same as stdout.
         // fd 3 (channel) : Producer Channel fd.
         // fd 4 (channel) : Consumer Channel fd.
-        for(var i = 1; i < StdioCount; i++)
+        for (var i = 1; i < StdioCount; i++)
         {
-            var pipe = pipes[i]      =  new Pipe { Writeable = true, Readable = true };
+            var pipe = pipes[i] = new Pipe { Writeable = true, Readable = true };
             pipe.Data += data =>
             {
                 var str = Encoding.UTF8.GetString(data);
@@ -146,17 +146,18 @@ public class Worker : WorkerBase
             };
         }
 
+        Process tmpChild;
         try
         {
             // 和 Node.js 不同，_child 没有 error 事件。不过，Process.Spawn 可抛出异常。
-            child = Process.Spawn(new ProcessOptions
+            tmpChild = child = Process.Spawn(new ProcessOptions
                 {
-                    File        = workerPath,
-                    Arguments   = argv.ToArray(),
-                    Environment = env,
-                    Detached    = false,
-                    Streams     = pipes!,
-                    CurrentWorkingDirectory = AppContext.BaseDirectory 
+                    File                    = workerPath,
+                    Arguments               = argv.ToArray(),
+                    Environment             = env,
+                    Detached                = false,
+                    Streams                 = pipes!,
+                    CurrentWorkingDirectory = AppContext.BaseDirectory
                 },
                 OnExit
             );
@@ -164,12 +165,12 @@ public class Worker : WorkerBase
 
             Pid = child.Id;
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             child = null;
             CloseAsync().ConfigureAwait(false).GetAwaiter().GetResult();
 
-            if(!spawnDone)
+            if (!spawnDone)
             {
                 spawnDone = true;
                 Logger.LogError(ex, $"{nameof(Worker)}() | Worker process failed [pid:{{ProcessId}}]", Pid);
@@ -208,8 +209,8 @@ public class Worker : WorkerBase
             Logger.LogDebug(
                 "worker subprocess closed [pid:{Pid}, code:{Code}, signal:{Signal}]",
                 Pid,
-                child.ExitCode,
-                child.TermSignal
+                tmpChild.ExitCode,
+                tmpChild.TermSignal
             );
 
             subprocessClosed = true;

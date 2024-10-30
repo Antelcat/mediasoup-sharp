@@ -12,10 +12,8 @@ using FBS.Transport;
 using Force.DeepCloner;
 using Antelcat.MediasoupSharp.Internals.Extensions;
 using Antelcat.MediasoupSharp.RtpParameters.Extensions;
-using FBS.PlainTransport;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
-using ConnectRequestT = FBS.WebRtcTransport.ConnectRequestT;
 
 namespace Antelcat.MediasoupSharp.Transport;
 
@@ -24,7 +22,6 @@ public abstract class Transport : EnhancedEventEmitter
     /// <summary>
     /// Logger factory for create logger.
     /// </summary>
-
     /// <summary>
     /// Logger.
     /// </summary>
@@ -53,7 +50,7 @@ public abstract class Transport : EnhancedEventEmitter
     /// <summary>
     /// Transport data.
     /// </summary>
-    public DumpT BaseData { get; }
+    public virtual TransportBaseData Data { get; }
 
     /// <summary>
     /// Channel instance.
@@ -169,7 +166,7 @@ public abstract class Transport : EnhancedEventEmitter
     /// </summary>
     protected Transport(
         TransportInternal @internal,
-        DumpT data,
+        TransportBaseData data,
         IChannel channel,
         AppData? appData,
         Func<RtpCapabilities> getRouterRtpCapabilities,
@@ -179,7 +176,7 @@ public abstract class Transport : EnhancedEventEmitter
     )
     {
         Internal                 = @internal;
-        BaseData                 = data;
+        Data                     = data;
         Channel                  = channel;
         AppData                  = appData ?? new Dictionary<string, object>();
         GetRouterRtpCapabilities = getRouterRtpCapabilities;
@@ -199,9 +196,9 @@ public abstract class Transport : EnhancedEventEmitter
     {
         logger.LogDebug("CloseAsync() | TransportId:{TransportId}", Id);
 
-        await using(await CloseLock.WriteLockAsync())
+        await using (await CloseLock.WriteLockAsync())
         {
-            if(Closed)
+            if (Closed)
             {
                 return;
             }
@@ -216,10 +213,11 @@ public abstract class Transport : EnhancedEventEmitter
             // Build Request
             var bufferBuilder = Channel.BufferPool.Get();
 
-            var requestOffset = FBS.Router.CloseTransportRequest.Pack(bufferBuilder, new FBS.Router.CloseTransportRequestT
-            {
-                TransportId = Internal.TransportId
-            });
+            var requestOffset = FBS.Router.CloseTransportRequest.Pack(bufferBuilder,
+                new FBS.Router.CloseTransportRequestT
+                {
+                    TransportId = Internal.TransportId
+                });
 
             // Fire and forget
             Channel.RequestAsync(bufferBuilder, Method.ROUTER_CLOSE_TRANSPORT,
@@ -247,9 +245,9 @@ public abstract class Transport : EnhancedEventEmitter
     {
         logger.LogDebug("RouterClosed() | TransportId:{TransportId}", Id);
 
-        await using(await CloseLock.WriteLockAsync())
+        await using (await CloseLock.WriteLockAsync())
         {
-            if(Closed)
+            if (Closed)
             {
                 return;
             }
@@ -278,7 +276,7 @@ public abstract class Transport : EnhancedEventEmitter
         await ProducersLock.WaitAsync();
         try
         {
-            foreach(var producer in Producers.Values)
+            foreach (var producer in Producers.Values)
             {
                 await producer.TransportClosedAsync();
 
@@ -288,7 +286,7 @@ public abstract class Transport : EnhancedEventEmitter
 
             Producers.Clear();
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             logger.LogError(ex, "CloseIternalAsync()");
         }
@@ -301,14 +299,14 @@ public abstract class Transport : EnhancedEventEmitter
         await ConsumersLock.WaitAsync();
         try
         {
-            foreach(var consumer in Consumers.Values)
+            foreach (var consumer in Consumers.Values)
             {
                 await consumer.TransportClosedAsync();
             }
 
             Consumers.Clear();
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             logger.LogError(ex, "CloseIternalAsync()");
         }
@@ -321,12 +319,12 @@ public abstract class Transport : EnhancedEventEmitter
         await DataProducersLock.WaitAsync();
         try
         {
-            foreach(var dataProducer in DataProducers.Values)
+            foreach (var dataProducer in DataProducers.Values)
             {
                 await dataProducer.TransportClosedAsync();
 
                 // If call by CloseAsync()
-                if(tellRouter)
+                if (tellRouter)
                 {
                     // Must tell the Router.
                     Emit("@dataproducerclose", dataProducer);
@@ -337,7 +335,7 @@ public abstract class Transport : EnhancedEventEmitter
 
             DataProducers.Clear();
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             logger.LogError(ex, "CloseIternalAsync()");
         }
@@ -350,14 +348,14 @@ public abstract class Transport : EnhancedEventEmitter
         await DataConsumersLock.WaitAsync();
         try
         {
-            foreach(var dataConsumer in DataConsumers.Values)
+            foreach (var dataConsumer in DataConsumers.Values)
             {
                 await dataConsumer.TransportClosedAsync();
             }
 
             DataConsumers.Clear();
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             logger.LogError(ex, "CloseIternalAsync()");
         }
@@ -373,9 +371,9 @@ public abstract class Transport : EnhancedEventEmitter
     /// </summary>
     public async Task ListenServerClosedAsync()
     {
-        await using(await CloseLock.WriteLockAsync())
+        await using (await CloseLock.WriteLockAsync())
         {
-            if(Closed)
+            if (Closed)
             {
                 return;
             }
@@ -407,9 +405,9 @@ public abstract class Transport : EnhancedEventEmitter
     {
         logger.LogDebug("DumpAsync() | TransportId:{TransportId}", Id);
 
-        await using(await CloseLock.ReadLockAsync())
+        await using (await CloseLock.ReadLockAsync())
         {
-            if(Closed)
+            if (Closed)
             {
                 throw new InvalidStateException("Transport closed");
             }
@@ -427,9 +425,9 @@ public abstract class Transport : EnhancedEventEmitter
     {
         logger.LogDebug("GetStatsAsync() | TransportId:{TransportId}", Id);
 
-        await using(await CloseLock.ReadLockAsync())
+        await using (await CloseLock.ReadLockAsync())
         {
-            if(Closed)
+            if (Closed)
             {
                 throw new InvalidStateException("Transport closed");
             }
@@ -447,9 +445,9 @@ public abstract class Transport : EnhancedEventEmitter
     {
         logger.LogDebug("ConnectAsync() | TransportId:{TransportId}", Id);
 
-        await using(await CloseLock.ReadLockAsync())
+        await using (await CloseLock.ReadLockAsync())
         {
-            if(Closed)
+            if (Closed)
             {
                 throw new InvalidStateException("Transport closed");
             }
@@ -467,9 +465,9 @@ public abstract class Transport : EnhancedEventEmitter
     {
         logger.LogDebug("SetMaxIncomingBitrateAsync() | TransportId:{TransportId} Bitrate:{Bitrate}", Id, bitrate);
 
-        await using(await CloseLock.ReadLockAsync())
+        await using (await CloseLock.ReadLockAsync())
         {
-            if(Closed)
+            if (Closed)
             {
                 throw new InvalidStateException("Transport closed");
             }
@@ -482,7 +480,8 @@ public abstract class Transport : EnhancedEventEmitter
                 MaxIncomingBitrate = bitrate
             };
 
-            var setMaxIncomingBitrateRequestOffset = SetMaxIncomingBitrateRequest.Pack(bufferBuilder, setMaxIncomingBitrateRequest);
+            var setMaxIncomingBitrateRequestOffset =
+                SetMaxIncomingBitrateRequest.Pack(bufferBuilder, setMaxIncomingBitrateRequest);
 
             // Fire and forget
             Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_SET_MAX_INCOMING_BITRATE,
@@ -500,9 +499,9 @@ public abstract class Transport : EnhancedEventEmitter
     {
         logger.LogDebug("SetMaxOutgoingBitrateAsync() | TransportId:{TransportId} Bitrate:{Bitrate}", Id, bitrate);
 
-        await using(await CloseLock.ReadLockAsync())
+        await using (await CloseLock.ReadLockAsync())
         {
-            if(Closed)
+            if (Closed)
             {
                 throw new InvalidStateException("Transport closed");
             }
@@ -515,7 +514,8 @@ public abstract class Transport : EnhancedEventEmitter
                 MaxOutgoingBitrate = bitrate
             };
 
-            var setMaxOutgoingBitrateRequestOffset = SetMaxOutgoingBitrateRequest.Pack(bufferBuilder, setMaxOutgoingBitrateRequest);
+            var setMaxOutgoingBitrateRequestOffset =
+                SetMaxOutgoingBitrateRequest.Pack(bufferBuilder, setMaxOutgoingBitrateRequest);
 
             // Fire and forget
             Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_SET_MAX_OUTGOING_BITRATE,
@@ -531,11 +531,11 @@ public abstract class Transport : EnhancedEventEmitter
     /// </summary>
     public virtual async Task SetMinOutgoingBitrateAsync(uint bitrate)
     {
-        logger.LogDebug("SetMinOutgoingBitrateAsync() | TransportId:{TransportId} Bitrate:{bitrate}", Id, bitrate);
+        logger.LogDebug("SetMinOutgoingBitrateAsync() | TransportId:{TransportId} Bitrate:{Bitrate}", Id, bitrate);
 
-        await using(await CloseLock.ReadLockAsync())
+        await using (await CloseLock.ReadLockAsync())
         {
-            if(Closed)
+            if (Closed)
             {
                 throw new InvalidStateException("Transport closed");
             }
@@ -548,7 +548,8 @@ public abstract class Transport : EnhancedEventEmitter
                 MinOutgoingBitrate = bitrate
             };
 
-            var setMinOutgoingBitrateRequestOffset = SetMinOutgoingBitrateRequest.Pack(bufferBuilder, setMinOutgoingBitrateRequest);
+            var setMinOutgoingBitrateRequestOffset =
+                SetMinOutgoingBitrateRequest.Pack(bufferBuilder, setMinOutgoingBitrateRequest);
 
             // Fire and forget
             Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_SET_MIN_OUTGOING_BITRATE,
@@ -566,14 +567,14 @@ public abstract class Transport : EnhancedEventEmitter
     {
         logger.LogDebug("ProduceAsync() | TransportId:{TransportId}", Id);
 
-        if(!producerOptions.Id.IsNullOrWhiteSpace() && Producers.ContainsKey(producerOptions.Id!))
+        if (!producerOptions.Id.IsNullOrWhiteSpace() && Producers.ContainsKey(producerOptions.Id!))
         {
             throw new Exception($"a Producer with same id \"{producerOptions.Id}\" already exists");
         }
 
-        await using(await CloseLock.ReadLockAsync())
+        await using (await CloseLock.ReadLockAsync())
         {
-            if(Closed)
+            if (Closed)
             {
                 throw new InvalidStateException("Transport closed");
             }
@@ -583,28 +584,25 @@ public abstract class Transport : EnhancedEventEmitter
 
             // If missing or empty encodings, add one.
             // 在 mediasoup-worker 中，要求 Encodings 至少要有一个元素。
-            if(producerOptions.RtpParameters.Encodings.IsNullOrEmpty())
+            if (producerOptions.RtpParameters.Encodings.IsNullOrEmpty())
             {
                 producerOptions.RtpParameters.Encodings = [new()];
             }
 
             // Don't do this in PipeTransports since there we must keep CNAME value in
             // each Producer.
-            // TODO: (alby) 反模式
-            if(GetType() != typeof(PipeTransport.PipeTransport))
+            if (this is not PipeTransport.PipeTransport)
             {
                 // If CNAME is given and we don't have yet a CNAME for Producers in this
                 // Transport, take it.
-                if(
-                    cnameForProducers.IsNullOrWhiteSpace()
-                    && producerOptions.RtpParameters.Rtcp?.Cname.IsNullOrWhiteSpace() == false
-                )
+                if (cnameForProducers.IsNullOrWhiteSpace()
+                    && producerOptions.RtpParameters.Rtcp.Cname.IsNullOrWhiteSpace() == false)
                 {
                     cnameForProducers = producerOptions.RtpParameters.Rtcp.Cname;
                 }
                 // Otherwise if we don't have yet a CNAME for Producers and the RTP parameters
                 // do not include CNAME, create a random one.
-                else if(cnameForProducers.IsNullOrWhiteSpace())
+                else if (cnameForProducers.IsNullOrWhiteSpace())
                 {
                     cnameForProducers = Guid.NewGuid().ToString()[..8];
                 }
@@ -618,7 +616,8 @@ public abstract class Transport : EnhancedEventEmitter
             var routerRtpCapabilities = GetRouterRtpCapabilities();
 
             // This may throw.
-            var rtpMapping = ORTC.Ortc.GetProducerRtpParametersMapping(producerOptions.RtpParameters, routerRtpCapabilities);
+            var rtpMapping =
+                ORTC.Ortc.GetProducerRtpParametersMapping(producerOptions.RtpParameters, routerRtpCapabilities);
 
             // This may throw.
             var consumableRtpParameters = ORTC.Ortc.GetConsumableRtpParameters(
@@ -650,7 +649,7 @@ public abstract class Transport : EnhancedEventEmitter
                 produceRequestOffset.Value,
                 Internal.TransportId);
 
-            var data = response.Value.BodyAsTransport_ProduceResponse().UnPack();
+            var data = response!.Value.BodyAsTransport_ProduceResponse().UnPack();
 
             var producerData = new ProducerData
             {
@@ -678,7 +677,7 @@ public abstract class Transport : EnhancedEventEmitter
                         Producers.Remove(producer.Id);
                         Emit("@producerclose", producer);
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
                         logger.LogError(ex, "@close");
                     }
@@ -694,7 +693,7 @@ public abstract class Transport : EnhancedEventEmitter
             {
                 Producers[producer.Id] = producer;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 logger.LogError(ex, "ProduceAsync()");
             }
@@ -719,25 +718,25 @@ public abstract class Transport : EnhancedEventEmitter
     {
         logger.LogDebug("ConsumeAsync() | TransportId:{TransportId}", Id);
 
-        if(consumerOptions.ProducerId.IsNullOrWhiteSpace())
+        if (consumerOptions.ProducerId.IsNullOrWhiteSpace())
         {
             throw new ArgumentException($"{nameof(consumerOptions.ProducerId)} can't be null or white space.");
         }
 
-        if(consumerOptions.RtpCapabilities == null)
+        if (consumerOptions.RtpCapabilities == null)
         {
             throw new ArgumentException($"{nameof(consumerOptions.RtpCapabilities)} can't be null or white space.");
         }
 
         // Don't use `consumerOptions.Mid?.Length == 0`
-        if(consumerOptions.Mid != null && consumerOptions.Mid!.Length == 0)
+        if (consumerOptions.Mid != null && consumerOptions.Mid!.Length == 0)
         {
             throw new ArgumentException($"{nameof(consumerOptions.Mid)} can't be null or white space.");
         }
 
-        await using(await CloseLock.ReadLockAsync())
+        await using (await CloseLock.ReadLockAsync())
         {
-            if(Closed)
+            if (Closed)
             {
                 throw new InvalidStateException("Transport closed");
             }
@@ -745,7 +744,8 @@ public abstract class Transport : EnhancedEventEmitter
             // This may throw.
             ORTC.Ortc.ValidateRtpCapabilities(consumerOptions.RtpCapabilities);
 
-            var producer = await GetProducerById(consumerOptions.ProducerId) ?? throw new NullReferenceException($"Producer with id {consumerOptions.ProducerId} not found");
+            var producer = await GetProducerById(consumerOptions.ProducerId) ??
+                           throw new NullReferenceException($"Producer with id {consumerOptions.ProducerId} not found");
 
             // This may throw.
             var rtpParameters = ORTC.Ortc.GetConsumerRtpParameters(
@@ -754,23 +754,24 @@ public abstract class Transport : EnhancedEventEmitter
                 consumerOptions.Pipe
             );
 
-            if(!consumerOptions.Pipe)
+            if (!consumerOptions.Pipe)
             {
-                if(consumerOptions.Mid != null)
+                if (consumerOptions.Mid != null)
                 {
                     rtpParameters.Mid = consumerOptions.Mid;
                 }
                 else
                 {
-                    lock(nextMidForConsumersLock)
+                    lock (nextMidForConsumersLock)
                     {
                         // Set MID.
                         rtpParameters.Mid = nextMidForConsumers++.ToString();
 
                         // We use up to 8 bytes for MID (string).
-                        if(nextMidForConsumers == 100_000_000)
+                        if (nextMidForConsumers == 100_000_000)
                         {
-                            logger.LogDebug("ConsumeAsync() | Reaching max MID value {NextMidForConsumers}", nextMidForConsumers);
+                            logger.LogDebug("ConsumeAsync() | Reaching max MID value {NextMidForConsumers}",
+                                nextMidForConsumers);
                             nextMidForConsumers = 0;
                         }
                     }
@@ -832,7 +833,7 @@ public abstract class Transport : EnhancedEventEmitter
                     {
                         Consumers.Remove(consumer.Id);
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
                         logger.LogError(ex, "@close");
                     }
@@ -851,7 +852,7 @@ public abstract class Transport : EnhancedEventEmitter
                     {
                         Consumers.Remove(consumer.Id);
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
                         logger.LogError(ex, "@producerclose");
                     }
@@ -867,7 +868,7 @@ public abstract class Transport : EnhancedEventEmitter
             {
                 Consumers[consumer.Id] = consumer;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 logger.LogError(ex, "ConsumeAsync()");
             }
@@ -890,32 +891,31 @@ public abstract class Transport : EnhancedEventEmitter
     {
         logger.LogDebug("ProduceDataAsync() | TransportId:{TransportId}", Id);
 
-        if(!dataProducerOptions.Id.IsNullOrWhiteSpace() && DataProducers.ContainsKey(dataProducerOptions.Id!))
+        if (!dataProducerOptions.Id.IsNullOrWhiteSpace() && DataProducers.ContainsKey(dataProducerOptions.Id!))
         {
             throw new Exception($"A DataProducer with same id {dataProducerOptions.Id} already exists");
         }
 
-        if(dataProducerOptions.Label.IsNullOrWhiteSpace())
+        if (dataProducerOptions.Label.IsNullOrWhiteSpace())
         {
             dataProducerOptions.Label = string.Empty;
         }
 
-        if(dataProducerOptions.Protocol.IsNullOrWhiteSpace())
+        if (dataProducerOptions.Protocol.IsNullOrWhiteSpace())
         {
             dataProducerOptions.Protocol = string.Empty;
         }
 
-        await using(await CloseLock.ReadLockAsync())
+        await using (await CloseLock.ReadLockAsync())
         {
-            if(Closed)
+            if (Closed)
             {
                 throw new InvalidStateException("Transport closed");
             }
 
             FBS.DataProducer.Type type;
             // If this is not a DirectTransport, sctpStreamParameters are required.
-            // TODO: (alby) 反模式
-            if(GetType() != typeof(DirectTransport.DirectTransport))
+            if (this is not DirectTransport.DirectTransport)
             {
                 type = FBS.DataProducer.Type.SCTP;
 
@@ -927,9 +927,11 @@ public abstract class Transport : EnhancedEventEmitter
             {
                 type = FBS.DataProducer.Type.DIRECT;
 
-                if(dataProducerOptions.SctpStreamParameters != null)
+                if (dataProducerOptions.SctpStreamParameters != null)
                 {
-                    logger.LogWarning("ProduceDataAsync() | TransportId:{TransportId} sctpStreamParameters are ignored when producing data on a DirectTransport", Id);
+                    logger.LogWarning(
+                        "ProduceDataAsync() | TransportId:{TransportId} sctpStreamParameters are ignored when producing data on a DirectTransport",
+                        Id);
                 }
             }
 
@@ -955,7 +957,7 @@ public abstract class Transport : EnhancedEventEmitter
                 dataProduceRequestOffset.Value,
                 Internal.TransportId);
 
-            var data = response.Value.BodyAsDataProducer_DumpResponse().UnPack();
+            var data = response!.Value.BodyAsDataProducer_DumpResponse().UnPack();
 
             var dataProducerData = new DataProducerData
             {
@@ -982,7 +984,7 @@ public abstract class Transport : EnhancedEventEmitter
                     {
                         DataProducers.Remove(dataProducer.Id);
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
                         logger.LogError(ex, "@close");
                     }
@@ -1000,7 +1002,7 @@ public abstract class Transport : EnhancedEventEmitter
             {
                 DataProducers[dataProducer.Id] = dataProducer;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 logger.LogError(ex, "ProduceDataAsync()");
             }
@@ -1025,17 +1027,18 @@ public abstract class Transport : EnhancedEventEmitter
     {
         logger.LogDebug("ConsumeDataAsync() | TransportId:{TransportId}", Id);
 
-        if(dataConsumerOptions.DataProducerId.IsNullOrWhiteSpace())
+        if (dataConsumerOptions.DataProducerId.IsNullOrWhiteSpace())
         {
             throw new Exception("Missing dataProducerId");
         }
 
         var dataProducer = await GetDataProducerById(dataConsumerOptions.DataProducerId)
-                           ?? throw new Exception($"DataProducer with id {dataConsumerOptions.DataProducerId} not found");
+                           ?? throw new Exception(
+                               $"DataProducer with id {dataConsumerOptions.DataProducerId} not found");
 
-        await using(await CloseLock.ReadLockAsync())
+        await using (await CloseLock.ReadLockAsync())
         {
-            if(Closed)
+            if (Closed)
             {
                 throw new InvalidStateException("Transport closed");
             }
@@ -1046,24 +1049,40 @@ public abstract class Transport : EnhancedEventEmitter
 
             // If this is not a DirectTransport, use sctpStreamParameters from the
             // DataProducer (if type 'sctp') unless they are given in method parameters.
-            // TODO: (alby) 反模式
-            if(GetType() != typeof(DirectTransport.DirectTransport))
+            if (this is not DirectTransport.DirectTransport)
             {
                 type = FBS.DataProducer.Type.SCTP;
 
-                sctpStreamParameters = dataProducer.Data.SctpStreamParameters!.DeepClone();
+                sctpStreamParameters =
+                    dataProducer.Data.SctpStreamParameters?.DeepClone() ?? new SctpStreamParametersT();
+
+                if (dataConsumerOptions.Ordered is { } ordered)
+                {
+                    sctpStreamParameters.Ordered = ordered;
+                }
+
+                if (dataConsumerOptions.MaxPacketLifeTime is { } maxPacketLifeTime)
+                {
+                    sctpStreamParameters.MaxPacketLifeTime = (ushort)maxPacketLifeTime;
+                }
+
+                if (dataConsumerOptions.MaxRetransmits is { } maxRetransmits)
+                {
+                    sctpStreamParameters.MaxRetransmits = (ushort)maxRetransmits;
+                }
+
                 // This may throw.
-                lock(sctpStreamIdsLock)
+                lock (sctpStreamIdsLock)
                 {
                     sctpStreamId = GetNextSctpStreamId();
 
-                    if(sctpStreamIds == null || sctpStreamId > sctpStreamIds.Length - 1)
+                    if (sctpStreamIds == null || sctpStreamId > sctpStreamIds.Length - 1)
                     {
                         throw new IndexOutOfRangeException(nameof(sctpStreamIds));
                     }
 
                     sctpStreamIds[sctpStreamId.Value] = 1;
-                    sctpStreamParameters.StreamId      = sctpStreamId.Value;
+                    sctpStreamParameters.StreamId     = sctpStreamId.Value;
                 }
             }
             // If this is a DirectTransport, sctpStreamParameters must not be used.
@@ -1071,7 +1090,7 @@ public abstract class Transport : EnhancedEventEmitter
             {
                 type = FBS.DataProducer.Type.DIRECT;
 
-                if(
+                if (
                     dataConsumerOptions.Ordered.HasValue
                     || dataConsumerOptions.MaxPacketLifeTime.HasValue
                     || dataConsumerOptions.MaxRetransmits.HasValue
@@ -1137,15 +1156,15 @@ public abstract class Transport : EnhancedEventEmitter
                     try
                     {
                         DataConsumers.Remove(dataConsumer.Id);
-                        lock(sctpStreamIdsLock)
+                        lock (sctpStreamIdsLock)
                         {
-                            if(sctpStreamIds != null && sctpStreamId.HasValue)
+                            if (sctpStreamIds != null && sctpStreamId.HasValue)
                             {
                                 sctpStreamIds[sctpStreamId.Value] = 0;
                             }
                         }
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
                         logger.LogError(ex, "@close");
                     }
@@ -1164,15 +1183,15 @@ public abstract class Transport : EnhancedEventEmitter
                     try
                     {
                         DataConsumers.Remove(dataConsumer.Id);
-                        lock(sctpStreamIdsLock)
+                        lock (sctpStreamIdsLock)
                         {
-                            if(sctpStreamIds != null && sctpStreamId.HasValue)
+                            if (sctpStreamIds != null && sctpStreamId.HasValue)
                             {
                                 sctpStreamIds[sctpStreamId.Value] = 0;
                             }
                         }
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
                         logger.LogError(ex, "@dataproducerclose");
                     }
@@ -1188,7 +1207,7 @@ public abstract class Transport : EnhancedEventEmitter
             {
                 DataConsumers[dataConsumer.Id] = dataConsumer;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 logger.LogError(ex, "ConsumeDataAsync()");
             }
@@ -1211,9 +1230,9 @@ public abstract class Transport : EnhancedEventEmitter
     {
         logger.LogDebug("EnableTraceEventAsync() | Transport:{TransportId}", Id);
 
-        await using(await CloseLock.ReadLockAsync())
+        await using (await CloseLock.ReadLockAsync())
         {
-            if(Closed)
+            if (Closed)
             {
                 throw new InvalidStateException("Transport closed");
             }
@@ -1241,37 +1260,27 @@ public abstract class Transport : EnhancedEventEmitter
 
     private ushort GetNextSctpStreamId()
     {
-        if(BaseData.SctpParameters == null)
+        if (Data.SctpParameters == null)
         {
-            throw new Exception("Missing data.sctpParameters.MIS");
+            throw new NullReferenceException("Missing data.sctpParameters.MIS");
         }
 
-        if(sctpStreamIds == null)
+        var numStreams = Data.SctpParameters.Mis;
+
+        sctpStreamIds ??= new ushort[numStreams];
+
+        for (var idx = 0; idx < sctpStreamIds.Length; ++idx)
         {
-            throw new Exception(nameof(sctpStreamIds));
-        }
+            var sctpStreamId = (ushort)((nextSctpStreamId + idx) % sctpStreamIds.Length);
 
-        var numStreams = BaseData.SctpParameters.Mis;
-
-        if(sctpStreamIds.IsNullOrEmpty())
-        {
-            sctpStreamIds = new ushort[numStreams];
-        }
-
-        ushort sctpStreamId;
-
-        for(var idx = 0; idx < sctpStreamIds.Length; ++idx)
-        {
-            sctpStreamId = (ushort)((nextSctpStreamId + idx) % sctpStreamIds.Length);
-
-            if(sctpStreamIds[sctpStreamId] == 0)
+            if (sctpStreamIds[sctpStreamId] == 0)
             {
                 nextSctpStreamId = sctpStreamId + 1;
                 return sctpStreamId;
             }
         }
 
-        throw new Exception("No sctpStreamId available");
+        throw new IndexOutOfRangeException("No sctpStreamId available");
     }
 
     #endregion Private Methods

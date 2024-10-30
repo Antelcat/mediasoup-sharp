@@ -19,7 +19,7 @@ public class PlainTransport : Transport.Transport
     /// <summary>
     /// Producer data.
     /// </summary>
-    public DumpResponseT Data { get; }
+    public override PlainTransportData Data { get; }
 
     /// <summary>
     /// <para>Events:</para>
@@ -40,7 +40,7 @@ public class PlainTransport : Transport.Transport
     /// </summary>
     public PlainTransport(
         TransportInternal @internal,
-        DumpResponseT data,
+        PlainTransportData data,
         IChannel channel,
         AppData? appData,
         Func<RtpCapabilities> getRouterRtpCapabilities,
@@ -49,7 +49,7 @@ public class PlainTransport : Transport.Transport
     )
         : base(
             @internal,
-            data.Base,
+            data,
             channel,
             appData,
             getRouterRtpCapabilities,
@@ -68,9 +68,9 @@ public class PlainTransport : Transport.Transport
     /// </summary>
     protected override Task OnCloseAsync()
     {
-        if(Data.Base.SctpState.HasValue)
+        if(Data.SctpState.HasValue)
         {
-            Data.Base.SctpState = FBS.SctpAssociation.SctpState.CLOSED;
+            Data.SctpState = FBS.SctpAssociation.SctpState.CLOSED;
         }
 
         return Task.CompletedTask;
@@ -197,12 +197,12 @@ public class PlainTransport : Transport.Transport
             {
                 var sctpStateChangeNotification = notification.BodyAsTransport_SctpStateChangeNotification().UnPack();
 
-                Data.Base.SctpState = sctpStateChangeNotification.SctpState;
+                Data.SctpState = sctpStateChangeNotification.SctpState;
 
-                Emit("sctpstatechange", Data.Base.SctpState);
+                Emit("sctpstatechange", Data.SctpState);
 
                 // Emit observer event.
-                Observer.Emit("sctpstatechange", Data.Base.SctpState);
+                Observer.Emit("sctpstatechange", Data.SctpState);
 
                 break;
             }

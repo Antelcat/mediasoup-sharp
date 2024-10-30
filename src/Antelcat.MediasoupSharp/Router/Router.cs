@@ -219,8 +219,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
     /// <summary>
     /// Create a WebRtcTransport.
     /// </summary>
-    public async Task<WebRtcTransport.WebRtcTransport> CreateWebRtcTransportAsync(
-        Antelcat.MediasoupSharp.WebRtcTransport.WebRtcTransportOptions options)
+    public async Task<WebRtcTransport.WebRtcTransport> CreateWebRtcTransportAsync(WebRtcTransportOptions options)
     {
         var (webRtcServer,
             listenInfos,
@@ -574,7 +573,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
     /// Create a DirectTransport.
     /// </summary>
     public async Task<DirectTransport.DirectTransport> CreateDirectTransportAsync(
-        DirectTransportOptions directTransportOptions)
+        DirectTransportOptions options)
     {
         logger.LogDebug("CreateDirectTransportAsync()");
 
@@ -584,26 +583,19 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
             {
                 throw new InvalidStateException("Router closed");
             }
+            
+            var transportId = Guid.NewGuid().ToString();
 
             var baseTransportOptions = new FBS.Transport.OptionsT
             {
                 Direct         = true,
-                MaxMessageSize = directTransportOptions.MaxMessageSize,
+                MaxMessageSize = options.MaxMessageSize,
             };
-
-            var reqData = new
-            {
-                TransportId = Guid.NewGuid().ToString(),
-                Direct      = true,
-                directTransportOptions.MaxMessageSize,
-            };
-
-            var directTransportOptionsForCreate = new FBS.DirectTransport.DirectTransportOptionsT
+      
+            var directTransportOptions = new FBS.DirectTransport.DirectTransportOptionsT
             {
                 Base = baseTransportOptions,
             };
-
-            var transportId = Guid.NewGuid().ToString();
 
             // Build Request
             var bufferBuilder = channel.BufferPool.Get();
@@ -611,25 +603,26 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
             var createDirectTransportRequest = new CreateDirectTransportRequestT
             {
                 TransportId = transportId,
-                Options     = directTransportOptionsForCreate
+                Options     = directTransportOptions
             };
 
             var createDirectTransportRequestOffset =
                 CreateDirectTransportRequest.Pack(bufferBuilder, createDirectTransportRequest);
 
-            var response = await channel.RequestAsync(bufferBuilder, Method.ROUTER_CREATE_DIRECTTRANSPORT,
+            var response = await channel.RequestAsync(bufferBuilder, 
+                Method.ROUTER_CREATE_DIRECTTRANSPORT,
                 Body.Router_CreateDirectTransportRequest,
                 createDirectTransportRequestOffset.Value,
                 @internal.RouterId);
 
             /* Decode Response. */
-            var data = response.Value.BodyAsDirectTransport_DumpResponse().UnPack();
+            var data = response!.Value.BodyAsDirectTransport_DumpResponse().UnPack();
 
             var transport = new DirectTransport.DirectTransport(
                 new TransportInternal(Id, transportId),
                 data, // 直接使用返回值
                 channel,
-                directTransportOptions.AppData,
+                options.AppData,
                 () => Data.RtpCapabilities,
                 async m =>
                 {
@@ -691,9 +684,8 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
                 producers.Remove(producer.Id);
             }
         });
-        transport.On("@newdataproducer", async obj =>
+        transport.On("@newdataproducer", async (DataProducer.DataProducer dataProducer) =>
         {
-            var dataProducer = (DataProducer.DataProducer)obj!;
             await using (await dataProducersLock.WriteLockAsync())
             {
                 dataProducers[dataProducer.Id] = dataProducer;

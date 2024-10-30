@@ -23,7 +23,7 @@ public class PipeTransport : Transport.Transport
     /// <summary>
     /// PipeTransport data.
     /// </summary>
-    public DumpResponseT Data { get; }
+    public PipeTransportData Data { get; }
 
     /// <summary>
     /// <para>Events:</para>
@@ -40,7 +40,7 @@ public class PipeTransport : Transport.Transport
     /// </summary>
     public PipeTransport(
         TransportInternal @internal,
-        DumpResponseT data,
+        PipeTransportData data,
         IChannel channel,
         AppData? appData,
         Func<RtpCapabilities> getRouterRtpCapabilities,
@@ -49,7 +49,7 @@ public class PipeTransport : Transport.Transport
     )
         : base(
             @internal,
-            data.Base,
+            data,
             channel,
             appData,
             getRouterRtpCapabilities,
@@ -68,9 +68,9 @@ public class PipeTransport : Transport.Transport
     /// </summary>
     protected override Task OnCloseAsync()
     {
-        if(Data.Base.SctpState.HasValue)
+        if(Data.SctpState.HasValue)
         {
-            Data.Base.SctpState = FBS.SctpAssociation.SctpState.CLOSED;
+            Data.SctpState = FBS.SctpAssociation.SctpState.CLOSED;
         }
 
         return Task.CompletedTask;
@@ -289,12 +289,12 @@ public class PipeTransport : Transport.Transport
             {
                 var sctpStateChangeNotification = notification.BodyAsTransport_SctpStateChangeNotification().UnPack();
 
-                Data.Base.SctpState = sctpStateChangeNotification.SctpState;
+                Data.SctpState = sctpStateChangeNotification.SctpState;
 
-                Emit("sctpstatechange", Data.Base.SctpState);
+                Emit("sctpstatechange", Data.SctpState);
 
                 // Emit observer event.
-                Observer.Emit("sctpstatechange", Data.Base.SctpState);
+                Observer.Emit("sctpstatechange", Data.SctpState);
 
                 break;
             }

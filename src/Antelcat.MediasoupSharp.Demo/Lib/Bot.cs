@@ -12,12 +12,12 @@ public class Bot(ILogger logger,DirectTransport.DirectTransport transport, DataP
 {
     public static async Task<Bot> CreateAsync(ILoggerFactory loggerFactory, Router.Router mediasoupRouter)
     {
-        var transport = await mediasoupRouter.CreateDirectTransportAsync(new DirectTransportOptions
+        var transport = await mediasoupRouter.CreateDirectTransportAsync(new ()
         {
             MaxMessageSize = 512
         });
 
-        var dataProducer = await transport.ProduceDataAsync(new DataProducerOptions
+        var dataProducer = await transport.ProduceDataAsync(new ()
         {
             Label = "bot"
         });

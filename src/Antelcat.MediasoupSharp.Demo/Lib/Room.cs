@@ -1,17 +1,12 @@
 ﻿using System.Data;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices.JavaScript;
 using Antelcat.AspNetCore.ProtooSharp;
 using Antelcat.MediasoupSharp.ActiveSpeakerObserver;
 using Antelcat.MediasoupSharp.AudioLevelObserver;
-using Antelcat.MediasoupSharp.ClientRequest;
 using Antelcat.MediasoupSharp.Consumer;
 using Antelcat.MediasoupSharp.DataConsumer;
 using Antelcat.MediasoupSharp.DataProducer;
 using Antelcat.MediasoupSharp.Demo.Extensions;
 using Antelcat.MediasoupSharp.Exceptions;
-using Antelcat.MediasoupSharp.PlainTransport;
 using Antelcat.MediasoupSharp.Producer;
 using Antelcat.MediasoupSharp.RtpObserver;
 using Antelcat.MediasoupSharp.RtpParameters;
@@ -27,7 +22,8 @@ using FBS.SctpAssociation;
 using FBS.SctpParameters;
 using FBS.Transport;
 using FBS.WebRtcTransport;
-using Force.DeepCloner;
+using PlainTransportOptions = Antelcat.MediasoupSharp.PlainTransport.PlainTransportOptions;
+using TraceEventType = FBS.Transport.TraceEventType;
 using TraceNotification = FBS.Transport.TraceNotification;
 using TraceNotificationT = FBS.Transport.TraceNotificationT;
 using WebRtcTransportOptions = Antelcat.MediasoupSharp.WebRtcTransport.WebRtcTransportOptions;
@@ -444,7 +440,7 @@ public class Room : EventEmitter
 			case "plain":
 			{
 				var options = MediasoupOptions.Default.PlainTransportOptions;
-				var plainTransportOptions = new Antelcat.MediasoupSharp.PlainTransport.PlainTransportOptions
+				var plainTransportOptions = new PlainTransportOptions
 				{
 					ListenInfo         = options.ListenInfo!,
 					MaxSctpMessageSize = options.MaxSctpMessageSize ?? 0,
@@ -877,7 +873,7 @@ public class Room : EventEmitter
 					.WithData<CreateWebRtcTransportRequest>()!.Data!;
 
 				var options = MediasoupOptions.Default.WebRtcTransportOptions;
-				var webRtcTransportOptions = new Antelcat.MediasoupSharp.WebRtcTransport.WebRtcTransportOptions
+				var webRtcTransportOptions = new WebRtcTransportOptions
 				{
 					ListenInfos                     = options.ListenInfos,
 					MaxSctpMessageSize              = options.MaxSctpMessageSize              ?? 0,
@@ -926,7 +922,7 @@ public class Room : EventEmitter
 
 				// NOTE: For testing.
 				// await transport.enableTraceEvent([ "probation", "bwe" ]);
-				await transport.EnableTraceEventAsync([FBS.Transport.TraceEventType.BWE]);
+				await transport.EnableTraceEventAsync([TraceEventType.BWE]);
 
 				transport.On("trace", (TraceNotificationT trace) =>
 				{
@@ -934,7 +930,7 @@ public class Room : EventEmitter
 						"transport 'trace' event [transportId:{TransportId}, trace.type:{Type}, trace:{Trace}]", transport.Id, trace.Type,
 						trace);
 
-					if (trace is { Type: FBS.Transport.TraceEventType.BWE, Direction: TraceDirection.DIRECTION_OUT })
+					if (trace is { Type: TraceEventType.BWE, Direction: TraceDirection.DIRECTION_OUT })
 					{
 						peer.NotifyAsync(
 								"downlinkBwe", new
@@ -955,8 +951,8 @@ public class Room : EventEmitter
 					id             = transport.Id,
 					iceParameters  = transport.Data.IceParameters,
 					iceCandidates  = transport.Data.IceCandidates,
-					dtlsParameters = transport.Data.DtlsParameters
-					/*sctpParameters = transport.Data.SctpParameters*/
+					dtlsParameters = transport.Data.DtlsParameters,
+					sctpParameters = ((Transport.Transport)transport).Data.SctpParameters
 				});
 
 				var maxIncomingBitrate = MediasoupOptions.Default.WebRtcTransportOptions!

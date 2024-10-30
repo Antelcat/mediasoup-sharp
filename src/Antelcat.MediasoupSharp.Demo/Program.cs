@@ -366,6 +366,9 @@ file static class HttpContextExtension
 {
     public static Room Room(this HttpContext context) =>
         context.Items["room"] as Room ?? throw new NullReferenceException("room");
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method)]
+    public static extern Task OnRequest(this WebSocketServer server, HttpContext context);
 }
 
 file class AppSerialization : Serialization

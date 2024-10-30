@@ -5,7 +5,6 @@ using Antelcat.MediasoupSharp.Exceptions;
 using Antelcat.MediasoupSharp.Producer;
 using Antelcat.MediasoupSharp.RtpParameters;
 using Antelcat.MediasoupSharp.Transport;
-using FBS.DirectTransport;
 using FBS.Notification;
 using FBS.Request;
 using FBS.Transport;
@@ -33,7 +32,7 @@ public class DirectTransport : Transport.Transport
     /// </summary>
     public DirectTransport(
         TransportInternal @internal,
-        DumpResponseT data,
+        TransportBaseData data,
         IChannel channel,
         AppData? appData,
         Func<RtpCapabilities> getRouterRtpCapabilities,
@@ -42,7 +41,7 @@ public class DirectTransport : Transport.Transport
     )
         : base(
             @internal,
-            data.Base,
+            data,
             channel,
             appData,
             getRouterRtpCapabilities,

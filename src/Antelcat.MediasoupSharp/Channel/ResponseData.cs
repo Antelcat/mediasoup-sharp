@@ -1,7 +1,4 @@
 ﻿using Antelcat.MediasoupSharp.DataConsumer;
-using Antelcat.MediasoupSharp.PipeTransport;
-using Antelcat.MediasoupSharp.PlainTransport;
-using Antelcat.MediasoupSharp.WebRtcTransport;
 using FBS.Consumer;
 using FBS.SctpParameters;
 using FBS.SrtpParameters;
@@ -10,21 +7,6 @@ using FBS.WebRtcTransport;
 
 namespace Antelcat.MediasoupSharp.Channel;
 
-public class RouterCreateWebRtcTransportResponseData : WebRtcTransportData
-{
-}
-
-public class RouterCreatePlainTransportResponseData : PlainTransportData
-{
-}
-
-public class RouterCreatePipeTransportResponseData : PipeTransportData
-{
-}
-
-public class RouterCreateDirectTransportResponseData : PipeTransportData
-{
-}
 
 public class TransportProduceResponseData
 {
