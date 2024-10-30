@@ -19,7 +19,7 @@ public class DirectTransport : Transport.Transport
     /// <summary>
     /// Logger.
     /// </summary>
-    private readonly ILogger<DirectTransport> logger;
+    private readonly ILogger<DirectTransport> logger = new Logger.Logger<DirectTransport>();
 
     /// <summary>
     /// <para>Events:</para>
@@ -32,7 +32,6 @@ public class DirectTransport : Transport.Transport
     /// <para>@emits trace - (trace: TransportTraceEventData)</para>
     /// </summary>
     public DirectTransport(
-        ILoggerFactory loggerFactory,
         TransportInternal @internal,
         DumpResponseT data,
         IChannel channel,
@@ -42,7 +41,6 @@ public class DirectTransport : Transport.Transport
         Func<string, Task<DataProducer.DataProducer?>> getDataProducerById
     )
         : base(
-            loggerFactory,
             @internal,
             data.Base,
             channel,
@@ -53,8 +51,6 @@ public class DirectTransport : Transport.Transport
             new EnhancedEventEmitter()
         )
     {
-        logger = loggerFactory.CreateLogger<DirectTransport>();
-
         HandleWorkerNotifications();
     }
 

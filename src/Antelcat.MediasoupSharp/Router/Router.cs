@@ -24,11 +24,6 @@ namespace Antelcat.MediasoupSharp.Router;
 public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Router>
 {
     /// <summary>
-    /// Logger factory for create logger.
-    /// </summary>
-    private readonly ILoggerFactory loggerFactory;
-
-    /// <summary>
     /// Logger.
     /// </summary>
     private readonly ILogger<Router> logger;
@@ -116,19 +111,18 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
     /// <para>@emits newtransport - (transport: Transport)</para>
     /// <para>@emits newrtpobserver - (rtpObserver: RtpObserver)</para>
     /// </summary>
-    public Router(ILoggerFactory loggerFactory,
-                  RouterInternal @internal,
-                  RouterData data,
-                  IChannel channel,
-                  AppData? appData
+    public Router(
+        RouterInternal @internal,
+        RouterData data,
+        IChannel channel,
+        AppData? appData
     )
     {
-        this.loggerFactory = loggerFactory;
-        logger             = loggerFactory.CreateLogger<Router>();
-        this.@internal     = @internal;
-        this.channel       = channel;
-        Data               = data;
-        AppData            = appData ?? new Dictionary<string, object>();
+        logger         = new Logger.Logger<Router>();
+        this.@internal = @internal;
+        this.channel   = channel;
+        Data           = data;
+        AppData        = appData ?? new Dictionary<string, object>();
     }
 
     /// <summary>
@@ -360,7 +354,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
             /* Decode Response. */
             var data = response!.Value.BodyAsWebRtcTransport_DumpResponse().UnPack();
 
-            var transport = new WebRtcTransport.WebRtcTransport(loggerFactory,
+            var transport = new WebRtcTransport.WebRtcTransport(
                 new TransportInternal(@internal.RouterId, transportId),
                 data, // 直接使用返回值
                 channel,
@@ -456,7 +450,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
             /* Decode Response. */
             var data = response.Value.BodyAsPlainTransport_DumpResponse().UnPack();
 
-            var transport = new PlainTransport.PlainTransport(loggerFactory,
+            var transport = new PlainTransport.PlainTransport(
                 new TransportInternal(@internal.RouterId, transportId),
                 data, // 直接使用返回值
                 channel,
@@ -549,7 +543,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
             /* Decode Response. */
             var data = response.Value.BodyAsPipeTransport_DumpResponse().UnPack();
 
-            var transport = new PipeTransport.PipeTransport(loggerFactory,
+            var transport = new PipeTransport.PipeTransport(
                 new TransportInternal(@internal.RouterId, transportId),
                 data, // 直接使用返回值
                 channel,
@@ -631,7 +625,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
             /* Decode Response. */
             var data = response.Value.BodyAsDirectTransport_DumpResponse().UnPack();
 
-            var transport = new DirectTransport.DirectTransport(loggerFactory,
+            var transport = new DirectTransport.DirectTransport(
                 new TransportInternal(Id, transportId),
                 data, // 直接使用返回值
                 channel,
@@ -1041,7 +1035,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
                 @internal.RouterId
             ).ContinueWithOnFaultedHandleLog(logger);
 
-            var activeSpeakerObserver = new ActiveSpeakerObserver.ActiveSpeakerObserver(loggerFactory,
+            var activeSpeakerObserver = new ActiveSpeakerObserver.ActiveSpeakerObserver(
                 new RtpObserverInternal(@internal.RouterId, rtpObserverId),
                 channel,
                 activeSpeakerObserverOptions.AppData,
@@ -1100,7 +1094,7 @@ public sealed class Router : EnhancedEvent.EnhancedEventEmitter, IEquatable<Rout
                 @internal.RouterId
             ).ContinueWithOnFaultedHandleLog(logger);
 
-            var audioLevelObserver = new AudioLevelObserver.AudioLevelObserver(loggerFactory,
+            var audioLevelObserver = new AudioLevelObserver.AudioLevelObserver(
                 new RtpObserverInternal(@internal.RouterId, rtpObserverId),
                 channel,
                 audioLevelObserverOptions.AppData,

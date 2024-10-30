@@ -22,12 +22,11 @@ public abstract class Transport : EnhancedEventEmitter
     /// <summary>
     /// Logger factory for create logger.
     /// </summary>
-    private readonly ILoggerFactory loggerFactory;
 
     /// <summary>
     /// Logger.
     /// </summary>
-    private readonly ILogger<Transport> logger;
+    private readonly ILogger<Transport> logger = new Logger.Logger<Transport>();
 
     /// <summary>
     /// Whether the Transport is closed.
@@ -167,7 +166,6 @@ public abstract class Transport : EnhancedEventEmitter
     /// <para>@emits newdataconsumer - (dataProducer: DataProducer)</para>
     /// </summary>
     protected Transport(
-        ILoggerFactory loggerFactory,
         TransportInternal @internal,
         DumpT data,
         IChannel channel,
@@ -178,9 +176,6 @@ public abstract class Transport : EnhancedEventEmitter
         EnhancedEventEmitter observer
     )
     {
-        this.loggerFactory = loggerFactory;
-        logger        = loggerFactory.CreateLogger<Transport>();
-
         Internal                 = @internal;
         BaseData                 = data;
         Channel                  = channel;
@@ -664,7 +659,6 @@ public abstract class Transport : EnhancedEventEmitter
             };
 
             var producer = new Producer.Producer(
-                loggerFactory,
                 new ProducerInternal(Internal.RouterId, Internal.TransportId, producerId),
                 producerData,
                 Channel,
@@ -817,7 +811,6 @@ public abstract class Transport : EnhancedEventEmitter
             };
 
             var consumer = new Consumer.Consumer(
-                loggerFactory,
                 new ConsumerInternal(Internal.RouterId, Internal.TransportId, consumerId),
                 consumerData,
                 Channel,
@@ -971,7 +964,6 @@ public abstract class Transport : EnhancedEventEmitter
             };
 
             var dataProducer = new DataProducer.DataProducer(
-                loggerFactory,
                 new DataProducerInternal(Internal.RouterId, Internal.TransportId, dataProducerId),
                 dataProducerData,
                 Channel,
@@ -1126,7 +1118,6 @@ public abstract class Transport : EnhancedEventEmitter
             };
 
             var dataConsumer = new DataConsumer.DataConsumer(
-                loggerFactory,
                 new DataConsumerInternal(Internal.RouterId, Internal.TransportId, dataConsumerId),
                 dataConsumerData,
                 Channel,

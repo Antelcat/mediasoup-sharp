@@ -63,12 +63,12 @@ public class WebRtcServer : EnhancedEvent.EnhancedEventEmitter
     /// <para>@emits webrtctransporthandled - (webRtcTransport: WebRtcTransport)</para>
     /// <para>@emits webrtctransportunhandled - (webRtcTransport: WebRtcTransport)</para>
     /// </summary>
-    public WebRtcServer(ILoggerFactory loggerFactory,
+    public WebRtcServer(
                         WebRtcServerInternal @internal,
                         IChannel channel,
                         Dictionary<string, object>? appData)
     {
-        logger = loggerFactory.CreateLogger<WebRtcServer>();
+        logger = new Logger.Logger<WebRtcServer>();
 
         this.@internal = @internal;
         this.channel   = channel;

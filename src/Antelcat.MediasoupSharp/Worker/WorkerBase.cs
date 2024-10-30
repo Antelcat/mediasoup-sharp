@@ -18,11 +18,6 @@ public abstract class WorkerBase : EnhancedEvent.EnhancedEventEmitter, IWorker
     #region Protected Fields
 
     /// <summary>
-    /// Logger factory for create logger.
-    /// </summary>
-    protected readonly ILoggerFactory LoggerFactory;
-
-    /// <summary>
     /// Logger.
     /// </summary>
     protected readonly ILogger<Worker> Logger;
@@ -86,10 +81,9 @@ public abstract class WorkerBase : EnhancedEvent.EnhancedEventEmitter, IWorker
     /// <para>@emits newwebrtcserver - (webRtcServer: WebRtcServer)</para>
     /// <para>@emits newrouter - (router: Router)</para>
     /// </summary>
-    protected WorkerBase(ILoggerFactory loggerFactory, MediasoupOptions mediasoupOptions)
+    protected WorkerBase( MediasoupOptions mediasoupOptions)
     {
-        LoggerFactory = loggerFactory;
-        Logger         = loggerFactory.CreateLogger<Worker>();
+        Logger = new Logger.Logger<Worker>();
 
         var workerSettings = mediasoupOptions.WorkerSettings;
 
@@ -232,7 +226,6 @@ public abstract class WorkerBase : EnhancedEvent.EnhancedEventEmitter, IWorker
             );
 
             var webRtcServer = new WebRtcServer.WebRtcServer(
-                LoggerFactory,
                 new WebRtcServerInternal { WebRtcServerId = webRtcServerId },
                 Channel,
                 webRtcServerOptions.AppData
@@ -298,7 +291,6 @@ public abstract class WorkerBase : EnhancedEvent.EnhancedEventEmitter, IWorker
                 createRouterRequestOffset.Value);
 
             var router = new Router.Router(
-                LoggerFactory,
                 new RouterInternal(routerId),
                 new RouterData { RtpCapabilities = rtpCapabilities },
                 Channel,

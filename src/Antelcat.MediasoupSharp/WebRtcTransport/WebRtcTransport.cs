@@ -39,7 +39,6 @@ public class WebRtcTransport : Transport.Transport
     /// <para>@emits trace - (trace: TransportTraceEventData)</para>
     /// </summary>
     public WebRtcTransport(
-        ILoggerFactory loggerFactory,
         TransportInternal @internal,
         DumpResponseT data,
         IChannel channel,
@@ -49,7 +48,6 @@ public class WebRtcTransport : Transport.Transport
         Func<string, Task<DataProducer.DataProducer?>> getDataProducerById
     )
         : base(
-            loggerFactory,
             @internal,
             data.Base,
             channel,
@@ -60,7 +58,7 @@ public class WebRtcTransport : Transport.Transport
             new EnhancedEventEmitter()
         )
     {
-        logger = loggerFactory.CreateLogger<WebRtcTransport>();
+        logger = new Logger.Logger<WebRtcTransport>();
 
         Data = data;
 

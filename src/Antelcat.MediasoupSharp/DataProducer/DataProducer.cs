@@ -15,7 +15,7 @@ public class DataProducer : EnhancedEvent.EnhancedEventEmitter
     /// <summary>
     /// Logger.
     /// </summary>
-    private readonly ILogger<DataProducer> logger;
+    private readonly ILogger<DataProducer> logger = new Logger.Logger<DataProducer>();
 
     /// <summary>
     /// Close flag.
@@ -67,7 +67,6 @@ public class DataProducer : EnhancedEvent.EnhancedEventEmitter
     /// <para>@emits close</para>
     /// </summary>
     public DataProducer(
-        ILoggerFactory loggerFactory,
         DataProducerInternal @internal,
         DataProducerData data,
         IChannel channel,
@@ -75,8 +74,6 @@ public class DataProducer : EnhancedEvent.EnhancedEventEmitter
         AppData? appData
     )
     {
-        logger = loggerFactory.CreateLogger<DataProducer>();
-
         this.@internal = @internal;
         Data           = data;
         this.channel   = channel;

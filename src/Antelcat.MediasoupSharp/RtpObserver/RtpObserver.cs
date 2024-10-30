@@ -14,7 +14,7 @@ public abstract class RtpObserver : EnhancedEventEmitter
     /// <summary>
     /// Logger.
     /// </summary>
-    private readonly ILogger<RtpObserver> logger;
+    private readonly ILogger<RtpObserver> logger = new Logger.Logger<RtpObserver>();
 
     /// <summary>
     /// Whether the Producer is closed.
@@ -67,7 +67,6 @@ public abstract class RtpObserver : EnhancedEventEmitter
     /// <para>@emits removeproducer - (producer: Producer)</para>
     /// </summary>
     protected RtpObserver(
-        ILoggerFactory loggerFactory,
         RtpObserverInternal @internal,
         IChannel channel,
         AppData? appData,
@@ -75,8 +74,6 @@ public abstract class RtpObserver : EnhancedEventEmitter
         EnhancedEventEmitter observer
     )
     {
-        logger = loggerFactory.CreateLogger<RtpObserver>();
-
         Internal        = @internal;
         Channel         = channel;
         AppData         = appData ?? new Dictionary<string, object>();

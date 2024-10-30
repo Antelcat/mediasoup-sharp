@@ -3,7 +3,9 @@ using System.Reflection;
 using System.Text.Json.Serialization;
 using Antelcat.MediasoupSharp.RtpParameters;
 using Antelcat.MediasoupSharp;
+using Antelcat.MediasoupSharp.EnhancedEvent;
 using Antelcat.MediasoupSharp.Internals.Converters;
+using Antelcat.MediasoupSharp.Logger;
 using Antelcat.MediasoupSharp.Settings;
 using Antelcat.MediasoupSharp.Worker;
 using Force.DeepCloner;
@@ -13,6 +15,7 @@ namespace Antelcat.MediasoupSharp;
 
 public class Mediasoup
 {
+    private static readonly ILogger<Mediasoup> logger = new Logger.Logger<Mediasoup>(); 
     public static Version Version { get; } = Version.Parse((string)typeof(Mediasoup)
         .Assembly
         .CustomAttributes
@@ -29,12 +32,12 @@ public class Mediasoup
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public static EnhancedEvent.EnhancedEventEmitter Observer { get; } = new();
+    public static EnhancedEventEmitter Observer { get; } = new();
 
-    public static Task<WorkerBase> CreateWorkerAsync(ILoggerFactory loggerFactory, MediasoupOptions workerSettings)
+    public static Task<WorkerBase> CreateWorkerAsync(MediasoupOptions workerSettings)
     {
         var source = new TaskCompletionSource<WorkerBase>();
-        var worker = new Worker.Worker(loggerFactory, workerSettings);
+        var worker = new Worker.Worker(workerSettings);
         worker.On("@success", () =>
             {
                 Observer.Emit("newworker", worker);
@@ -47,9 +50,45 @@ public class Mediasoup
     /// <summary>
     /// Get a cloned copy of the mediasoup supported RTP capabilities.
     /// </summary>
-    public static RtpCapabilities GetSupportedRtpCapabilities()
+    public static RtpCapabilities GetSupportedRtpCapabilities() => RtpCapabilities.SupportedRtpCapabilities.DeepClone();
+
+    public class LogEventListeners
     {
-        return RtpCapabilities.SupportedRtpCapabilities.DeepClone();
+        public Action<string, string>?            OnDebug;
+        public Action<string, string>?            OnWarn;
+        public Action<string, string, Exception>? OnError;
+    }
+
+
+    public static void SetLogEventListeners(LogEventListeners? listeners)
+    {
+        logger.LogDebug($"{nameof(SetLogEventListeners)}()");
+
+        EnhancedEventEmitter<LoggerEmitterEvents>? debugLogEmitter = null;
+        EnhancedEventEmitter<LoggerEmitterEvents>? warnLogEmitter  = null;
+        EnhancedEventEmitter<LoggerEmitterEvents>? errorLogEmitter = null;
+
+        if (listeners?.OnDebug != null)
+        {
+            debugLogEmitter = new EnhancedEventEmitter<LoggerEmitterEvents>();
+            debugLogEmitter.On(x => x.debuglog, x => listeners.OnDebug(x.Item1, x.Item2));
+        }
+
+        if (listeners?.OnWarn != null)
+        {
+            warnLogEmitter = new EnhancedEventEmitter<LoggerEmitterEvents>();
+            warnLogEmitter.On(x => x.warnlog, x => listeners.OnWarn(x.Item1, x.Item2));
+        }
+
+        if (listeners?.OnError != null)
+        {
+            errorLogEmitter = new EnhancedEventEmitter<LoggerEmitterEvents>();
+            errorLogEmitter.On(x => x.errorlog, x => listeners.OnError(x.Item1, x.Item2, x.Item3));
+        }
+
+        Logger.Logger.DebugLogEmitter = debugLogEmitter;
+        Logger.Logger.WarnLogEmitter  = warnLogEmitter;
+        Logger.Logger.DebugLogEmitter = errorLogEmitter;
     }
 
     /// <summary>

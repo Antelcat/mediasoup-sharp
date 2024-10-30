@@ -11,7 +11,7 @@ public class ActiveSpeakerObserver : RtpObserver.RtpObserver
     /// <summary>
     /// Logger.
     /// </summary>
-    private readonly ILogger<ActiveSpeakerObserver> logger;
+    private readonly ILogger<ActiveSpeakerObserver> logger = new Logger.Logger<ActiveSpeakerObserver>();
 
     /// <summary>
     /// <para>Events:</para>
@@ -27,16 +27,13 @@ public class ActiveSpeakerObserver : RtpObserver.RtpObserver
     /// <para>@emits silence</para>
     /// </summary>
     public ActiveSpeakerObserver(
-        ILoggerFactory loggerFactory,
         RtpObserverInternal @internal,
         IChannel channel,
         AppData? appData,
         Func<string, Task<Producer.Producer?>> getProducerById
     )
-        : base(loggerFactory, @internal, channel, appData, getProducerById, new())
-    {
-        logger = loggerFactory.CreateLogger<ActiveSpeakerObserver>();
-    }
+        : base(@internal, channel, appData, getProducerById, new())
+    { }
 
 #pragma warning disable VSTHRD100 // Avoid async void methods
     protected override async void OnNotificationHandle(string handlerId, Event @event, Notification notification)

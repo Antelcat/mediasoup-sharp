@@ -56,8 +56,8 @@ public class Worker : WorkerBase
     /// <para>@emits close</para>
     /// <para>@emits newrouter - (router: Router)</para>
     /// </summary>
-    public Worker(ILoggerFactory loggerFactory, MediasoupOptions mediasoupOptions)
-        : base(loggerFactory, mediasoupOptions)
+    public Worker(MediasoupOptions mediasoupOptions)
+        : base(mediasoupOptions)
     {
         var workerPath = "";
         if (workerPath.IsNullOrWhiteSpace())
@@ -185,9 +185,9 @@ public class Worker : WorkerBase
             return;
         }
 
-        Channel = new Channel.Channel(LoggerFactory.CreateLogger<Channel.Channel>(),
+        Channel = new Channel.Channel(
             pipes[3]!,
-            pipes[4]!, 
+            pipes[4]!,
             Pid);
 
 

@@ -16,14 +16,9 @@ namespace Antelcat.MediasoupSharp.PipeTransport;
 public class PipeTransport : Transport.Transport
 {
     /// <summary>
-    /// Logger factory for create logger.
-    /// </summary>
-    private readonly ILoggerFactory loggerFactory;
-
-    /// <summary>
     /// Logger.
     /// </summary>
-    private readonly ILogger<PipeTransport> logger;
+    private readonly ILogger<PipeTransport> logger = new Logger.Logger<PipeTransport>();
 
     /// <summary>
     /// PipeTransport data.
@@ -44,7 +39,6 @@ public class PipeTransport : Transport.Transport
     /// <para>@emits trace - (trace: TransportTraceEventData)</para>
     /// </summary>
     public PipeTransport(
-        ILoggerFactory loggerFactory,
         TransportInternal @internal,
         DumpResponseT data,
         IChannel channel,
@@ -54,7 +48,6 @@ public class PipeTransport : Transport.Transport
         Func<string, Task<DataProducer.DataProducer?>> getDataProducerById
     )
         : base(
-            loggerFactory,
             @internal,
             data.Base,
             channel,
@@ -65,9 +58,6 @@ public class PipeTransport : Transport.Transport
             new EnhancedEventEmitter()
         )
     {
-        this.loggerFactory = loggerFactory;
-        logger        = loggerFactory.CreateLogger<PipeTransport>();
-
         Data = data;
 
         HandleWorkerNotifications();
@@ -210,7 +200,6 @@ public class PipeTransport : Transport.Transport
         };
 
         var consumer = new Consumer.Consumer(
-            loggerFactory,
             new ConsumerInternal(Internal.RouterId, Internal.TransportId, consumerId),
             consumerData,
             Channel,

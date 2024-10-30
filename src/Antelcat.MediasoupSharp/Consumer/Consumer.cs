@@ -15,7 +15,7 @@ public class Consumer : EnhancedEvent.EnhancedEventEmitter
     /// <summary>
     /// Logger.
     /// </summary>
-    private readonly ILogger<Consumer> logger;
+    private readonly ILogger<Consumer> logger = new Logger.Logger<Consumer>();
 
     /// <summary>
     /// Whether the Consumer is closed.
@@ -117,7 +117,6 @@ public class Consumer : EnhancedEvent.EnhancedEventEmitter
     /// <para>@emits trace - (trace: ConsumerTraceEventData)</para>
     /// </summary>
     public Consumer(
-        ILoggerFactory loggerFactory,
         ConsumerInternal @internal,
         ConsumerData data,
         IChannel channel,
@@ -128,8 +127,6 @@ public class Consumer : EnhancedEvent.EnhancedEventEmitter
         ConsumerLayersT? preferredLayers
     )
     {
-        logger = loggerFactory.CreateLogger<Consumer>();
-
         this.@internal  = @internal;
         Data            = data;
         this.channel    = channel;

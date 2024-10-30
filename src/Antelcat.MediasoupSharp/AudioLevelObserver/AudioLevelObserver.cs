@@ -10,7 +10,7 @@ public class AudioLevelObserver : RtpObserver.RtpObserver
     /// <summary>
     /// Logger.
     /// </summary>
-    private readonly ILogger<AudioLevelObserver> logger;
+    private readonly ILogger<AudioLevelObserver> logger = new Logger.Logger<AudioLevelObserver>();
 
     /// <summary>
     /// <para>Events:</para>
@@ -26,15 +26,13 @@ public class AudioLevelObserver : RtpObserver.RtpObserver
     /// <para>@emits silence</para>
     /// </summary>
     public AudioLevelObserver(
-        ILoggerFactory loggerFactory,
         RtpObserverInternal @internal,
         IChannel channel,
         AppData? appData,
         Func<string, Task<Producer.Producer?>> getProducerById
     )
-        : base(loggerFactory, @internal, channel, appData, getProducerById, new())
+        : base(@internal, channel, appData, getProducerById, new())
     {
-        logger = loggerFactory.CreateLogger<AudioLevelObserver>();
     }
 
 #pragma warning disable VSTHRD100 // Avoid async void methods

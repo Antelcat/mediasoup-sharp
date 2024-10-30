@@ -17,7 +17,7 @@ public class Producer : EnhancedEvent.EnhancedEventEmitter
     /// <summary>
     /// Logger
     /// </summary>
-    private readonly ILogger<Producer> logger;
+    private readonly ILogger<Producer> logger = new Logger.Logger<Producer>();
     
     /// <summary>
     /// Producer id.
@@ -108,7 +108,6 @@ public class Producer : EnhancedEvent.EnhancedEventEmitter
     /// <para>@emits trace - (trace: ProducerTraceEventData)</para>
     /// </summary>
     public Producer(
-        ILoggerFactory loggerFactory,
         ProducerInternal @internal,
         ProducerData data,
         IChannel channel,
@@ -116,8 +115,6 @@ public class Producer : EnhancedEvent.EnhancedEventEmitter
         bool paused
     )
     {
-        logger = loggerFactory.CreateLogger<Producer>();
-
         this.@internal = @internal;
         Data           = data;
         this.channel   = channel;

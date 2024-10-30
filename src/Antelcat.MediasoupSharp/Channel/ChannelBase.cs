@@ -30,7 +30,7 @@ public abstract class ChannelBase : EnhancedEventEmitter, IChannel
     /// <summary>
     /// Logger
     /// </summary>
-    protected readonly ILogger<ChannelBase> Logger;
+    protected readonly ILogger<ChannelBase> Logger = new Logger.Logger<ChannelBase>();
 
     /// <summary>
     /// Closed flag.
@@ -73,9 +73,8 @@ public abstract class ChannelBase : EnhancedEventEmitter, IChannel
 
     #endregion Events
 
-    protected ChannelBase(ILogger<ChannelBase> logger, int workerId)
+    protected ChannelBase(int workerId)
     {
-        Logger   = logger;
         WorkerId = workerId;
         
         var policy = new FlatBufferBuilderPooledObjectPolicy(1024);

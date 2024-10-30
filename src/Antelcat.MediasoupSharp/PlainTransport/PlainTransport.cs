@@ -14,7 +14,7 @@ public class PlainTransport : Transport.Transport
     /// <summary>
     /// Logger.
     /// </summary>
-    private readonly ILogger<PlainTransport> logger;
+    private readonly ILogger<PlainTransport> logger = new Logger.Logger<PlainTransport>();
 
     /// <summary>
     /// Producer data.
@@ -39,7 +39,6 @@ public class PlainTransport : Transport.Transport
     /// <para>@emits trace - (trace: TransportTraceEventData)</para>
     /// </summary>
     public PlainTransport(
-        ILoggerFactory loggerFactory,
         TransportInternal @internal,
         DumpResponseT data,
         IChannel channel,
@@ -49,7 +48,6 @@ public class PlainTransport : Transport.Transport
         Func<string, Task<DataProducer.DataProducer?>> getDataProducerById
     )
         : base(
-            loggerFactory,
             @internal,
             data.Base,
             channel,
@@ -60,8 +58,6 @@ public class PlainTransport : Transport.Transport
             new EnhancedEventEmitter()
         )
     {
-        logger = loggerFactory.CreateLogger<PlainTransport>();
-
         Data = data;
 
         HandleWorkerNotifications();

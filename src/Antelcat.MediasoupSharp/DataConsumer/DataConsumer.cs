@@ -15,7 +15,7 @@ public class DataConsumer : EnhancedEvent.EnhancedEventEmitter
     /// <summary>
     /// Logger.
     /// </summary>
-    private readonly ILogger<DataConsumer> logger;
+    private readonly ILogger<DataConsumer> logger = new Logger.Logger<DataConsumer>();
 
     /// <summary>
     /// Internal data.
@@ -84,7 +84,6 @@ public class DataConsumer : EnhancedEvent.EnhancedEventEmitter
     /// <para>@emits resume</para>
     /// </summary>
     public DataConsumer(
-        ILoggerFactory loggerFactory,
         DataConsumerInternal @internal,
         DataConsumerData data,
         IChannel channel,
@@ -94,8 +93,6 @@ public class DataConsumer : EnhancedEvent.EnhancedEventEmitter
         AppData? appData
     )
     {
-        logger = loggerFactory.CreateLogger<DataConsumer>();
-
         this.@internal          = @internal;
         Data                    = data;
         this.channel            = channel;

@@ -35,8 +35,8 @@ public class Channel : ChannelBase
 
     #endregion Private Fields
 
-    public Channel(ILogger<Channel> logger, UVStream producerSocket, UVStream consumerSocket, int processId)
-        : base(logger, processId)
+    public Channel(UVStream producerSocket, UVStream consumerSocket, int processId)
+        : base(processId)
     {
         this.producerSocket = producerSocket;
         this.consumerSocket = consumerSocket;
@@ -104,7 +104,7 @@ public class Channel : ChannelBase
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "_producerSocket.Write() | Worker[{WorkerId}] Error", WorkerId);
+                Logger.LogError(ex, "producerSocket.Write() | Worker[{WorkerId}] Error", WorkerId);
                 sent.Reject(ex);
             }
         });

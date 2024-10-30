@@ -15,8 +15,8 @@ public class WorkerNative : WorkerBase
 
     private readonly IntPtr channelPtr;
 
-    public WorkerNative(ILoggerFactory loggerFactory, MediasoupOptions mediasoupOptions)
-        : base(loggerFactory, mediasoupOptions)
+    public WorkerNative(MediasoupOptions mediasoupOptions)
+        : base(mediasoupOptions)
     {
         var workerSettings = mediasoupOptions.WorkerSettings!;
         var args = new List<string?>
@@ -69,7 +69,7 @@ public class WorkerNative : WorkerBase
 
         var threadId = Environment.CurrentManagedThreadId;
 
-        Channel                =  new ChannelNative(LoggerFactory.CreateLogger<ChannelNative>(), threadId);
+        Channel                =  new ChannelNative(threadId);
         Channel.OnNotification += OnNotificationHandle;
         channelPtr             =  GCHandle.ToIntPtr(GCHandle.Alloc(Channel, GCHandleType.Normal));
     }

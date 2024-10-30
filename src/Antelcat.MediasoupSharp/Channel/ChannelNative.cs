@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Antelcat.MediasoupSharp.Channel;
 
-public class ChannelNative(ILogger<ChannelNative> logger, int workerId) : ChannelBase(logger, workerId)
+public class ChannelNative(int workerId) : ChannelBase(workerId)
 {
     private readonly OutgoingMessageBuffer<RequestMessage> requestMessageQueue = new();
 

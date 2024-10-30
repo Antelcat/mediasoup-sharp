@@ -6,6 +6,7 @@ using Antelcat.MediasoupSharp;
 using Antelcat.MediasoupSharp.Demo;
 using Antelcat.MediasoupSharp.Demo.Extensions;
 using Antelcat.MediasoupSharp.Demo.Lib;
+using Antelcat.MediasoupSharp.Logger;
 using Antelcat.MediasoupSharp.Settings;
 using Antelcat.MediasoupSharp.Worker;
 using Microsoft.AspNetCore.Mvc;
@@ -58,6 +59,7 @@ return;
 
 async Task Run()
 {
+    Logger.LoggerFactory = loggerFactory;
     // Open the interactive server.
     Interactive.InteractiveServer();
 
@@ -83,7 +85,7 @@ async Task RunMediasoupWorkersAsync()
 
     for (var i = 0; i < numWorkers; i++)
     {
-        var worker = await Mediasoup.CreateWorkerAsync(loggerFactory, options);
+        var worker = await Mediasoup.CreateWorkerAsync(options);
 
         worker.On("died", async () =>
         {
