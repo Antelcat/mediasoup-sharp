@@ -7,9 +7,9 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <LangVersion>preview</LangVersion>
-        <Version>3.14.14</Version>
-        <AssemblyVersion>3.14.14</AssemblyVersion>
-        <FileVersion>3.14.14</FileVersion>
+        <Version>3.14.15</Version>
+        <AssemblyVersion>3.14.15</AssemblyVersion>
+        <FileVersion>3.14.15</FileVersion>
     </PropertyGroup>
 
     <ItemGroup>
