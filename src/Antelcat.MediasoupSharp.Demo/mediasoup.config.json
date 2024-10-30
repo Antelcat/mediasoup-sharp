@@ -1,5 +1,5 @@
 {
-	"numWorkers": null,
+	"numWorkers": 1,
 	"workerSettings": {
 		"dtlsCertificateFile": null,
 		"dtlsPrivateKeyFile": null,
@@ -74,13 +74,13 @@
 			{
 				"protocol": "udp",
 				"ip": "0.0.0.0",
-				"announcedAddress": "127.0.0.1",
+				"announcedAddress": "192.168.1.105",
 				"port": 44444
 			},
 			{
 				"protocol": "tcp",
 				"ip": "0.0.0.0",
-				"announcedAddress": "127.0.0.1",
+				"announcedAddress": "192.168.1.105",
 				"port": 44444
 			}
 		]
@@ -90,7 +90,7 @@
 			{
 				"protocol": "udp",
 				"ip": "0.0.0.0",
-				"announcedAddress": "127.0.0.1",
+				"announcedAddress": "192.168.1.105",
 				"portRange": {
 					"min": 40000,
 					"max": 49999
@@ -99,7 +99,7 @@
 			{
 				"protocol": "tcp",
 				"ip": "0.0.0.0",
-				"announcedAddress": "127.0.0.1",
+				"announcedAddress": "192.168.1.105",
 				"portRange": {
 					"min": 40000,
 					"max": 49999
@@ -115,7 +115,7 @@
 		"listenInfo": {
 			"protocol": "udp",
 			"ip": "0.0.0.0",
-			"announcedAddress": "127.0.0.1",
+			"announcedAddress": "192.168.1.105",
 			"portRange": {
 				"min": 40000,
 				"max": 49999

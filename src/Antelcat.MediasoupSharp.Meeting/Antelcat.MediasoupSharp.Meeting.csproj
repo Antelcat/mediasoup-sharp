@@ -32,7 +32,7 @@
         <None Include="wwwroot/**/*.*">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
-        <None Update="mediasoup-worker.exe">
+        <None Update="runtimes\win-x64\native\mediasoup-worker.exe">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
     </ItemGroup>

@@ -2,10 +2,10 @@
     <PropertyGroup>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <Authors>Antelcat</Authors>
-        <Version>3.14.7</Version>
         <Title>Antelcat.MediasoupSharp</Title>
-        <FileVersion>3.14.7</FileVersion>
-        <AssemblyVersion>3.14.7</AssemblyVersion>
+        <Version>3.14.16</Version>
+        <AssemblyVersion>3.14.16</AssemblyVersion>
+        <FileVersion>3.14.16</FileVersion>
         <Copyright>Copyright Antelcat. All rights reserved</Copyright>
         
         <PackageIcon>Icon.png</PackageIcon>

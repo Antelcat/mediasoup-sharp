@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices.JavaScript;
 using Antelcat.AspNetCore.ProtooSharp;
 using Antelcat.MediasoupSharp.ActiveSpeakerObserver;
+using Antelcat.MediasoupSharp.AudioLevelObserver;
 using Antelcat.MediasoupSharp.ClientRequest;
 using Antelcat.MediasoupSharp.Consumer;
 using Antelcat.MediasoupSharp.DataConsumer;
@@ -711,9 +712,15 @@ public class Room : EventEmitter
 
 	private void HandleAudioLevelObserver()
 	{
-		audioLevelObserver.On("volumes", (Producer.Producer producer, VolumeT volume) =>
+		audioLevelObserver.On("volumes", (object?[] volumes) =>
 		{
-			logger.LogDebug("audioLevelObserver 'volumes' event [producerId:{ProducerId}, volume:{Volume}]", producer.Id, volume);
+			var volume = volumes[0] is List<AudioLevelObserverVolume> a
+				? (producerId: a[0].Producer.Id, volume: a[0].Volume)
+				: volumes[0] is List<VolumeT> t
+					? (producerId: t[0].ProducerId, volume: (int)t[0].Volume_)
+					: default;
+			logger.LogDebug("audioLevelObserver 'volumes' event [producerId:{ProducerId}, volume:{Volume}]",
+				volume.producerId, volume.volume);
 
 			// Notify all Peers.
 			foreach (var peer in GetJoinedPeers())
@@ -722,8 +729,8 @@ public class Room : EventEmitter
 					"activeSpeaker",
 					new
 					{
-						peerId = producer.AppData["peerId"],
-						volume
+						peerId = volume.producerId,
+						volume.volume
 					}).Catch(() => { });
 			}
 		});
@@ -981,7 +988,10 @@ public class Room : EventEmitter
 				if (transport == null)
 					throw new KeyNotFoundException($"transport with id {transportId} not found");
 
-				await transport.ConnectAsync(dtlsParameters);
+				await transport.ConnectAsync(new ConnectRequestT
+				{
+					DtlsParameters = dtlsParameters
+				});
 
 				await Accept<object?>();
 
@@ -1033,7 +1043,7 @@ public class Room : EventEmitter
 				peer.Data().Producers.Add(producer.Id, producer);
 
 				// Set Producer events.
-				producer.On("score", (int score) =>
+				producer.On("score", (List<ScoreT> score) =>
 				{
 					// logger.debug(
 					// 	"producer 'score' event [{producerId}, score:%o]",
@@ -1611,7 +1621,7 @@ public class Room : EventEmitter
 							.Catch(() => { });
 					});
 
-					consumer.On("score", (int score) =>
+					consumer.On("score", (ConsumerScoreT score) =>
 					{
 						// logger.debug(
 						//	 'consumer "score" event [consumerId:%s, score:%o]',

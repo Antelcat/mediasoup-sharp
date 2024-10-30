@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Json;
 using FBS.Notification;
 using Antelcat.LibuvSharp;
 using Antelcat.MediasoupSharp.Exceptions;
@@ -56,8 +57,7 @@ public class Worker : WorkerBase
     /// <para>@emits close</para>
     /// <para>@emits newrouter - (router: Router)</para>
     /// </summary>
-    public Worker(MediasoupOptions mediasoupOptions)
-        : base(mediasoupOptions)
+    public Worker(MediasoupOptions mediasoupOptions) : base(mediasoupOptions)
     {
         var workerPath = "";
         if (workerPath.IsNullOrWhiteSpace())

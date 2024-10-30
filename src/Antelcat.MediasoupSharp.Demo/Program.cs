@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Mime;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Antelcat.AspNetCore.ProtooSharp;
 using Antelcat.MediasoupSharp;
@@ -9,9 +10,11 @@ using Antelcat.MediasoupSharp.Demo.Lib;
 using Antelcat.MediasoupSharp.Logger;
 using Antelcat.MediasoupSharp.Settings;
 using Antelcat.MediasoupSharp.Worker;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Primitives;
+using Microsoft.VisualStudio.Threading;
 using Room = Antelcat.MediasoupSharp.Demo.Lib.Room;
 
 List<WorkerBase>                 mediasoupWorkers       = [];
@@ -27,9 +30,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var app                   = builder.Build();
-var loggerFactory         = app.Services.GetRequiredService<ILoggerFactory>();
-var logger                = loggerFactory.CreateLogger<Program>();
+var app           = builder.Build();
+var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
+var logger        = loggerFactory.CreateLogger<Program>();
 var jsonSerializerOptions = new JsonSerializerOptions
 {
     PropertyNameCaseInsensitive = true,
@@ -39,9 +42,9 @@ foreach (var converter in Mediasoup.JsonConverters)
 {
     jsonSerializerOptions.Converters.Add(converter); 
 }
-
 var options = JsonSerializer.Deserialize<MediasoupOptions>(
-    File.ReadAllText(Path.Combine(current, "mediasoup.config.json")), jsonSerializerOptions);
+    File.ReadAllText(Path.Combine(current, "mediasoup.config.json")), jsonSerializerOptions)!;
+MediasoupServiceCollectionExtensions.Configure(MediasoupOptions.Default, options);
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -50,6 +53,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseWebSockets();
 
 await Run();
 
@@ -66,27 +70,23 @@ async Task Run()
     // Run a mediasoup Worker.
     await RunMediasoupWorkersAsync();
     
-    // Create Express app.
-    CreateExpressApp();
-    
     // Run a protoo WebSocketServer.
     RunProtooWebSocketServer();
     
-    MapHtml();
+    // Create Express app.
+    CreateExpressApp();
 }
 
 async Task RunMediasoupWorkersAsync()
 {
-    var numWorkers = options.NumWorkers ?? Environment.ProcessorCount;
+    var numWorkers = MediasoupOptions.Default.NumWorkers;
 
     logger.LogInformation("running {Num} mediasoup Workers...", numWorkers);
 
     var useWebRtcServer = Environment.GetEnvironmentVariable("MEDIASOUP_USE_WEBRTC_SERVER") != "false";
 
-    for (var i = 0; i < numWorkers; i++)
+    await foreach (var worker in Mediasoup.CreateWorkersAsync(MediasoupOptions.Default))
     {
-        var worker = await Mediasoup.CreateWorkerAsync(options);
-
         worker.On("died", async () =>
         {
             logger.LogError("mediasoup Worker died, exiting in 2 seconds... [pid:{Pid}]", worker.Pid);
@@ -122,10 +122,12 @@ void CreateExpressApp()
 {
     // For every API request, verify that the roomId in the path matches and
     // existing room.
-    ValueTask<object?> RoomFilter(EndpointFilterInvocationContext context, EndpointFilterDelegate @delegate)
+    async ValueTask<object?> RoomFilter(EndpointFilterInvocationContext context, EndpointFilterDelegate @delegate)
     {
         if (!context.HttpContext.Request.RouteValues.TryGetValue("roomId", out var id) || id is not string roomId)
-            throw new ArgumentNullException(nameof(roomId));
+        {
+            return await @delegate(context);
+        }
 
         var source = new TaskCompletionSource<object?>();
         queue.Push(async () =>
@@ -133,7 +135,7 @@ void CreateExpressApp()
             context.HttpContext.Items.Add("room", await GetOrCreateRoomAsync(roomId, 0));
             source.SetResult(await @delegate(context));
         }).Catch(exception => { source.SetException(exception ?? new NullReferenceException("No Exception")); });
-        return new ValueTask<object?>(source.Task);
+        return await source.Task;
     }
 
     // API GET resource that returns the mediasoup Router RTP capabilities of
@@ -235,7 +237,7 @@ void CreateExpressApp()
                     appData);
             return data;
         }).AddEndpointFilter(RoomFilter);
-
+    
     // Error handler.
     app.Use(async (context, func) =>
     {
@@ -245,20 +247,41 @@ void CreateExpressApp()
         }
         catch (Exception ex)
         {
-            logger.LogWarning("Express app {Ex}", ex);
-            context.Response.StatusCode = 500;
-            await context.Response.WriteAsync(ex.Message);
+            return;
         }
+    });
+    
+    app.Map("/", async (HttpContext context) =>
+    {
+        if (!context.WebSockets.IsWebSocketRequest)
+        {
+            return Results.File(Path.Combine(AppContext.BaseDirectory, "wwwroot", "index.html"),
+                MediaTypeNames.Text.Html);
+        }
+
+        await protooWebSocketServer.OnRequest(context);
+        return Results.Ok();
+    }).AddEndpointFilter(RoomFilter);
+    
+    app.MapGet("/{**rest}", ([FromRoute] string rest) =>
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "wwwroot", WebUtility.HtmlDecode(rest));
+        return File.Exists(path)
+            ? Results.File(path,
+                provider.TryGetContentType(rest, out var type) ? type : MediaTypeNames.Text.Plain)
+            : Results.NotFound("file not found");
     });
 }
 
 //Create a protoo WebSocketServer to allow WebSocket connections from browsers.
 void RunProtooWebSocketServer()
 {
+    Serialization.GlobalSerialization = new AppSerialization();
+    
     logger.LogInformation("running protoo WebSocketServer...");
 
     // Create the protoo WebSocket server.
-    protooWebSocketServer = new WebSocketServer(app, "/", new ());
+    protooWebSocketServer = new WebSocketServer(loggerFactory, new());
 
     // Handle connections from clients.
     protooWebSocketServer.ConnectionRequest += async (info, accept, reject) =>
@@ -275,7 +298,9 @@ void RunProtooWebSocketServer()
             return;
         }
 
-        var consumerReplicas = int.Parse(u.Query["consumerReplicas"] is var value && value != StringValues.Empty
+        var consumerReplicas = int.Parse(u.Query["consumerReplicas"] is var value
+                                         && value != StringValues.Empty
+                                         && value.ToString() is not "undefined"
             ? value.ToString()
             : "0");
 
@@ -336,28 +361,26 @@ async Task<Room> GetOrCreateRoomAsync(string roomId, int consumerReplicas)
     return room;
 }
 
-// map html
-void MapHtml()
-{
-    app.MapGet("/",
-        () => Results.File(Path.Combine(AppContext.BaseDirectory, "wwwroot", "index.html"), MediaTypeNames.Text.Html));
-    app.MapGet("/{**rest}", ([FromRoute] string rest) =>
-    {
-        var path = Path.Combine(AppContext.BaseDirectory, "wwwroot", WebUtility.HtmlDecode(rest));
-        try
-        {
-            return Results.File(path,
-                provider.TryGetContentType(rest, out var type) ? type : MediaTypeNames.Text.Plain);
-        }
-        catch (Exception ex)
-        {
-            return Results.Problem("file not found");
-        }
-    });
-}
 
 file static class HttpContextExtension
 {
     public static Room Room(this HttpContext context) =>
         context.Items["room"] as Room ?? throw new NullReferenceException("room");
+}
+
+file class AppSerialization : Serialization
+{
+    private readonly JsonSerializerOptions options;
+    public AppSerialization()
+    {
+        options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy        = JsonNamingPolicy.CamelCase
+        };
+        foreach (var converter in Mediasoup.JsonConverters) options.Converters.Add(converter);
+    }
+    public override string Serialize<T>(T instance) => JsonSerializer.Serialize(instance, options);
+
+    public override T? Deserialize<T>(string json) where T : default => JsonSerializer.Deserialize<T>(json, options);
 }

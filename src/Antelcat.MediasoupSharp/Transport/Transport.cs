@@ -12,8 +12,10 @@ using FBS.Transport;
 using Force.DeepCloner;
 using Antelcat.MediasoupSharp.Internals.Extensions;
 using Antelcat.MediasoupSharp.RtpParameters.Extensions;
+using FBS.PlainTransport;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
+using ConnectRequestT = FBS.WebRtcTransport.ConnectRequestT;
 
 namespace Antelcat.MediasoupSharp.Transport;
 

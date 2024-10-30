@@ -20,7 +20,7 @@ public static class MediasoupApplicationBuilderExtensions
         var numberOfWorkers             = mediasoupOptions.NumWorkers;
         numberOfWorkers = numberOfWorkers is null or <= 0 ? Environment.ProcessorCount : numberOfWorkers;
 
-        if(true)
+        if(false)
         {
             for(var c = 0; c < numberOfWorkers; c++)
             {
@@ -54,7 +54,7 @@ public static class MediasoupApplicationBuilderExtensions
                     for(var c = 0; c < numberOfWorkers; c++)
                     {
                         var worker = app.ApplicationServices.GetRequiredService<Worker>();
-                        worker.On("@success", async _ =>
+                        worker.On("@success", () =>
                         {
                             mediasoupServer.AddWorker(worker);
                             logger.LogInformation("Worker[{ProcessId}] create success", worker.Pid);

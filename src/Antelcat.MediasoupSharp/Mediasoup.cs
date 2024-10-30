@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
 using System.Text.Json.Serialization;
+using Antelcat.LibuvSharp;
 using Antelcat.MediasoupSharp.RtpParameters;
 using Antelcat.MediasoupSharp;
 using Antelcat.MediasoupSharp.EnhancedEvent;
@@ -34,17 +35,55 @@ public class Mediasoup
     /// </summary>
     public static EnhancedEventEmitter Observer { get; } = new();
 
-    public static Task<WorkerBase> CreateWorkerAsync(MediasoupOptions workerSettings)
+    public static async IAsyncEnumerable<WorkerBase> CreateWorkersAsync(MediasoupOptions workerSettings)
     {
-        var source = new TaskCompletionSource<WorkerBase>();
-        var worker = new Worker.Worker(workerSettings);
-        worker.On("@success", () =>
+        var num = workerSettings.NumWorkers;
+        if (num is not > 0) throw new ArgumentException("Num workers should be > 0");
+        var sources                                    = new TaskCompletionSource<WorkerBase>[num.Value];
+        for (var i = 0; i < num.Value; i++) sources[i] = new();
+        ThreadPool.QueueUserWorkItem(_ =>
+        {
+            if (!Loop.Default.Run(() =>
+                {
+                    for (var i = 0; i < num.Value; i++)
+                    {
+                        var worker = new Worker.Worker(workerSettings);
+                        worker.On("@success", async () =>
+                            {
+                                Observer.Emit("newworker", worker);
+                                await Task.Delay(1);
+                                lock (sources)
+                                {
+                                    foreach (var source in sources)
+                                    {
+                                        if (source.Task.IsCompleted) continue;
+                                        source.SetResult(worker);
+                                    }
+                                }
+                            })
+                            .On("@failure", () =>
+                            {
+                                lock (sources)
+                                {
+                                    foreach (var source in sources)
+                                    {
+                                        if (source.Task.IsCompleted) continue;
+                                        source.SetException(new Exception("Worker create failed"));
+                                    }
+                                }
+                            });
+                    }
+                }))
             {
-                Observer.Emit("newworker", worker);
-                source.SetResult(worker);
-            })
-            .On("@failure", () => source.SetException(new Exception("Worker create failed")));
-        return source.Task;
+                throw new InvalidOperationException("Loop failed");
+            }
+        });
+        foreach (var source in sources)
+        {
+#pragma warning disable VSTHRD003
+            yield return  await source.Task;
+#pragma warning restore VSTHRD003
+        }
     }
 
     /// <summary>

@@ -24,7 +24,7 @@ public static class MediasoupServiceCollectionExtensions
         services
             .AddSingleton<MediasoupOptions>(x =>
             {
-                var conf = x.GetService<IConfiguration>();
+                var conf = x.GetService<IConfiguration>()?.GetSection(nameof(MediasoupOptions)).Get<MediasoupOptions>();
                 if (conf != null) Configure(mediasoupOptions, conf);
                 configure?.Invoke(mediasoupOptions);
                 return mediasoupOptions;
@@ -35,37 +35,34 @@ public static class MediasoupServiceCollectionExtensions
         return services;
     }
 
-    private static void Configure(MediasoupOptions mediasoupOptions, IConfiguration configuration)
+    public static void Configure(MediasoupOptions defaultOptions, MediasoupOptions userOptions)
     {
-        var confSettings       = configuration.GetSection(nameof(MediasoupOptions))
-            .Get<MediasoupOptions>();
-        var confWorkerSettings          = confSettings?.WorkerSettings;
-        var confRouterSettings          = confSettings?.RouterOptions;
-        var confWebRtcServerSettings    = confSettings?.WebRtcServerOptions;
-        var confWebRtcTransportSettings = confSettings?.WebRtcTransportOptions;
-        var confPlainTransportSettings  = confSettings?.PlainTransportOptions;
+        var userWorkerSettings         = userOptions.WorkerSettings;
+        var userRouterOptions          = userOptions.RouterOptions;
+        var userWebRtcServerOptions    = userOptions.WebRtcServerOptions;
+        var userWebRtcTransportOptions = userOptions.WebRtcTransportOptions;
+        var userPlainTransportOptions  = userOptions.PlainTransportOptions;
 
-        if (confSettings != null) mediasoupOptions.NumWorkers ??= Environment.ProcessorCount;
+        defaultOptions.NumWorkers = userOptions.NumWorkers ??= Environment.ProcessorCount;
 
-        // WorkerSettings
-        if (confWorkerSettings != null)
+        // WorkerOptions
+        if (userWorkerSettings != null)
         {
-            mediasoupOptions.WorkerSettings =
-                mediasoupOptions.WorkerSettings.Apply(confWorkerSettings);
+            defaultOptions.WorkerSettings = defaultOptions.WorkerSettings!.Apply(userWorkerSettings);
         }
 
-        // RouterSettings
-        if (confRouterSettings?.MediaCodecs.IsNullOrEmpty() is false)
+        // RouterOptions
+        if (userRouterOptions?.MediaCodecs.IsNullOrEmpty() is false)
         {
-            mediasoupOptions.RouterOptions = confRouterSettings;
+            defaultOptions.RouterOptions = userRouterOptions;
 
             // Fix RtpCodecCapabilities[x].Parameters 。从配置文件反序列化时将数字转换成了字符串，而 mediasoup-worker 有严格的数据类型验证，故这里进行修正。
-            foreach (var codec in confRouterSettings.MediaCodecs.Where(static m => m.Parameters != null))
+            foreach (var codec in userRouterOptions.MediaCodecs.Where(static m => m.Parameters != null))
             {
                 foreach (var key in codec.Parameters!.Keys.ToArray())
                 {
                     var value = codec.Parameters[key];
-                    if (value != null && int.TryParse(value.ToString(), out var intValue))
+                    if (int.TryParse(value.ToString(), out var intValue))
                     {
                         codec.Parameters[key] = intValue;
                     }
@@ -73,17 +70,23 @@ public static class MediasoupServiceCollectionExtensions
             }
         }
 
-        // WebRtcServerSettings
-        if (confWebRtcServerSettings != null)
+        // WebRtcServerOptions
+        if (userWebRtcServerOptions != null)
         {
-            mediasoupOptions.WebRtcServerOptions.ListenInfos = confWebRtcServerSettings.ListenInfos;
+            defaultOptions.WebRtcServerOptions!.ListenInfos = userWebRtcServerOptions.ListenInfos
+                .Select(x =>
+                {
+                    x.Flags     ??= new();
+                    x.PortRange ??= new();
+                    return x;
+                }).ToArray();
 
             // 如果没有设置 ListenInfos 则获取本机所有的 IPv4 地址进行设置。
-            var listenInfos = mediasoupOptions.WebRtcServerOptions.ListenInfos;
+            var listenInfos = defaultOptions.WebRtcServerOptions.ListenInfos;
             if (listenInfos.IsNullOrEmpty())
             {
                 var localIPv4IpAddresses = IPAddressExtensions.GetLocalIPAddresses(AddressFamily.InterNetwork)
-                    .Where(m => !Equals(m, IPAddress.Loopback));
+                    .Where(static m => !Equals(m, IPAddress.Loopback));
 
                 var listenInfosTemp = (from ip in localIPv4IpAddresses
                     let ipString = ip.ToString()
@@ -108,10 +111,10 @@ public static class MediasoupServiceCollectionExtensions
                     Port             = m.Port,
                     Protocol         = Protocol.UDP,
                     AnnouncedAddress = m.AnnouncedAddress,
-                    Flags            = m.Flags,
-                    PortRange        = m.PortRange
+                    Flags            = m.Flags ?? new(),
+                    PortRange        = m.PortRange ?? new()
                 }));
-                mediasoupOptions.WebRtcServerOptions.ListenInfos = listenInfosTemp.ToArray();
+                defaultOptions.WebRtcServerOptions.ListenInfos = listenInfosTemp.ToArray();
             }
             else
             {
@@ -132,14 +135,13 @@ public static class MediasoupServiceCollectionExtensions
             }
         }
 
-        // WebRtcTransportSettings
-        if (confWebRtcTransportSettings != null)
+        // WebRtcTransportOptions
+        if (userWebRtcTransportOptions != null)
         {
-            mediasoupOptions.WebRtcTransportOptions =
-                mediasoupOptions.WebRtcTransportOptions.Apply(confWebRtcTransportSettings); 
+            defaultOptions.WebRtcTransportOptions = defaultOptions.WebRtcTransportOptions!.Apply(userWebRtcTransportOptions);
 
             // 如果没有设置 ListenInfos 则获取本机所有的 IPv4 地址进行设置。
-            var listenAddresses = mediasoupOptions.WebRtcTransportOptions.ListenInfos;
+            var listenAddresses = defaultOptions.WebRtcTransportOptions.ListenInfos;
             if (listenAddresses.IsNullOrEmpty())
             {
                 var localIPv4IpAddresses = IPAddressExtensions.GetLocalIPAddresses(AddressFamily.InterNetwork)
@@ -160,7 +162,7 @@ public static class MediasoupServiceCollectionExtensions
                     throw new ArgumentException("无法获取本机 IPv4 配置 WebRtcTransport。");
                 }
                 
-                mediasoupOptions.WebRtcTransportOptions.ListenInfos = listenAddresses;
+                defaultOptions.WebRtcTransportOptions.ListenInfos = listenAddresses;
             }
             else
             {
@@ -181,15 +183,15 @@ public static class MediasoupServiceCollectionExtensions
             }
         }
 
-        // PlainTransportSettings
-        if (confPlainTransportSettings != null)
+        // PlainTransportOptions
+        if (userPlainTransportOptions != null)
         {
-            mediasoupOptions.PlainTransportOptions = mediasoupOptions.PlainTransportOptions?.Apply(confPlainTransportSettings);
+            defaultOptions.PlainTransportOptions = defaultOptions.PlainTransportOptions?.Apply(userPlainTransportOptions);
 
             var localIPv4IpAddress = IPAddressExtensions.GetLocalIPv4IPAddress()?.ToString() ??
                                      throw new ArgumentException("无法获取本机 IPv4 配置 PlainTransport。");
 
-            var listenIp = mediasoupOptions.PlainTransportOptions?.ListenInfo;
+            var listenIp = defaultOptions.PlainTransportOptions?.ListenInfo;
             if (listenIp == null)
             {
                 listenIp = new ListenInfoT
@@ -199,7 +201,7 @@ public static class MediasoupServiceCollectionExtensions
                     Flags            = new(),
                     PortRange        = new()
                 };
-                mediasoupOptions.PlainTransportOptions.ListenInfo = listenIp;
+                defaultOptions.PlainTransportOptions.ListenInfo = listenIp;
             }
             else if (listenIp.AnnouncedAddress.IsNullOrWhiteSpace())
             {

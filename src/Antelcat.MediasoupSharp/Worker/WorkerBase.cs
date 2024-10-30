@@ -20,12 +20,12 @@ public abstract class WorkerBase : EnhancedEvent.EnhancedEventEmitter, IWorker
     /// <summary>
     /// Logger.
     /// </summary>
-    protected readonly ILogger<Worker> Logger;
+    protected readonly ILogger<Worker> Logger = new Logger.Logger<Worker>();
 
     /// <summary>
     /// Channel instance.
     /// </summary>
-    protected IChannel Channel;
+    protected IChannel Channel { get; set; }
 
     /// <summary>
     /// Router set.
@@ -83,8 +83,6 @@ public abstract class WorkerBase : EnhancedEvent.EnhancedEventEmitter, IWorker
     /// </summary>
     protected WorkerBase( MediasoupOptions mediasoupOptions)
     {
-        Logger = new Logger.Logger<Worker>();
-
         var workerSettings = mediasoupOptions.WorkerSettings;
 
         AppData = workerSettings?.AppData ?? new();

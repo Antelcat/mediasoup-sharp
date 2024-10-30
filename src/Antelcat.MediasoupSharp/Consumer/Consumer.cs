@@ -573,7 +573,7 @@ public class Consumer : EnhancedEvent.EnhancedEventEmitter
             case Event.CONSUMER_LAYERS_CHANGE:
             {
                 var layersChangeNotification = notification.BodyAsConsumer_LayersChangeNotification();
-                var currentLayers            = layersChangeNotification.Layers!.Value.UnPack();
+                var currentLayers            = layersChangeNotification.Layers?.UnPack();
                 CurrentLayers = currentLayers;
 
                 Emit("layerschange", CurrentLayers);

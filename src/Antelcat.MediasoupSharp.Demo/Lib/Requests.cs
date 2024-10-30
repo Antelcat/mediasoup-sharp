@@ -32,7 +32,7 @@ public record CreateWebRtcTransportRequest(
 [Serializable]
 public record ConnectWebRtcTransportRequest(
     string TransportId,
-    DtlsParameters DtlsParameters
+    DtlsParametersT DtlsParameters
 );
 
 [Serializable]

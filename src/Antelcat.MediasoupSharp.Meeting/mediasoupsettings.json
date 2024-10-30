@@ -29,7 +29,7 @@
             "RtcMaxPort": 29999
         },
         "RouterSettings": {
-            "RtpCodecCapabilities": [
+            "MediaCodecs": [
                 {
                     "Kind": "audio",
                     "MimeType": "audio/opus",
