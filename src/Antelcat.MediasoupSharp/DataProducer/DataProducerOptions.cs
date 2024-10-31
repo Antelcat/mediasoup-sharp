@@ -12,7 +12,7 @@ public class DataProducerOptions
     /// <summary>
     /// SCTP parameters defining how the endpoint is sending the data.
     /// </summary>
-    public SctpStreamParametersT? SctpStreamParameters { get; set; }
+    public SctpParameters.SctpStreamParameters? SctpStreamParameters { get; set; }
 
     /// <summary>
     /// A label which can be used to distinguish this DataChannel from others.

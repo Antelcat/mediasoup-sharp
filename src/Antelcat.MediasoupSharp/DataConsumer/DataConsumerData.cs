@@ -14,7 +14,7 @@ public class DataConsumerData
     /// <summary>
     /// SCTP stream parameters.
     /// </summary>
-    public SctpStreamParametersT? SctpStreamParameters { get; init; }
+    public SctpParameters.SctpStreamParameters? SctpStreamParameters { get; init; }
 
     /// <summary>
     /// DataChannel label.

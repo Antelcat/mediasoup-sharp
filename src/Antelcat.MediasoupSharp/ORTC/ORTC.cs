@@ -470,13 +470,7 @@ public static class Ortc
     /// </summary>
     public static void ValidateSctpStreamParameters(SctpStreamParametersT parameters)
     {
-        if (parameters == null)
-        {
-            throw new ArgumentNullException(nameof(parameters));
-        }
-
-        // streamId is mandatory.
-        // 在 Node.js 实现中，判断了 streamId 的数据类型。在强类型语言中不需要。
+        ArgumentNullException.ThrowIfNull(parameters);
 
         // ordered is optional.
         var orderedGiven = true;
@@ -492,23 +486,19 @@ public static class Ortc
         // maxRetransmits is optional.
         // 在 Node.js 实现中，判断了 maxRetransmits 的数据类型。在强类型语言中不需要。
 
-        if (parameters.MaxPacketLifeTime.HasValue && parameters.MaxRetransmits.HasValue)
+        if (parameters is { MaxPacketLifeTime: not null, MaxRetransmits: not null })
         {
             throw new ArgumentException("cannot provide both maxPacketLifeTime and maxRetransmits");
         }
 
-        if (orderedGiven             &&
-            parameters.Ordered.Value &&
-            (parameters.MaxPacketLifeTime.HasValue || parameters.MaxRetransmits.HasValue)
-        )
+        parameters.Ordered = orderedGiven switch
         {
-            throw new ArgumentException("cannot be ordered with maxPacketLifeTime or maxRetransmits");
-        }
-
-        if (!orderedGiven && (parameters.MaxPacketLifeTime.HasValue || parameters.MaxRetransmits.HasValue))
-        {
-            parameters.Ordered = false;
-        }
+            true when parameters.Ordered.Value &&
+                      (parameters.MaxPacketLifeTime.HasValue || parameters.MaxRetransmits.HasValue) => throw
+                new ArgumentException("cannot be ordered with maxPacketLifeTime or maxRetransmits"),
+            false when parameters.MaxPacketLifeTime.HasValue || parameters.MaxRetransmits.HasValue => false,
+            _                                                                                      => parameters.Ordered
+        };
     }
 
     /// <summary>

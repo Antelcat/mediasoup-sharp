@@ -316,7 +316,8 @@ public abstract class ChannelBase : EnhancedEventEmitter, IChannel
             // 'W' (a warn log).
             case 'W':
             {
-                Logger.LogWarning("Worker[{WorkerId}] {Flag}", WorkerId, logData[1..]);
+                //TODO: release it when time has come
+                //Logger.LogWarning("Worker[{WorkerId}] {Flag}", WorkerId, logData[1..]);
 
                 break;
             }

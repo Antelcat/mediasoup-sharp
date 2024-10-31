@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace Antelcat.MediasoupSharp.Demo.Extensions;
 
@@ -19,4 +20,8 @@ internal static class TaskExtensions
     public static void Catch(this Task task, Func<Task> func) =>
         task.ContinueWith(t => func(), TaskContinuationOptions.OnlyOnFaulted);
 #pragma warning restore VSTHRD200
+
+    public static void AddTo(this Task task, ICollection<Task> tasks) => tasks.Add(task);
+
+    public static TaskAwaiter GetAwaiter(this IEnumerable<Task> tasks) => Task.WhenAll(tasks).GetAwaiter();
 }

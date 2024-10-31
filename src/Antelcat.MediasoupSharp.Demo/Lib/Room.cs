@@ -816,14 +816,16 @@ public class Room : EventEmitter
 				// Mark the new Peer as joined.
 				peer.Data().Joined = true;
 
+				List<Task> tasks = [];
+
 				foreach (var joinedPeer in joinedPeers)
 				{
 					// Create Consumers for existing Producers.
-					foreach (var producer in joinedPeer.Data.Producers.Values)
+					foreach (var producer in joinedPeer.Data.Producers.Values.ToArray())
 					{
-						await CreateConsumerAsync(
+						CreateConsumerAsync(
 							peer, joinedPeer.Id, producer
-						);
+						).AddTo(tasks);
 					}
 
 					// Create DataConsumers for existing DataProducers.
@@ -832,16 +834,16 @@ public class Room : EventEmitter
 						if (dataProducer.Data.Label == nameof(bot))
 							continue;
 
-						await CreateDataConsumerAsync(
+						CreateDataConsumerAsync(
 							peer,
 							joinedPeer.Id,
 							dataProducer
-						);
+						).AddTo(tasks);
 					}
 				}
 
 				// Create DataConsumers for bot DataProducer.
-				await CreateDataConsumerAsync(peer, null, bot.DataProducer);
+				CreateDataConsumerAsync(peer, null, bot.DataProducer).AddTo(tasks);
 
 				// Notify the new Peer to all other Peers.
 				foreach (var otherPeer in GetJoinedPeers(peer))
@@ -856,6 +858,7 @@ public class Room : EventEmitter
 						.Catch(() => { });
 				}
 
+				await tasks;
 				break;
 			}
 
@@ -1522,7 +1525,7 @@ public class Room : EventEmitter
 	private IEnumerable<Peer> GetJoinedPeers(Peer? excludePeer = null) =>
 		protooRoom
 			.Peers
-			.Where(x => x.Data().Joined && x != excludePeer);
+			.Where(x => x.Data().Joined && (excludePeer is null || x != excludePeer));
 
 	private async Task CreateConsumerAsync(Peer consumerPeer, string producerPeerId, Producer.Producer producer)
 	{
@@ -1627,7 +1630,7 @@ public class Room : EventEmitter
 							.Catch(() => { });
 					});
 
-					consumer.On("layerschange", (ConsumerLayersT layers) =>
+					consumer.On("layerschange", (ConsumerLayersT? layers) =>
 					{
 						consumerPeer.NotifyAsync(
 								"consumerLayersChanged", new
@@ -1655,7 +1658,7 @@ public class Room : EventEmitter
 					try
 					{
 						await consumerPeer.RequestAsync(
-							"newConsumer", new
+							"newConsumer", new 
 							{
 								peerId         = producerPeerId,
 								producerId     = producer.Id,
@@ -1762,16 +1765,16 @@ public class Room : EventEmitter
 		try
 		{
 			await dataConsumerPeer.RequestAsync(
-				"newDataConsumer", new
+				"newDataConsumer", new NewDataConsumerRequest(
+					dataProducer.Id,
+					dataConsumer.Id,
+					dataConsumer.Data.SctpStreamParameters,
+					dataConsumer.Data.Label,
+					dataConsumer.Data.Protocol,
+					dataProducer.AppData)
 				{
 					// This is null for bot DataProducer.
-					peerId               = dataProducerPeerId,
-					dataProducerId       = dataProducer.Id,
-					id                   = dataConsumer.Id,
-					sctpStreamParameters = dataConsumer.Data.SctpStreamParameters,
-					label                = dataConsumer.Data.Label,
-					protocol             = dataConsumer.Data.Protocol,
-					appData              = dataProducer.AppData
+					PeerId               = dataProducerPeerId,
 				});
 		}
 		catch (Exception ex)

@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Mime;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Antelcat.AspNetCore.ProtooSharp;
 using Antelcat.MediasoupSharp;
 using Antelcat.MediasoupSharp.Demo;
@@ -366,9 +367,6 @@ file static class HttpContextExtension
 {
     public static Room Room(this HttpContext context) =>
         context.Items["room"] as Room ?? throw new NullReferenceException("room");
-
-    [UnsafeAccessor(UnsafeAccessorKind.Method)]
-    public static extern Task OnRequest(this WebSocketServer server, HttpContext context);
 }
 
 file class AppSerialization : Serialization
@@ -379,7 +377,8 @@ file class AppSerialization : Serialization
         options = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy        = JsonNamingPolicy.CamelCase
+            PropertyNamingPolicy        = JsonNamingPolicy.CamelCase,
+            DefaultIgnoreCondition      = JsonIgnoreCondition.WhenWritingNull
         };
         foreach (var converter in Mediasoup.JsonConverters) options.Converters.Add(converter);
     }

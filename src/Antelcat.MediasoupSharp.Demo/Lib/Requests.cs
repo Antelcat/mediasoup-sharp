@@ -1,9 +1,11 @@
-﻿using Antelcat.MediasoupSharp.RtpParameters;
+﻿using System.Text.Json.Serialization;
+using Antelcat.MediasoupSharp.RtpParameters;
 using Antelcat.MediasoupSharp.SctpParameters;
 using FBS.Consumer;
 using FBS.RtpParameters;
 using FBS.SctpParameters;
 using FBS.WebRtcTransport;
+using SctpStreamParameters = Antelcat.MediasoupSharp.SctpParameters.SctpStreamParameters;
 
 namespace Antelcat.MediasoupSharp.Demo.Lib;
 
@@ -133,4 +135,18 @@ public record CreateBroadcastConsumerResponse(
     FBS.RtpParameters.Type Type);
 
 public record IdWithStreamId(string Id, ushort StreamId);
+
+public record NewDataConsumerRequest(
+    string DataProducerId,
+    string Id,
+    SctpStreamParameters? SctpStreamParameters,
+    string Label,
+    string Protocol,
+    Dictionary<string, object> AppData
+)
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? PeerId { get; set; }
+}
+
 #endregion
