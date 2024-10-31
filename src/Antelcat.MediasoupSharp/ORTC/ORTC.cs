@@ -505,12 +505,9 @@ public static class Ortc
     /// Generate RTP capabilities for the Router based on the given media codecs and
     /// mediasoup supported RTP capabilities.
     /// </summary>
-    public static RtpCapabilities GenerateRouterRtpCapabilities(RtpCodecCapability[] mediaCodecs)
+    public static RtpCapabilities GenerateRouterRtpCapabilities(RtpCodecCapability[]? mediaCodecs)
     {
-        if (mediaCodecs == null)
-        {
-            throw new ArgumentNullException(nameof(mediaCodecs));
-        }
+        ArgumentNullException.ThrowIfNull(mediaCodecs);
 
         // Normalize supported RTP capabilities.
         ValidateRtpCapabilities(RtpCapabilities.SupportedRtpCapabilities);

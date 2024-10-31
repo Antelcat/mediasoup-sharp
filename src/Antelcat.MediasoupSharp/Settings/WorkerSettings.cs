@@ -2,6 +2,7 @@
 
 public record WorkerSettings
 {
+    public string?         WorkerFile          { get; set; }
     public string?         DtlsCertificateFile { get; set; }
     public string?         DtlsPrivateKeyFile  { get; set; }
     public WorkerLogLevel? LogLevel            { get; set; } = WorkerLogLevel.Warn;

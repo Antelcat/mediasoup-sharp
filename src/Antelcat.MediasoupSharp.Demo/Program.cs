@@ -18,7 +18,7 @@ using Microsoft.Extensions.Primitives;
 using Microsoft.VisualStudio.Threading;
 using Room = Antelcat.MediasoupSharp.Demo.Lib.Room;
 
-List<WorkerBase>                 mediasoupWorkers       = [];
+List<Worker>                 mediasoupWorkers       = [];
 Dictionary<string, Room>         rooms                  = [];
 var                              nextMediasoupWorkerIdx = 0;
 WebSocketServer                  protooWebSocketServer;
@@ -332,7 +332,7 @@ void RunProtooWebSocketServer()
 }
 
 //Get next mediasoup Worker.
-WorkerBase GetMediasoupWorker()
+Worker GetMediasoupWorker()
 {
     var worker = mediasoupWorkers[nextMediasoupWorkerIdx];
 
@@ -352,7 +352,7 @@ async Task<Room> GetOrCreateRoomAsync(string roomId, int consumerReplicas)
     var mediasoupWorker = GetMediasoupWorker();
 
     room = await Room.CreateAsync(loggerFactory, options,
-        (mediasoupWorker as Worker)!,
+        (mediasoupWorker as WorkerProcess)!,
         roomId,
         consumerReplicas);
 

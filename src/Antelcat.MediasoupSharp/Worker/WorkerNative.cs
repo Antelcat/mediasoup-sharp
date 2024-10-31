@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Antelcat.MediasoupSharp.Worker;
 
-public class WorkerNative : WorkerBase
+public class WorkerNative : Worker
 {
     private readonly string[] argv;
 
@@ -15,9 +15,28 @@ public class WorkerNative : WorkerBase
 
     private readonly IntPtr channelPtr;
 
-    public WorkerNative(MediasoupOptions mediasoupOptions)
-        : base(mediasoupOptions)
+    public WorkerNative(MediasoupOptions mediasoupOptions) : base(mediasoupOptions)
     {
+        NativeLibrary.SetDllImportResolver(typeof(LibMediasoupWorkerNative).Assembly,(name, assembly, path) =>
+        {
+            var file = WorkerFile;
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && Path.GetExtension(file) != ".exe")
+            {
+                file += ".exe";
+            }
+
+            if (!Path.IsPathRooted(file))
+            {
+                file = Path.GetFullPath(file, AppContext.BaseDirectory);
+            }
+            if (!File.Exists(file))
+            {
+                throw new FileNotFoundException($"could not file worker:{file}");
+            }
+
+            return NativeLibrary.Load(file);
+        });
+        
         var workerSettings = mediasoupOptions.WorkerSettings!;
         var args = new List<string?>
         {
@@ -37,6 +56,7 @@ public class WorkerNative : WorkerBase
             }
         }
 
+#pragma warning disable CS0618 // 类型或成员已过时
         if (workerSettings.RtcMinPort.HasValue)
         {
             args.Add($"--rtcMinPort={workerSettings.RtcMinPort}");
@@ -46,6 +66,7 @@ public class WorkerNative : WorkerBase
         {
             args.Add($"--rtcMaxPort={workerSettings.RtcMaxPort}");
         }
+#pragma warning restore CS0618 // 类型或成员已过时
 
         if (!workerSettings.DtlsCertificateFile.IsNullOrWhiteSpace())
         {
@@ -92,20 +113,20 @@ public class WorkerNative : WorkerBase
 
         void OnExit()
         {
-            if (workerRunResult == 42)
+            switch (workerRunResult)
             {
-                Logger.LogError("OnExit() | Worker run failed due to wrong settings");
-                Emit("@failure", new Exception("Worker run failed due to wrong settings"));
-            }
-            else if (workerRunResult == 0)
-            {
-                Logger.LogError("OnExit() | Worker died unexpectedly");
-                Emit("died", new Exception("Worker died unexpectedly"));
-            }
-            else
-            {
-                Logger.LogError("OnExit() | Worker run failed unexpectedly");
-                Emit("@failure", new Exception("Worker run failed unexpectedly"));
+                case 42:
+                    Logger.LogError("OnExit() | Worker run failed due to wrong settings");
+                    Emit("@failure", new Exception("Worker run failed due to wrong settings"));
+                    break;
+                case 0:
+                    Logger.LogError("OnExit() | Worker died unexpectedly");
+                    Emit("died", new Exception("Worker died unexpectedly"));
+                    break;
+                default:
+                    Logger.LogError("OnExit() | Worker run failed unexpectedly");
+                    Emit("@failure", new Exception("Worker run failed unexpectedly"));
+                    break;
             }
         }
 
@@ -114,10 +135,7 @@ public class WorkerNative : WorkerBase
 
     public override int Pid => throw new NotSupportedException();
 
-    public override Task CloseAsync()
-    {
-        throw new NotImplementedException();
-    }
+    public override Task CloseAsync() => throw new NotSupportedException();
 
     protected override void DestroyUnmanaged()
     {

@@ -4,7 +4,7 @@ public class Interactive
 {
 	private static readonly Mediasoup mediasoup = new();
 
-	private static Worker.Worker?             worker;
+	private static Worker.WorkerProcess?             worker;
 	private static WebRtcServer.WebRtcServer? webRtcServer;
 	private static Router.Router?             router;
 	private static Transport.Transport?       transport;
@@ -13,7 +13,7 @@ public class Interactive
 	private static DataProducer.DataProducer? dataProducer;
 	private static DataConsumer.DataConsumer? dataConsumer;
 
-	private static readonly Dictionary<int, Worker.Worker>                workers       = [];
+	private static readonly Dictionary<int, Worker.WorkerProcess>                workers       = [];
 	private static readonly Dictionary<string, Router.Router>             routers       = [];
 	private static readonly Dictionary<string, WebRtcServer.WebRtcServer> webRtcServers = [];
 	private static readonly Dictionary<string, Transport.Transport>       transports    = [];
@@ -24,7 +24,7 @@ public class Interactive
 
 	private static void RunMediasoupObserver()
 	{
-		Mediasoup.Observer.On("newworker", (Worker.Worker worker) =>
+		Mediasoup.Observer.On("newworker", (Worker.WorkerProcess worker) =>
 		{
 			// Store the latest worker in a global variable.
 			Interactive.worker = worker;

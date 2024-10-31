@@ -64,7 +64,7 @@ public class Room : EventEmitter
 	public static async Task<Room> CreateAsync(
 		ILoggerFactory loggerFactory,
 		MediasoupOptions options,
-		Worker.Worker mediasoupWorker,
+		Worker.WorkerProcess mediasoupWorkerProcess,
 		string roomId,
 		int consumerReplicas)
 	{
@@ -75,7 +75,7 @@ public class Room : EventEmitter
 		var mediaCodecs = options.RouterOptions!.MediaCodecs;
 
 		// Create a mediasoup Router.
-		var mediasoupRouter = await mediasoupWorker.CreateRouterAsync(new()
+		var mediasoupRouter = await mediasoupWorkerProcess.CreateRouterAsync(new()
 		{
 			MediaCodecs = mediaCodecs
 		});
@@ -97,7 +97,7 @@ public class Room : EventEmitter
 			loggerFactory.CreateLogger<Room>(),
 			roomId,
 			protooRoom,
-			webRtcServer: mediasoupWorker.AppData[nameof(webRtcServer)] as WebRtcServer.WebRtcServer ??
+			webRtcServer: mediasoupWorkerProcess.AppData[nameof(webRtcServer)] as WebRtcServer.WebRtcServer ??
 			              throw new ArgumentNullException(),
 			mediasoupRouter,
 			audioLevelObserver,

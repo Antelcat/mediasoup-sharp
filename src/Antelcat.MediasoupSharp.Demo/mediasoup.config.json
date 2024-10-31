@@ -1,6 +1,7 @@
 {
 	"numWorkers": 1,
 	"workerSettings": {
+		"workerFile" : null,
 		"dtlsCertificateFile": null,
 		"dtlsPrivateKeyFile": null,
 		"logLevel": "debug",

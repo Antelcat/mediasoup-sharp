@@ -30,7 +30,7 @@ public static class MediasoupServiceCollectionExtensions
                 return mediasoupOptions;
             })
             .AddSingleton<Mediasoup>()
-            .AddTransient<Worker>()
+            .AddTransient<WorkerProcess>()
             .AddTransient<WorkerNative>();
         return services;
     }
