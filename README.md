@@ -1,5 +1,7 @@
 # mediasoup-sharp
 
+Cutting Edge WebRTC Video Conferencing ported to .NET from [mediasoup](https://github.com/versatica/mediasoup/)
+
 ## Example
 
 ![Example](./docs/Sample.png)
