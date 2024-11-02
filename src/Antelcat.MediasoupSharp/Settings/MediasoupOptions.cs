@@ -52,7 +52,7 @@ public record MediasoupOptions
                     Kind      = MediaKind.VIDEO,
                     MimeType  = "video/VP8",
                     ClockRate = 90000,
-                    Parameters = new Dictionary<string, object>
+                    Parameters = new()
                     {
                         { "x-google-start-bitrate", 1000 }
                     }
@@ -62,7 +62,7 @@ public record MediasoupOptions
                     Kind      = MediaKind.VIDEO,
                     MimeType  = "video/VP9",
                     ClockRate = 90000,
-                    Parameters = new Dictionary<string, object>
+                    Parameters = new()
                     {
                         { "profile-id", 2 },
                         { "x-google-start-bitrate", 1000 }
@@ -73,7 +73,7 @@ public record MediasoupOptions
                     Kind      = MediaKind.VIDEO,
                     MimeType  = "video/h264",
                     ClockRate = 90000,
-                    Parameters = new Dictionary<string, object>
+                    Parameters = new()
                     {
                         { "packetization-mode", 1 },
                         { "profile-level-id", "4d0032" },
@@ -86,7 +86,7 @@ public record MediasoupOptions
                     Kind      = MediaKind.VIDEO,
                     MimeType  = "video/h264",
                     ClockRate = 90000,
-                    Parameters = new Dictionary<string, object>
+                    Parameters = new()
                     {
                         { "packetization-mode", 1 },
                         { "profile-level-id", "42e01f" },

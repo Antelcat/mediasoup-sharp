@@ -19,7 +19,7 @@ public static class MediasoupApplicationBuilderExtensions
         var mediasoupOptions            = app.ApplicationServices.GetRequiredService<MediasoupOptions>();
         var defaultWebRtcServerSettings = mediasoupOptions.WebRtcServerOptions;
         var mediasoupServer             = app.ApplicationServices.GetRequiredService<Mediasoup>();
-        var numberOfWorkers             = mediasoupOptions.NumWorkers;
+        var numberOfWorkers = mediasoupOptions.NumWorkers;
         numberOfWorkers = numberOfWorkers is null or <= 0 ? Environment.ProcessorCount : numberOfWorkers;
        
         ThreadPool.QueueUserWorkItem(_ =>
@@ -43,7 +43,7 @@ public static class MediasoupApplicationBuilderExtensions
     private static Task<WebRtcServer> CreateWebRtcServerAsync(Worker worker, ushort portIncrement, WebRtcServerOptions defaultWebRtcServerSettings)
     {
         var webRtcServerSettings = defaultWebRtcServerSettings.DeepClone();
-        var listenInfos          = webRtcServerSettings.ListenInfos!;
+        var listenInfos          = webRtcServerSettings.ListenInfos;
         foreach(var listenInfo in listenInfos)
         {
             if(listenInfo.Port != 0)
