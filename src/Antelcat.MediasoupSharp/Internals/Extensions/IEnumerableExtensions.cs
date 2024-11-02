@@ -52,8 +52,9 @@ internal static class EnumerableExtensions
                     return false;
                 }
 
-                if ((value == null && kvp.Value != null) || (value != null && kvp.Value == null) ||
-                    (value != null && kvp.Value != null                    && !value.Equals(kvp.Value)))
+                if ((value    == null && kvp.Value != null)
+                    || (value != null && kvp.Value == null)
+                    || (value != null && kvp.Value != null && !value.Equals(kvp.Value)))
                 {
                     return false;
                 }

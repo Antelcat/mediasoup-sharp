@@ -34,5 +34,5 @@ public class RtpHeaderExtensionParameters
     /// <summary>
     /// Configuration parameters for the header extension.
     /// </summary>
-    public IDictionary<string, object>? Parameters { get; set; }
+    public Dictionary<string, object?>? Parameters { get; set; }
 }

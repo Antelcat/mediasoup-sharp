@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Mime;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Antelcat.AspNetCore.ProtooSharp;
@@ -11,14 +10,13 @@ using Antelcat.MediasoupSharp.Demo.Lib;
 using Antelcat.MediasoupSharp.Logger;
 using Antelcat.MediasoupSharp.Settings;
 using Antelcat.MediasoupSharp.Worker;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Primitives;
-using Microsoft.VisualStudio.Threading;
 using Room = Antelcat.MediasoupSharp.Demo.Lib.Room;
 
-List<Worker>                 mediasoupWorkers       = [];
+
+List<Worker>                     mediasoupWorkers       = [];
 Dictionary<string, Room>         rooms                  = [];
 var                              nextMediasoupWorkerIdx = 0;
 WebSocketServer                  protooWebSocketServer;
@@ -41,8 +39,9 @@ var jsonSerializerOptions = new JsonSerializerOptions
 };
 foreach (var converter in Mediasoup.JsonConverters)
 {
-    jsonSerializerOptions.Converters.Add(converter); 
+    jsonSerializerOptions.Converters.Add(converter);
 }
+
 var options = JsonSerializer.Deserialize<MediasoupOptions>(
     File.ReadAllText(Path.Combine(current, "mediasoup.config.json")), jsonSerializerOptions)!;
 MediasoupServiceCollectionExtensions.Configure(MediasoupOptions.Default, options);
@@ -70,10 +69,10 @@ async Task Run()
 
     // Run a mediasoup Worker.
     await RunMediasoupWorkersAsync();
-    
+
     // Run a protoo WebSocketServer.
     RunProtooWebSocketServer();
-    
+
     // Create Express app.
     CreateExpressApp();
 }
@@ -98,11 +97,11 @@ async Task RunMediasoupWorkersAsync()
         mediasoupWorkers.Add(worker);
 
         if (!useWebRtcServer) continue;
-        
+
         // Each mediasoup Worker will run its own WebRtcServer, so those cannot
         // share the same listening ports. Hence we increase the value in config.js
         // for each Worker.
-        var webRtcServerOptions = options.WebRtcServerOptions with { };
+        var webRtcServerOptions = options.WebRtcServerOptions! with { };
         var portIncrement       = mediasoupWorkers.Count - 1;
 
         foreach (var listenInfo in webRtcServerOptions.ListenInfos)
@@ -238,7 +237,7 @@ void CreateExpressApp()
                     appData);
             return data;
         }).AddEndpointFilter(RoomFilter);
-    
+
     // Error handler.
     app.Use(async (context, func) =>
     {
@@ -251,7 +250,7 @@ void CreateExpressApp()
             return;
         }
     });
-    
+
     app.Map("/", async (HttpContext context) =>
     {
         if (!context.WebSockets.IsWebSocketRequest)
@@ -263,7 +262,7 @@ void CreateExpressApp()
         await protooWebSocketServer.OnRequest(context);
         return Results.Ok();
     }).AddEndpointFilter(RoomFilter);
-    
+
     app.MapGet("/{**rest}", ([FromRoute] string rest) =>
     {
         var path = Path.Combine(AppContext.BaseDirectory, "wwwroot", WebUtility.HtmlDecode(rest));
@@ -278,7 +277,7 @@ void CreateExpressApp()
 void RunProtooWebSocketServer()
 {
     Serialization.GlobalSerialization = new AppSerialization();
-    
+
     logger.LogInformation("running protoo WebSocketServer...");
 
     // Create the protoo WebSocket server.
@@ -346,7 +345,7 @@ Worker GetMediasoupWorker()
 async Task<Room> GetOrCreateRoomAsync(string roomId, int consumerReplicas)
 {
     if (rooms.TryGetValue(roomId, out var room)) return room;
-    
+
     logger.LogInformation("creating a new Room [{RoomId}]", roomId);
 
     var mediasoupWorker = GetMediasoupWorker();
@@ -358,7 +357,7 @@ async Task<Room> GetOrCreateRoomAsync(string roomId, int consumerReplicas)
 
     rooms.Add(roomId, room);
     room.On("close", () => rooms.Remove(roomId));
-    
+
     return room;
 }
 
@@ -372,6 +371,7 @@ file static class HttpContextExtension
 file class AppSerialization : Serialization
 {
     private readonly JsonSerializerOptions options;
+
     public AppSerialization()
     {
         options = new JsonSerializerOptions
@@ -382,6 +382,7 @@ file class AppSerialization : Serialization
         };
         foreach (var converter in Mediasoup.JsonConverters) options.Converters.Add(converter);
     }
+
     public override string Serialize<T>(T instance) => JsonSerializer.Serialize(instance, options);
 
     public override T? Deserialize<T>(string json) where T : default => JsonSerializer.Deserialize<T>(json, options);

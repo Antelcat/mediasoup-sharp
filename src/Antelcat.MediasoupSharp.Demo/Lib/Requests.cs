@@ -12,14 +12,10 @@ namespace Antelcat.MediasoupSharp.Demo.Lib;
 
 #region Payloads
 
-public record HasId(string Id);
-
-public record Device(string Flag, string Name, string Version);
-
 [Serializable]
 public record JoinRequest(
     string DisplayName,
-    Device Device,
+    DeviceR Device,
     RtpCapabilities RtpCapabilities,
     SctpCapabilities SctpCapabilities);
 	
@@ -99,19 +95,10 @@ public record ApplyNetworkThrottleRequest(
 [Serializable]
 public record ResetNetworkThrottleRequest(bool? Secret);
 
-[Serializable]
-public record PeerProducer(string Id, MediaKind Kind);
-
-[Serializable]
-public record PeerInfo(string Id, string DisplayName, Device Device, List<PeerProducer> Producers);
-
-[Serializable]
-public record PeerInfos(List<PeerInfo> Peers);
-
 public record CreateBroadcasterRequest(
     string Id,
     string DisplayName,
-    Device Device,
+    DeviceR Device,
     RtpCapabilities? RtpCapabilities);
 
 public record CreateBroadcastTransport(
@@ -126,27 +113,5 @@ public record ConnectBroadcasterTransportRequest(DtlsParameters DtlsParameters);
 public record CreateBroadcasterProducerRequest(
     MediaKind Kind,
     RtpParameters.RtpParameters RtpParameters);
-
-public record CreateBroadcastConsumerResponse(
-    string Id,
-    string ProducerId,
-    MediaKind Kind,
-    RtpParameters.RtpParameters RtpParameters,
-    FBS.RtpParameters.Type Type);
-
-public record IdWithStreamId(string Id, ushort StreamId);
-
-public record NewDataConsumerRequest(
-    string DataProducerId,
-    string Id,
-    SctpStreamParameters? SctpStreamParameters,
-    string Label,
-    string Protocol,
-    Dictionary<string, object> AppData
-)
-{
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? PeerId { get; set; }
-}
 
 #endregion

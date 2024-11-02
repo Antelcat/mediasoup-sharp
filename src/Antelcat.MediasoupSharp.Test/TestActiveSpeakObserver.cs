@@ -1,4 +1,5 @@
-﻿using FBS.RtpParameters;
+﻿using System.Runtime.Serialization.Formatters.Binary;
+using FBS.RtpParameters;
 using Antelcat.MediasoupSharp.RtpParameters;
 
 namespace Antelcat.MediasoupSharp.Test;
@@ -25,7 +26,6 @@ public class TestActiveSpeakObserver
     [SetUp]
     public async Task Setup()
     {
-      
     }
 
     [Test]

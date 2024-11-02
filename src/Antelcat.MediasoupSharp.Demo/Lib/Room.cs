@@ -294,10 +294,10 @@ public class Room : EventEmitter
 	 * @type {Object} [device] - Additional info with name, version and flags fields.
 	 * @type {RTCRtpCapabilities} [rtpCapabilities] - Device RTP capabilities.
 	 */
-	public async Task<PeerInfos> CreateBroadcasterAsync(CreateBroadcasterRequest request)
+	internal async Task<PeerInfosR> CreateBroadcasterAsync(CreateBroadcasterRequest request)
 	{
 		var (id, displayName, device, rtpCapabilities) = request;
-		if (device.Name is not { } name)
+		if (device.Name is not string name)
 		{
 			throw new ArgumentException("missing body.device.name");
 		}
@@ -310,8 +310,13 @@ public class Room : EventEmitter
 			Id = id,
 			Data = new BroadcasterData
 			{
-				DisplayName     = displayName,
-				Device          = new("broadcaster", name, device.Version),
+				DisplayName = displayName,
+				Device = new DeviceR
+				{
+					Flag    = "broadcaster",
+					Name    = name,
+					Version = device.Version
+				},
 				RtpCapabilities = rtpCapabilities,
 				Transports      = [],
 				Producers       = [],
@@ -328,17 +333,17 @@ public class Room : EventEmitter
 		foreach (var otherPeer in GetJoinedPeers())
 		{
 			otherPeer.NotifyAsync(
-					"newPeer", new
+					"newPeer", new PeerInfoR
 					{
-						id          = broadcaster.Id,
-						displayName = broadcaster.Data.DisplayName,
-						device      = broadcaster.Data.Device
+						Id          = broadcaster.Id,
+						DisplayName = broadcaster.Data.DisplayName,
+						Device      = broadcaster.Data.Device
 					})
 				.Catch(() => { });
 		}
 
 		// Reply with the list of Peers and their Producers.
-		var peerInfos   = (List<PeerInfo>) [];
+		var peerInfos   = (List<PeerInfoR>) [];
 		var joinedPeers = GetJoinedPeers();
 
 		// Just fill the list of Peers if the Broadcaster provided its rtpCapabilities.
@@ -346,12 +351,13 @@ public class Room : EventEmitter
 		{
 			foreach (var joinedPeer in joinedPeers)
 			{
-				var peerInfo = new PeerInfo(
-					joinedPeer.Id,
-					joinedPeer.Data.As<PeerData>().DisplayName,
-					joinedPeer.Data.As<PeerData>().Device,
-					[]
-				);
+				var peerInfo = new PeerInfoR
+				{
+					Id          = joinedPeer.Id,
+					DisplayName = joinedPeer.Data.As<PeerData>().DisplayName,
+					Device      = joinedPeer.Data.As<PeerData>().Device,
+					Producers   = (List<PeerProducerR>) []
+				};
 
 				foreach (var producer in joinedPeer.Data.As<PeerData>().Producers.Values)
 				{
@@ -361,17 +367,21 @@ public class Room : EventEmitter
 						continue;
 					}
 
-					peerInfo.Producers.Add(new PeerProducer(
-						producer.Id,
-						producer.Kind
-					));
+					peerInfo.Producers.Add(new PeerProducerR
+					{
+						Id   = producer.Id,
+						Kind = producer.Kind
+					});
 				}
 
 				peerInfos.Add(peerInfo);
 			}
 		}
 
-		return new(peerInfos);
+		return new PeerInfosR
+		{
+			Peers = peerInfos
+		};
 	}
 
 	public async Task DeleteBroadcasterAsync(string broadcasterId)
@@ -492,7 +502,7 @@ public class Room : EventEmitter
 		await transport.ConnectAsync(dtlsParameters);
 	}
 
-	public async Task<HasId> CreateBroadcasterProducerAsync(
+	internal async Task<IdR> CreateBroadcasterProducerAsync(
 		string broadcasterId,
 		string transportId,
 		MediaKind kind,
@@ -556,10 +566,13 @@ public class Room : EventEmitter
 				.Catch(() => { });
 		}
 
-		return new(producer.Id);
+		return new IdR
+		{
+			Id = producer.Id
+		};
 	}
 
-	public async Task<CreateBroadcastConsumerResponse>
+	internal async Task<CreateBroadcastConsumerResponseR>
 		CreateBroadcasterConsumerAsync(
 			string broadcasterId,
 			string transportId,
@@ -600,14 +613,17 @@ public class Room : EventEmitter
 			broadcaster.Data.Consumers.Remove(consumer.Id);
 		});
 
-		return new(consumer.Id,
-			producerId,
-			consumer.Data.Kind,
-			consumer.Data.RtpParameters,
-			consumer.Data.Type);
+		return new CreateBroadcastConsumerResponseR
+		{
+			Id            = consumer.Id,
+			ProducerId    = producerId,
+			Kind          = consumer.Data.Kind,
+			RtpParameters = consumer.Data.RtpParameters,
+			Type          = consumer.Data.Type
+		};
 	}
 
-	public async Task<IdWithStreamId> CreateBroadcasterDataConsumerAsync(
+	internal async Task<IdAndStreamIdR> CreateBroadcasterDataConsumerAsync(
 		string broadcasterId,
 		string transportId,
 		string dataProducerId)
@@ -645,11 +661,12 @@ public class Room : EventEmitter
 			// Remove from its map.
 			broadcaster.Data.DataConsumers.Remove(dataConsumer.Id);
 		});
-
-		return new(
-			dataConsumer.Id,
-			dataConsumer.Data.SctpStreamParameters!.StreamId
-		);
+		
+		return new IdAndStreamIdR
+		{
+			Id       = dataConsumer.Id,
+			StreamId = dataConsumer.Data.SctpStreamParameters!.StreamId
+		};
 	}
 
 	public async Task<string> CreateBroadcasterDataProducerAsync(
@@ -1765,16 +1782,16 @@ public class Room : EventEmitter
 		try
 		{
 			await dataConsumerPeer.RequestAsync(
-				"newDataConsumer", new NewDataConsumerRequest(
-					dataProducer.Id,
-					dataConsumer.Id,
-					dataConsumer.Data.SctpStreamParameters,
-					dataConsumer.Data.Label,
-					dataConsumer.Data.Protocol,
-					dataProducer.AppData)
+				"newDataConsumer", new NewDataConsumerRequestR
 				{
 					// This is null for bot DataProducer.
-					PeerId               = dataProducerPeerId,
+					PeerId               = dataProducerPeerId!,
+					DataProducerId       = dataProducer.Id,
+					Id                   = dataConsumer.Id,
+					SctpStreamParameters = dataConsumer.Data.SctpStreamParameters,
+					Label                = dataConsumer.Data.Label,
+					Protocol             = dataConsumer.Data.Protocol,
+					AppData              = (Dictionary<string, object>)dataProducer.AppData
 				});
 		}
 		catch (Exception ex)
@@ -1794,7 +1811,7 @@ public class Room : EventEmitter
 	internal class BroadcasterData
 	{
 		public required string                                        DisplayName     { get; set; }
-		public required Device                                        Device          { get; set; }
+		public required DeviceR                                       Device          { get; set; }
 		public          RtpCapabilities?                              RtpCapabilities { get; set; }
 		public          Dictionary<string, Transport.Transport>       Transports      { get; init; } = [];
 		public          Dictionary<string, Producer.Producer>         Producers       { get; init; } = [];

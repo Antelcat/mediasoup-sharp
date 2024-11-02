@@ -9,7 +9,6 @@ using Antelcat.MediasoupSharp.RtpParameters;
 using FBS.Request;
 using FBS.SctpParameters;
 using FBS.Transport;
-using Force.DeepCloner;
 using Antelcat.MediasoupSharp.Internals.Extensions;
 using Antelcat.MediasoupSharp.RtpParameters.Extensions;
 using Microsoft.Extensions.Logging;

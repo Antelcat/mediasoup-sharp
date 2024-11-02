@@ -1,14 +1,13 @@
-﻿using System.Collections.Concurrent;
-using System.Reflection;
+﻿using System.Reflection;
 using System.Text.Json.Serialization;
 using Antelcat.LibuvSharp;
 using Antelcat.MediasoupSharp.RtpParameters;
 using Antelcat.MediasoupSharp.EnhancedEvent;
 using Antelcat.MediasoupSharp.Internals.Converters;
+using Antelcat.MediasoupSharp.Internals.Extensions;
 using Antelcat.MediasoupSharp.Logger;
 using Antelcat.MediasoupSharp.Settings;
 using Antelcat.MediasoupSharp.Worker;
-using Force.DeepCloner;
 using Microsoft.Extensions.Logging;
 
 namespace Antelcat.MediasoupSharp;
@@ -19,7 +18,7 @@ public partial class Mediasoup
     public static Version Version { get; } = Version.Parse((string)typeof(Mediasoup)
         .Assembly
         .CustomAttributes
-        .First(static x => x.AttributeType == typeof(AssemblyFileVersionAttribute))?
+        .First(static x => x.AttributeType == typeof(AssemblyFileVersionAttribute))
         .ConstructorArguments.First().Value!);
 
     /// <summary>
@@ -79,7 +78,6 @@ public partial class Mediasoup
     /// Get a cloned copy of the mediasoup supported RTP capabilities.
     /// </summary>
     public static RtpCapabilities GetSupportedRtpCapabilities() => RtpCapabilities.SupportedRtpCapabilities.DeepClone();
-
     public class LogEventListeners
     {
         public Action<string, string>?            OnDebug;
@@ -98,19 +96,19 @@ public partial class Mediasoup
         if (listeners?.OnDebug != null)
         {
             debugLogEmitter = new EnhancedEventEmitter<LoggerEmitterEvents>();
-            debugLogEmitter.On(x => x.debuglog, x => listeners.OnDebug(x.Item1, x.Item2));
+            debugLogEmitter.On(static x => x.debuglog, x => listeners.OnDebug(x.Item1, x.Item2));
         }
 
         if (listeners?.OnWarn != null)
         {
             warnLogEmitter = new EnhancedEventEmitter<LoggerEmitterEvents>();
-            warnLogEmitter.On(x => x.warnlog, x => listeners.OnWarn(x.Item1, x.Item2));
+            warnLogEmitter.On(static x => x.warnlog, x => listeners.OnWarn(x.Item1, x.Item2));
         }
 
         if (listeners?.OnError != null)
         {
             errorLogEmitter = new EnhancedEventEmitter<LoggerEmitterEvents>();
-            errorLogEmitter.On(x => x.errorlog, x => listeners.OnError(x.Item1, x.Item2, x.Item3));
+            errorLogEmitter.On(static x => x.errorlog, x => listeners.OnError(x.Item1, x.Item2, x.Item3));
         }
 
         MediasoupSharp.Logger.Logger.DebugLogEmitter = debugLogEmitter;
@@ -123,9 +121,8 @@ public partial class Mediasoup
 
 partial class Mediasoup
 {
-    private static Task Queue(Action action)
+    private static void Queue(Action action)
     {
-        var source = new TaskCompletionSource();
         ThreadPool.QueueUserWorkItem(_ =>
         {
             var loop = Loop.Default;
@@ -133,15 +130,10 @@ partial class Mediasoup
             {
             }
 
-            if (!loop.Run(() =>
-                {
-                    action();
-                    source.SetResult();
-                }))
+            if (!loop.Run(action))
             {
                 throw new OperationCanceledException("Loop failed");
             }
         });
-        return source.Task;
     }
 }

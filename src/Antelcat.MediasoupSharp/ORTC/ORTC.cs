@@ -5,24 +5,23 @@ using Antelcat.MediasoupSharp.RtpParameters;
 using Antelcat.MediasoupSharp.SctpParameters;
 using FBS.RtpParameters;
 using FBS.SctpParameters;
-using Force.DeepCloner;
 using Antelcat.MediasoupSharp.Internals.Extensions;
 using RtpCodecParameters = Antelcat.MediasoupSharp.RtpParameters.RtpCodecParameters;
 using RtpHeaderExtensionParameters = Antelcat.MediasoupSharp.RtpParameters.RtpHeaderExtensionParameters;
-using RtpParameters_RtpCodecParameters = Antelcat.MediasoupSharp.RtpParameters.RtpCodecParameters;
-using RtpParameters_RtpHeaderExtensionParameters = Antelcat.MediasoupSharp.RtpParameters.RtpHeaderExtensionParameters;
 
 // MediaKind, RtcpFeedbackT RtcpParametersT, RtpEncodingParametersT
-// SctpParamerters, NumSctpStreamsT, SctpStreamParametersT
-
+// SctpParameters, NumSctpStreamsT, SctpStreamParametersT
 namespace Antelcat.MediasoupSharp.ORTC;
 
-public static class Ortc
+public static partial class Ortc
 {
     private static readonly Regex MimeTypeRegex =
         new("^(audio|video)/(.+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    private static readonly Regex RtxMimeTypeRegex = new("^.+/rtx$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    [GeneratedRegex("^.+/rtx$", RegexOptions.IgnoreCase | RegexOptions.Compiled, "zh-CN")]
+    private static partial Regex RtxMimeTypeRegexGen();
+    
+    private static readonly Regex RtxMimeTypeRegex = RtxMimeTypeRegexGen();
 
     public static readonly byte[] DynamicPayloadTypes =
     [
@@ -88,13 +87,13 @@ public static class Ortc
         // 在 Node.js 实现中，判断了 mandatory 的数据类型。在强类型语言中不需要。
 
         // channels is optional. If unset, set it to 1 (just if audio).
-        if (codec.Kind == MediaKind.AUDIO && codec.Channels is null or < 1)
+        if (codec is { Kind: MediaKind.AUDIO, Channels: null or < 1 })
         {
             codec.Channels = 1;
         }
 
         // parameters is optional. If unset, set it to an empty object.
-        codec.Parameters ??= new Dictionary<string, object>();
+        codec.Parameters ??= [];
 
         foreach (var item in codec.Parameters)
         {
@@ -237,7 +236,7 @@ public static class Ortc
     /// fields with default values.
     /// It throws if invalid.
     /// </summary>
-    public static void ValidateRtpCodecParameters(RtpParameters_RtpCodecParameters codec)
+    public static void ValidateRtpCodecParameters(RtpCodecParameters codec)
     {
         if (codec == null)
         {
@@ -270,7 +269,7 @@ public static class Ortc
         }
 
         // parameters is optional. If unset, set it to an empty object.
-        codec.Parameters ??= new Dictionary<string, object>();
+        codec.Parameters ??= [];
 
         foreach (var item in codec.Parameters)
         {
@@ -306,7 +305,7 @@ public static class Ortc
     /// Validates RtpHeaderExtensionParameteters. It may modify given data by adding
     /// missing fields with default values. It throws if invalid.
     /// </summary>
-    public static void ValidateRtpHeaderExtensionParameters(RtpParameters_RtpHeaderExtensionParameters ext)
+    public static void ValidateRtpHeaderExtensionParameters(RtpHeaderExtensionParameters ext)
     {
         if (ext == null)
         {
@@ -329,7 +328,7 @@ public static class Ortc
         // }
 
         // parameters is optional. If unset, set it to an empty object.
-        ext.Parameters ??= new Dictionary<string, object>();
+        ext.Parameters ??= [];
 
         foreach (var item in ext.Parameters)
         {
@@ -525,12 +524,10 @@ public static class Ortc
             // This may throw.
             ValidateRtpCodecCapability(mediaCodec);
 
-            var matchedSupportedCodec = clonedSupportedRtpCapabilities
-                                            .Codecs!
-                                            .FirstOrDefault(supportedCodec =>
-                                                MatchCodecs(mediaCodec, supportedCodec, false))
-                                        ?? throw new Exception(
-                                            $"media codec not supported[mimeType:{mediaCodec.MimeType}]");
+            var matchedSupportedCodec =
+                clonedSupportedRtpCapabilities.Codecs!.FirstOrDefault(supportedCodec =>
+                    MatchCodecs(mediaCodec, supportedCodec, false))
+                ?? throw new Exception($"media codec not supported[mimeType:{mediaCodec.MimeType}]");
 
             // Clone the supported codec.
             var codec = matchedSupportedCodec.DeepClone();
@@ -595,7 +592,7 @@ public static class Ortc
                     MimeType             = $"{codec.Kind.GetEnumText()}/rtx",
                     PreferredPayloadType = pt,
                     ClockRate            = codec.ClockRate,
-                    Parameters = new Dictionary<string, object>
+                    Parameters = new ()
                     {
                         { "apt", codec.PreferredPayloadType }
                     },
@@ -627,7 +624,7 @@ public static class Ortc
         };
 
         // Match parameters media codecs to capabilities media codecs.
-        var codecToCapCodec = new Dictionary<RtpParameters_RtpCodecParameters, RtpCodecCapability>();
+        var codecToCapCodec = new Dictionary<RtpCodecParameters, RtpCodecCapability>();
 
         foreach (var codec in parameters.Codecs)
         {
@@ -652,12 +649,10 @@ public static class Ortc
             }
 
             // Search for the associated media codec.
-            var associatedMediaCodec = parameters.Codecs
-                                           .FirstOrDefault(mediaCodec =>
-                                               MatchCodecsWithPayloadTypeAndApt(mediaCodec.PayloadType,
-                                                   codec.Parameters!))
-                                       ?? throw new Exception(
-                                           $"missing media codec found for RTX PT {codec.PayloadType}");
+            var associatedMediaCodec =
+                parameters.Codecs.FirstOrDefault(mediaCodec =>
+                    MatchCodecsWithPayloadTypeAndApt(mediaCodec.PayloadType, codec.Parameters!))
+                ?? throw new Exception($"missing media codec found for RTX PT {codec.PayloadType}");
 
             var capMediaCodec = codecToCapCodec[associatedMediaCodec];
 
@@ -730,7 +725,7 @@ public static class Ortc
             var matchedCapCodec = caps.Codecs!
                 .FirstOrDefault(capCodec => capCodec.PreferredPayloadType == consumableCodecPt);
 
-            var consumableCodec = new RtpParameters_RtpCodecParameters
+            var consumableCodec = new RtpCodecParameters
             {
                 MimeType     = matchedCapCodec!.MimeType,
                 PayloadType  = matchedCapCodec.PreferredPayloadType!.Value,
@@ -749,7 +744,7 @@ public static class Ortc
 
             if (consumableCapRtxCodec != null)
             {
-                var consumableRtxCodec = new RtpParameters_RtpCodecParameters
+                var consumableRtxCodec = new RtpCodecParameters
                 {
                     MimeType     = consumableCapRtxCodec.MimeType,
                     PayloadType  = consumableCapRtxCodec.PreferredPayloadType!.Value,
@@ -772,19 +767,19 @@ public static class Ortc
                 continue;
             }
 
-            var consumableExt = new RtpParameters_RtpHeaderExtensionParameters
+            var consumableExt = new RtpHeaderExtensionParameters
             {
                 Uri        = capExt.Uri,
                 Id         = capExt.PreferredId,
                 Encrypt    = capExt.PreferredEncrypt,
-                Parameters = new Dictionary<string, object>(),
+                Parameters = [],
             };
 
             consumableParams.HeaderExtensions.Add(consumableExt);
         }
 
         // Clone Producer encodings since we'll mangle them.
-        var consumableEncodings = parameters.Encodings!.DeepClone();
+        var consumableEncodings = parameters.Encodings.DeepClone();
 
         for (var i = 0; i < consumableEncodings.Count; ++i)
         {
@@ -792,7 +787,6 @@ public static class Ortc
             var mappedSsrc         = rtpMapping.Encodings[i].MappedSsrc;
 
             // Remove useless fields.
-            // 在 Node.js 实现中，rid, rtx, codecPayloadType 被 delete 了。
             consumableEncoding.Rid              = null;
             consumableEncoding.Rtx              = null;
             consumableEncoding.CodecPayloadType = null;
@@ -820,7 +814,7 @@ public static class Ortc
         // This may throw.
         ValidateRtpCapabilities(caps);
 
-        var matchingCodecs = new List<RtpParameters_RtpCodecParameters>();
+        var matchingCodecs = new List<RtpCodecParameters>();
 
         foreach (var codec in consumableParams.Codecs)
         {
@@ -883,7 +877,7 @@ public static class Ortc
         }
 
         // Must sanitize the list of matched codecs by removing useless RTX codecs.
-        var codecsToRemove = new List<RtpParameters_RtpCodecParameters>();
+        var codecsToRemove = new List<RtpCodecParameters>();
         foreach (var codec in consumerParams.Codecs)
         {
             if (IsRtxMimeType(codec.MimeType))
@@ -893,9 +887,7 @@ public static class Ortc
                     throw new Exception("\"apt\" key is not exists.");
                 }
 
-                var apiInteger     = 0;
-                var aptJsonElement = apt as JsonElement?;
-                apiInteger = aptJsonElement != null ? aptJsonElement.Value.GetInt32() : Convert.ToInt32(apt);
+                var apiInteger = apt is JsonElement aptJsonElement ? aptJsonElement.GetInt32() : Convert.ToInt32(apt);
 
                 // Search for the associated media codec.
                 var associatedMediaCodec =
@@ -1040,9 +1032,9 @@ public static class Ortc
 
             codec.RtcpFeedback = codec.RtcpFeedback
                 .Where(fb =>
-                    (fb.Type == "nack" && fb.Parameter == "pli") ||
-                    (fb.Type == "ccm"  && fb.Parameter == "fir") ||
-                    (enableRtx         && fb.Type      == "nack" && fb.Parameter.IsNullOrWhiteSpace())
+                    fb is { Type: "nack", Parameter: "pli" } ||
+                    fb is { Type: "ccm", Parameter : "fir" } ||
+                    (enableRtx && fb.Type == "nack" && fb.Parameter.IsNullOrWhiteSpace())
                 ).ToList();
 
             consumerParams.Codecs.Add(codec);
@@ -1070,7 +1062,6 @@ public static class Ortc
             }
             else
             {
-                // 在 Node.js 实现中，delete 了 rtx 。
                 encoding.Rtx = null;
             }
 
@@ -1088,7 +1079,8 @@ public static class Ortc
     /// <summary>
     /// key 要么都存在于 a 和 b，要么都不存在于 a 和 b。
     /// </summary>
-    private static bool CheckDirectoryValueEquals(IDictionary<string, object> a, IDictionary<string, object> b,
+    private static bool CheckDirectoryValueEquals(IDictionary<string, object> a, 
+                                                  IDictionary<string, object> b, 
                                                   string key)
     {
         if (a != null && b != null)
@@ -1249,4 +1241,6 @@ public static class Ortc
 
         return payloadType == aptInteger;
     }
+
+    
 }

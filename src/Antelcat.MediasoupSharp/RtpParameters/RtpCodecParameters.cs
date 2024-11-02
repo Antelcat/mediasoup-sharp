@@ -23,7 +23,7 @@ public class RtpCodecParameters : RtpCodecBase, IEquatable<RtpCodecParameters>
 
     public bool Equals(RtpCodecParameters? other)
     {
-        if(other == null)
+        if (other == null)
         {
             return false;
         }
@@ -31,25 +31,26 @@ public class RtpCodecParameters : RtpCodecBase, IEquatable<RtpCodecParameters>
         var result = MimeType       == other.MimeType
                      && PayloadType == other.PayloadType
                      && ClockRate   == other.ClockRate;
-        if(result)
+        if (result)
         {
-            if(Channels.HasValue && other.Channels.HasValue)
+            if (Channels.HasValue && other.Channels.HasValue)
             {
                 result = Channels == other.Channels;
             }
-            else if(Channels.HasValue ^ other.Channels.HasValue)
+            else if (Channels.HasValue ^ other.Channels.HasValue)
             {
                 result = false;
             }
         }
 
-        if(result)
+        if (result)
         {
-            if(Parameters != null && other.Parameters != null)
+            if (Parameters != null && other.Parameters != null)
             {
                 result = Parameters.DeepEquals(other.Parameters);
             }
-            else if((Parameters == null && other.Parameters != null) || (Parameters != null && other.Parameters == null))
+            else if ((Parameters == null && other.Parameters != null) ||
+                     (Parameters != null && other.Parameters == null))
             {
                 result = false;
             }
@@ -60,7 +61,7 @@ public class RtpCodecParameters : RtpCodecBase, IEquatable<RtpCodecParameters>
 
     public override bool Equals(object? other)
     {
-        if(other is RtpCodecParameters rtpCodecParameters)
+        if (other is RtpCodecParameters rtpCodecParameters)
         {
             return Equals(rtpCodecParameters);
         }
@@ -71,7 +72,7 @@ public class RtpCodecParameters : RtpCodecBase, IEquatable<RtpCodecParameters>
     public override int GetHashCode()
     {
         var result = MimeType.GetHashCode() ^ PayloadType.GetHashCode() ^ ClockRate.GetHashCode();
-        if(Parameters != null)
+        if (Parameters != null)
         {
             result = Parameters.DeepGetHashCode() ^ result;
         }

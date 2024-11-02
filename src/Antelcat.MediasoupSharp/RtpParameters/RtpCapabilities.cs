@@ -47,7 +47,6 @@ public class RtpCapabilities
                         {
                             Type = "transport-cc",
                         }
-
                     ]
                 },
 
@@ -58,7 +57,7 @@ public class RtpCapabilities
                     ClockRate = 48000,
                     Channels  = 4,
                     // Quad channel
-                    Parameters = new Dictionary<string, object>
+                    Parameters = new()
                     {
                         { "channel_mapping", "0,1,2,3" },
                         { "num_streams", 2 },
@@ -75,7 +74,6 @@ public class RtpCapabilities
                         {
                             Type = "transport-cc",
                         }
-
                     ]
                 },
 
@@ -86,7 +84,7 @@ public class RtpCapabilities
                     ClockRate = 48000,
                     Channels  = 6,
                     // 5.1
-                    Parameters = new Dictionary<string, object>
+                    Parameters = new()
                     {
                         { "channel_mapping", "0,4,1,2,3,5" },
                         { "num_streams", 4 },
@@ -103,7 +101,6 @@ public class RtpCapabilities
                         {
                             Type = "transport-cc",
                         }
-
                     ]
                 },
 
@@ -114,7 +111,7 @@ public class RtpCapabilities
                     ClockRate = 48000,
                     Channels  = 8,
                     // 7.1
-                    Parameters = new Dictionary<string, object>
+                    Parameters = new()
                     {
                         { "channel_mapping", "0,6,1,2,3,4,5,7" },
                         { "num_streams", 5 },
@@ -131,7 +128,6 @@ public class RtpCapabilities
                         {
                             Type = "transport-cc",
                         }
-
                     ]
                 },
 
@@ -361,7 +357,6 @@ public class RtpCapabilities
                         {
                             Type = "transport-cc",
                         }
-
                     ]
                 },
 
@@ -404,7 +399,7 @@ public class RtpCapabilities
                     Kind      = MediaKind.VIDEO,
                     MimeType  = "video/H264",
                     ClockRate = 90000,
-                    Parameters = new Dictionary<string, object>
+                    Parameters = new()
                     {
                         { "level-asymmetry-allowed", 1 },
                     },
@@ -442,7 +437,7 @@ public class RtpCapabilities
                     Kind      = MediaKind.VIDEO,
                     MimeType  = "video/H264-SVC",
                     ClockRate = 90000,
-                    Parameters = new Dictionary<string, object>
+                    Parameters = new()
                     {
                         { "level-asymmetry-allowed", 1 },
                     },
@@ -480,7 +475,7 @@ public class RtpCapabilities
                     Kind      = MediaKind.VIDEO,
                     MimeType  = "video/H265",
                     ClockRate = 90000,
-                    Parameters = new Dictionary<string, object>
+                    Parameters = new()
                     {
                         { "level-asymmetry-allowed", 1 },
                     },
@@ -515,42 +510,48 @@ public class RtpCapabilities
             ],
             HeaderExtensions =
             [
-                new () {
+                new()
+                {
                     Kind             = MediaKind.AUDIO,
                     Uri              = RtpHeaderExtensionUri.Mid,
                     PreferredId      = 1,
                     PreferredEncrypt = false,
                     Direction        = RtpHeaderExtensionDirection.SendReceive
                 },
-                new () {
+                new()
+                {
                     Kind             = MediaKind.VIDEO,
                     Uri              = RtpHeaderExtensionUri.Mid,
                     PreferredId      = 1,
                     PreferredEncrypt = false,
                     Direction        = RtpHeaderExtensionDirection.SendReceive
                 },
-                new () {
+                new()
+                {
                     Kind             = MediaKind.VIDEO,
                     Uri              = RtpHeaderExtensionUri.RtpStreamId,
                     PreferredId      = 2,
                     PreferredEncrypt = false,
                     Direction        = RtpHeaderExtensionDirection.ReceiveOnly
                 },
-                new () {
+                new()
+                {
                     Kind             = MediaKind.VIDEO,
                     Uri              = RtpHeaderExtensionUri.RepairRtpStreamId,
                     PreferredId      = 3,
                     PreferredEncrypt = false,
                     Direction        = RtpHeaderExtensionDirection.ReceiveOnly
                 },
-                new () {
+                new()
+                {
                     Kind             = MediaKind.AUDIO,
                     Uri              = RtpHeaderExtensionUri.AbsSendTime,
                     PreferredId      = 4,
                     PreferredEncrypt = false,
                     Direction        = RtpHeaderExtensionDirection.SendReceive
                 },
-                new () {
+                new()
+                {
                     Kind             = MediaKind.VIDEO,
                     Uri              = RtpHeaderExtensionUri.AbsSendTime,
                     PreferredId      = 4,
@@ -558,14 +559,16 @@ public class RtpCapabilities
                     Direction        = RtpHeaderExtensionDirection.SendReceive
                 },
                 // NOTE: For audio we just enable transport-wide-cc-01 when receiving media.
-                new () {
+                new()
+                {
                     Kind             = MediaKind.AUDIO,
                     Uri              = RtpHeaderExtensionUri.TransportWideCcDraft01,
                     PreferredId      = 5,
                     PreferredEncrypt = false,
                     Direction        = RtpHeaderExtensionDirection.ReceiveOnly,
                 },
-                new () {
+                new()
+                {
                     Kind             = MediaKind.VIDEO,
                     Uri              = RtpHeaderExtensionUri.TransportWideCcDraft01,
                     PreferredId      = 5,
@@ -573,49 +576,56 @@ public class RtpCapabilities
                     Direction        = RtpHeaderExtensionDirection.SendReceive
                 },
                 // NOTE: Remove this once framemarking draft becomes RFC.
-                new () {
+                new()
+                {
                     Kind             = MediaKind.VIDEO,
                     Uri              = RtpHeaderExtensionUri.FrameMarkingDraft07,
                     PreferredId      = 6,
                     PreferredEncrypt = false,
                     Direction        = RtpHeaderExtensionDirection.SendReceive
                 },
-                new () {
+                new()
+                {
                     Kind             = MediaKind.VIDEO,
                     Uri              = RtpHeaderExtensionUri.FrameMarking,
                     PreferredId      = 7,
                     PreferredEncrypt = false,
                     Direction        = RtpHeaderExtensionDirection.SendReceive
                 },
-                new () {
+                new()
+                {
                     Kind             = MediaKind.AUDIO,
                     Uri              = RtpHeaderExtensionUri.AudioLevel,
                     PreferredId      = 10,
                     PreferredEncrypt = false,
                     Direction        = RtpHeaderExtensionDirection.SendReceive
                 },
-                new () {
+                new()
+                {
                     Kind             = MediaKind.VIDEO,
                     Uri              = RtpHeaderExtensionUri.VideoOrientation,
                     PreferredId      = 11,
                     PreferredEncrypt = false,
                     Direction        = RtpHeaderExtensionDirection.SendReceive
                 },
-                new () {
+                new()
+                {
                     Kind             = MediaKind.VIDEO,
                     Uri              = RtpHeaderExtensionUri.TimeOffset,
                     PreferredId      = 12,
                     PreferredEncrypt = false,
                     Direction        = RtpHeaderExtensionDirection.SendReceive
                 },
-                new () {
+                new()
+                {
                     Kind             = MediaKind.AUDIO,
                     Uri              = RtpHeaderExtensionUri.AbsCaptureTime,
                     PreferredId      = 13,
                     PreferredEncrypt = false,
                     Direction        = RtpHeaderExtensionDirection.SendReceive
                 },
-                new () {
+                new()
+                {
                     Kind             = MediaKind.VIDEO,
                     Uri              = RtpHeaderExtensionUri.AbsCaptureTime,
                     PreferredId      = 13,

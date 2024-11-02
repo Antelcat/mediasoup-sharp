@@ -27,5 +27,5 @@ public class RtpCodecBase
     /// as 'packetization-mode' and 'profile-level-id' in H264 or 'profile-id' in
     /// VP9) are critical for codec matching.
     /// </summary>
-    public IDictionary<string, object>? Parameters { get; set; }
+    public Dictionary<string, object?>? Parameters { get; set; }
 }

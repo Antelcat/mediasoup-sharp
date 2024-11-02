@@ -102,7 +102,7 @@ public static class MediasoupServiceCollectionExtensions
 
                 if (listenInfosTemp.IsNullOrEmpty())
                 {
-                    throw new ArgumentException("无法获取本机 IPv4 配置 WebRtcServer。");
+                    throw new ArgumentException("无法获取本机 IPv4 配置 WebRtcServer");
                 }
 
                 listenInfosTemp.AddRange(listenInfosTemp.Select(static m => new ListenInfoT
@@ -159,7 +159,7 @@ public static class MediasoupServiceCollectionExtensions
                 
                 if (listenAddresses.IsNullOrEmpty())
                 {
-                    throw new ArgumentException("无法获取本机 IPv4 配置 WebRtcTransport。");
+                    throw new ArgumentException("无法获取本机 IPv4 配置 WebRtcTransport");
                 }
                 
                 defaultOptions.WebRtcTransportOptions.ListenInfos = listenAddresses;
@@ -173,8 +173,6 @@ public static class MediasoupServiceCollectionExtensions
                 {
                     if (listenAddress.AnnouncedAddress.IsNullOrWhiteSpace())
                     {
-                        // 如果没有设置 AnnouncedAddress：
-                        // 如果 Ip 属性的值不是 Any 则赋值为 Ip 属性的值，否则取本机的任意一个 IPv4 地址进行设置。(注意：可能获取的并不是正确的 IP)
                         listenAddress.AnnouncedAddress = listenAddress.Ip == IPAddress.Any.ToString()
                             ? localIPv4IpAddress.ToString()
                             : listenAddress.Ip;
@@ -201,7 +199,7 @@ public static class MediasoupServiceCollectionExtensions
                     Flags            = new(),
                     PortRange        = new()
                 };
-                defaultOptions.PlainTransportOptions.ListenInfo = listenIp;
+                defaultOptions.PlainTransportOptions!.ListenInfo = listenIp;
             }
             else if (listenIp.AnnouncedAddress.IsNullOrWhiteSpace())
             {
