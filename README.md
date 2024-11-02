@@ -51,4 +51,4 @@ for example :
 }
 ```
 
-when all above are down, dotnet run `Antelcat.MediasoupSharp.Demo`
+when all above were done, dotnet run `Antelcat.MediasoupSharp.Demo`
