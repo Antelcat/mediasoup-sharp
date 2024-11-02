@@ -24,7 +24,6 @@
         <InternalsVisibleTo Include="Antelcat.MediasoupSharp.Test" />
         <InternalsVisibleTo Include="Antelcat.MediasoupSharp.AspNetCore" />
         <InternalsVisibleTo Include="Antelcat.MediasoupSharp.Demo" />
-        <InternalsVisibleTo Include="Antelcat.MediasoupSharp.Meeting" />
         <AdditionalFiles LinkBase="fbs" Include="..\..\mediasoup\worker\fbs\*.fbs" />
     </ItemGroup>
 

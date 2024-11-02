@@ -1,5 +1,6 @@
 ﻿using Antelcat.LibuvSharp;
 using Antelcat.MediasoupSharp;
+using Antelcat.MediasoupSharp.AspNetCore;
 using Antelcat.MediasoupSharp.Internals.Extensions;
 using Antelcat.MediasoupSharp.Logger;
 using Antelcat.MediasoupSharp.Settings;
@@ -17,26 +18,9 @@ public static class MediasoupApplicationBuilderExtensions
         var loggerFactory               = service.GetService<ILoggerFactory>();
         if (loggerFactory != null) Logger.LoggerFactory = loggerFactory;
         var mediasoupOptions            = app.ApplicationServices.GetRequiredService<MediasoupOptions>();
-        var defaultWebRtcServerSettings = mediasoupOptions.WebRtcServerOptions;
-        var mediasoupServer             = app.ApplicationServices.GetRequiredService<Mediasoup>();
-        var numberOfWorkers = mediasoupOptions.NumWorkers;
-        numberOfWorkers = numberOfWorkers is null or <= 0 ? Environment.ProcessorCount : numberOfWorkers;
-       
-        ThreadPool.QueueUserWorkItem(_ =>
-            {
-                Loop.Default.Run(() =>
-                {
-                    for(var c = 0; c < numberOfWorkers; c++)
-                    {
-                        var worker = app.ApplicationServices.GetRequiredService<WorkerProcess>();
-                        worker.On("@success", () =>
-                        {
-                            //mediasoupServer.AddWorker(worker);
-                        });
-                    }
-                });
-            });
-
+        if (mediasoupOptions.NumWorkers is null or <= 0) mediasoupOptions.NumWorkers = Environment.ProcessorCount;
+        var mediasoupService = app.ApplicationServices.GetRequiredService<MediasoupService>();
+        
         return app;
     }
 

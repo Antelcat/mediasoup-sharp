@@ -11,7 +11,6 @@ internal static partial class IPAddressExtensions
 {
     private static readonly Regex IpV4Regex = MyRegex();
 
-
     /// <summary>
     /// 获取本机 IP 地址
     /// </summary>
