@@ -268,10 +268,10 @@ public class Producer<TProducerAppData> : EnhancedEventEmitter<ProducerEvents>, 
             )
             .ContinueWithOnFaultedHandleLog(logger);
 
-        Emit("@close");
+        this.Emit(static x => x._close);
 
         // Emit observer event.
-        Observer.Emit("close");
+        Observer.Emit(static x=>x.close);
     }
 
     /// <summary>
@@ -292,10 +292,10 @@ public class Producer<TProducerAppData> : EnhancedEventEmitter<ProducerEvents>, 
             // Remove notification subscriptions.
             channel.OnNotification -= OnNotificationHandle;
 
-            Emit("transportclose");
+            this.Emit(static x=>x.transportclose);
 
             // Emit observer event.
-            Observer.Emit("close");
+            Observer.Emit(static x=>x.close);
         }
     }
 
@@ -372,7 +372,7 @@ public class Producer<TProducerAppData> : EnhancedEventEmitter<ProducerEvents>, 
                 // Emit observer event.
                 if (!wasPaused)
                 {
-                    Observer.Emit("pause");
+                    Observer.Emit(static x=>x.pause);
                 }
             }
             catch (Exception ex)
@@ -415,7 +415,7 @@ public class Producer<TProducerAppData> : EnhancedEventEmitter<ProducerEvents>, 
                 // Emit observer event.
                 if (wasPaused)
                 {
-                    Observer.Emit("resume");
+                    Observer.Emit(static x=>x.resume);
                 }
             }
             catch (Exception ex)
@@ -537,10 +537,10 @@ public class Producer<TProducerAppData> : EnhancedEventEmitter<ProducerEvents>, 
                 var score             = scoreNotification.UnPack().Scores;
                 Score = score;
 
-                Emit(nameof(score), score);
+                this.Emit(static x => x.score, score);
 
                 // Emit observer event.
-                Observer.Emit(nameof(score), score);
+                Observer.Emit(static x=> x.score, score);
 
                 break;
             }
@@ -550,10 +550,10 @@ public class Producer<TProducerAppData> : EnhancedEventEmitter<ProducerEvents>, 
                     notification.BodyAsProducer_VideoOrientationChangeNotification();
                 var videoOrientation = videoOrientationChangeNotification.UnPack();
 
-                Emit("videoorientationchange", videoOrientation);
+                this.Emit(static x=>x.videoorientationchange, videoOrientation);
 
                 // Emit observer event.
-                Observer.Emit("videoorientationchange", videoOrientation);
+                Observer.Emit(static x=>x.videoorientationchange, videoOrientation);
 
                 break;
             }
@@ -562,16 +562,16 @@ public class Producer<TProducerAppData> : EnhancedEventEmitter<ProducerEvents>, 
                 var traceNotification = notification.BodyAsProducer_TraceNotification();
                 var trace             = traceNotification.UnPack();
 
-                Emit(nameof(trace), trace);
+                this.Emit(static x => x.trace, trace);
 
                 // Emit observer event.
-                Observer.Emit(nameof(trace), trace);
+                Observer.Emit(static x => x.trace, trace);
 
                 break;
             }
             default:
             {
-                logger.LogError("OnNotificationHandle() | Ignoring unknown event: {@event}", @event);
+                logger.LogError("OnNotificationHandle() | Ignoring unknown event: {Event}", @event);
                 break;
             }
         }

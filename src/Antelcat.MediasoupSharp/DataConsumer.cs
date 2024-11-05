@@ -63,14 +63,14 @@ public class DataConsumerOptions<TDataConsumerAppData>
 
 public class DataConsumerEvents
 {
-    public object?        transportclose;
-    public object?        dataproducerclose;
-    public object?        dataproducerpause;
-    public object?        dataproducerresume;
-    public (byte[], int)? message;
-    public object?        sctpsendbufferfull;
-    public int?           bufferedamountlow;
-    public (string, Exception)? listenererror;
+    public object?              transportclose;
+    public object?              dataproducerclose;
+    public object?              dataproducerpause;
+    public object?              dataproducerresume;
+    public MessageNotificationT message;
+    public object?              sctpsendbufferfull;
+    public uint                 bufferedamountlow;
+    public (string, Exception)  listenererror;
 
     // Private events.
     public object? _close;
@@ -255,10 +255,10 @@ public class DataConsumer<TDataConsumerAppData>
                 @internal.TransportId
             ).ContinueWithOnFaultedHandleLog(logger);
 
-            Emit("@close");
+            this.Emit(static x => x._close);
 
             // Emit observer event.
-            Observer.Emit("close");
+            Observer.Emit(static x=>x.close);
         }
     }
 
@@ -281,10 +281,10 @@ public class DataConsumer<TDataConsumerAppData>
             // Remove notification subscriptions.
             channel.OnNotification -= OnNotificationHandle;
 
-            Emit("transportclose");
+            this.Emit(static x=>x.transportclose);
 
             // Emit observer event.
-            Observer.Emit("close");
+            Observer.Emit(static x=>x.close);
         }
     }
 
@@ -375,7 +375,7 @@ public class DataConsumer<TDataConsumerAppData>
             // Emit observer event.
             if(!wasPaused && !dataProducerPaused)
             {
-                Observer.Emit("pause");
+                Observer.Emit(static x=>x.pause);
             }
         }
     }
@@ -409,7 +409,7 @@ public class DataConsumer<TDataConsumerAppData>
             // Emit observer event.
             if(wasPaused && !dataProducerPaused)
             {
-                Observer.Emit("resume");
+                Observer.Emit(static x=>x.resume);
             }
         }
     }
@@ -698,11 +698,11 @@ public class DataConsumer<TDataConsumerAppData>
                     // Remove notification subscriptions.
                     channel.OnNotification -= OnNotificationHandle;
 
-                    Emit("@dataproducerclose");
-                    Emit("dataproducerclose");
+                    this.Emit(static x => x._dataproducerclose);
+                    this.Emit(static x => x.dataproducerclose);
 
                     // Emit observer event.
-                    Observer.Emit("close");
+                    Observer.Emit(static x=>x.close);
                 }
 
                 break;
@@ -716,12 +716,12 @@ public class DataConsumer<TDataConsumerAppData>
 
                 dataProducerPaused = true;
 
-                Emit("dataproducerpause");
+                this.Emit(static x=>x.dataproducerpause);
 
                 // Emit observer event.
                 if(!paused)
                 {
-                    Observer.Emit("pause");
+                    Observer.Emit(static x=>x.pause);
                 }
 
                 break;
@@ -736,19 +736,19 @@ public class DataConsumer<TDataConsumerAppData>
 
                 dataProducerPaused = false;
 
-                Emit("dataproducerresume");
+                this.Emit(static x=>x.dataproducerresume);
 
                 // Emit observer event.
                 if(!paused)
                 {
-                    Observer.Emit("resume");
+                    Observer.Emit(static x=>x.resume);
                 }
 
                 break;
             }
             case Event.DATACONSUMER_SCTP_SENDBUFFER_FULL:
             {
-                Emit("sctpsendbufferfull");
+                this.Emit(static x=>x.sctpsendbufferfull);
 
                 break;
             }
@@ -756,20 +756,20 @@ public class DataConsumer<TDataConsumerAppData>
             {
                 var bufferedAmountLowNotification = notification.BodyAsDataConsumer_BufferedAmountLowNotification().UnPack();
 
-                Emit("bufferedamountlow", bufferedAmountLowNotification.BufferedAmount);
+                this.Emit(static x=>x.bufferedamountlow, bufferedAmountLowNotification.BufferedAmount);
 
                 break;
             }
             case Event.DATACONSUMER_MESSAGE:
             {
                 var messageNotification = notification.BodyAsDataConsumer_MessageNotification().UnPack();
-                Emit("message", messageNotification);
+                this.Emit(static x => x.message, messageNotification);
 
                 break;
             }
             default:
             {
-                logger.LogError("OnNotificationHandle() | Ignoring unknown event \"{@event}\" in channel listener", @event);
+                logger.LogError("OnNotificationHandle() | Ignoring unknown event \"{Event}\" in channel listener", @event);
                 break;
             }
         }

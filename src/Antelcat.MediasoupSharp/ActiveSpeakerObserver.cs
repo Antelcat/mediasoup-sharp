@@ -29,12 +29,12 @@ public class ActiveSpeakerObserverDominantSpeaker
 
 public class ActiveSpeakerObserverEvents : RtpObserverEvents
 {
-    public ActiveSpeakerObserverDominantSpeaker domainspeaker;
+    public ActiveSpeakerObserverDominantSpeaker dominantspeaker;
 }
 
 public class ActiveSpeakerObserverObserverEvents : RtpObserverObserverEvents
 {
-    public ActiveSpeakerObserverDominantSpeaker domainspeaker;
+    public ActiveSpeakerObserverDominantSpeaker dominantspeaker;
 }
 
 public class RtpObserverObserverConstructorOptions<TActiveSpeakerObserverAppData> :
@@ -92,10 +92,10 @@ public class ActiveSpeakerObserver<TActiveSpeakerObserverAppData>
                         Producer = await GetProducerById(dominantSpeakerNotification.ProducerId)
                     };
 
-                    Emit("dominantspeaker", dominantSpeaker);
+                    this.Emit(static x => x.dominantspeaker, dominantSpeaker);
 
                     // Emit observer event.
-                    Observer.Emit("dominantspeaker", dominantSpeaker);
+                    Observer.Emit(static x => x.dominantspeaker, dominantSpeaker);
                 }
 
                 break;

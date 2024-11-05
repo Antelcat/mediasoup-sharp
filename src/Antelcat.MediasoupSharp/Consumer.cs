@@ -112,14 +112,14 @@ public class ConsumerTraceEventData
 
 public class ConsumerEvents
 {
-    public object?                transportclose;
-    public object?                producerclose;
-    public object?                producerpause;
-    public object?                producerresume;
-    public ConsumerScore          score;
-    public ConsumerLayers?        layerschange;
-    public ConsumerTraceEventData trace;
-    public byte[]                 rtp;
+    public object?            transportclose;
+    public object?            producerclose;
+    public object?            producerpause;
+    public object?            producerresume;
+    public ConsumerScore      score;
+    public ConsumerLayers?    layerschange;
+    public TraceNotificationT trace;
+    public byte[]             rtp;
 
     public (string, Exception) listenererror;
 
@@ -131,12 +131,12 @@ public class ConsumerEvents
 
 public class ConsumerObserverEvents
 {
-    public object?                 close;
-    public object?                 pause;
-    public object?                 resume;
-    public ConsumerScore           score;
-    public ConsumerLayers?         layerschange;
-    public ConsumerTraceEventData? trace;
+    public object?             close;
+    public object?             pause;
+    public object?             resume;
+    public ConsumerScore       score;
+    public ConsumerLayers?     layerschange;
+    public TraceNotificationT? trace;
 }
 
 
@@ -341,10 +341,10 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
                 )
                 .ContinueWithOnFaultedHandleLog(logger);
 
-            Emit("@close");
+            this.Emit(static x=>x._close);
 
             // Emit observer event.
-            Observer.Emit("close");
+            Observer.Emit(static x => x.close);
         }
     }
 
@@ -367,10 +367,10 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
             // Remove notification subscriptions.
             channel.OnNotification -= OnNotificationHandle;
 
-            Emit("transportclose");
+            this.Emit(static x => x.transportclose);
 
             // Emit observer event.
-            Observer.Emit("close");
+            Observer.Emit(static x=>x.close);
         }
     }
 
@@ -446,7 +446,7 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
                 // Emit observer event.
                 if(!wasPaused)
                 {
-                    Observer.Emit("pause");
+                    Observer.Emit(static x=>x.pause);
                 }
             }
             catch(Exception ex)
@@ -490,7 +490,7 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
                 // Emit observer event.
                 if(wasPaused && !ProducerPaused)
                 {
-                    Observer.Emit("resume");
+                    Observer.Emit(static x=>x.resume);
                 }
             }
             catch(Exception ex)
@@ -670,11 +670,11 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
                     // Remove notification subscriptions.
                     channel.OnNotification -= OnNotificationHandle;
 
-                    Emit("@producerclose");
-                    Emit("producerclose");
+                    this.Emit(static x => x.producerclose);
+                    this.Emit(static x=>x.producerclose);
 
                     // Emit observer event.
-                    Observer.Emit("close");
+                    Observer.Emit(static x=>x.close);
                 }
 
                 break;
@@ -690,12 +690,12 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
 
                 ProducerPaused = true;
 
-                Emit("producerpause");
+                this.Emit(static x => x.producerpause);
 
                 // Emit observer event.
                 if(!wasPaused)
                 {
-                    Observer.Emit("pause");
+                    Observer.Emit(static x=>x.pause);
                 }
 
                 break;
@@ -711,12 +711,12 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
 
                 ProducerPaused = false;
 
-                Emit("producerresume");
+                this.Emit(static x=>x.producerresume);
 
                 // Emit observer event.
                 if(wasPaused && !paused)
                 {
-                    Observer.Emit("resume");
+                    Observer.Emit(static x=>x.resume);
                 }
 
                 break;
@@ -727,10 +727,10 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
                 var score             = scoreNotification.Score!.Value.UnPack();
                 Score = score;
 
-                Emit(nameof(score), Score);
+                this.Emit(static x=>x.score, Score);
 
                 // Emit observer event.
-                Observer.Emit(nameof(score), Score);
+                Observer.Emit(static x => x.score, Score);
 
                 break;
             }
@@ -740,10 +740,10 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
                 var currentLayers            = layersChangeNotification.Layers?.UnPack();
                 CurrentLayers = currentLayers;
 
-                Emit("layerschange", CurrentLayers);
+                this.Emit(static x => x.layerschange, CurrentLayers);
 
                 // Emit observer event.
-                Observer.Emit("layersChange", CurrentLayers);
+                Observer.Emit(static x => x.layerschange, CurrentLayers);
 
                 break;
             }
@@ -752,16 +752,16 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
                 var traceNotification = notification.BodyAsConsumer_TraceNotification();
                 var trace             = traceNotification.UnPack();
 
-                Emit(nameof(trace), trace);
+                this.Emit(static x => x.trace, trace);
 
                 // Emit observer event.
-                Observer.Emit(nameof(trace), trace);
+                Observer.Emit(static x => x.trace, trace);
 
                 break;
             }
             default:
             {
-                logger.LogError("OnNotificationHandle() | Ignoring unknown event{@event}", @event);
+                logger.LogError("OnNotificationHandle() | Ignoring unknown event{Event}", @event);
                 break;
             }
         }

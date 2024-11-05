@@ -8,6 +8,8 @@ namespace Antelcat.MediasoupSharp.Internals.Extensions;
 
 internal static class ObjectExtensions
 {
+    public static T Sure<T>(this object obj) where T : class => obj as T ?? throw new InvalidCastException();
+    
     public static bool IsStringType(this object o) =>
         o is JsonElement jsonElement
             ? jsonElement.ValueKind == JsonValueKind.String

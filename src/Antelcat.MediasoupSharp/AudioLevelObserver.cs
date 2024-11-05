@@ -46,15 +46,15 @@ public class AudioLevelObserverVolume
 
 public class AudioLevelObserverEvents : RtpObserverEvents
 {
-    public AudioLevelObserverVolume[] volumes;
-    public object?                    silence;
+    public List<AudioLevelObserverVolume> volumes;
+    public object?                        silence;
 }
 
 
 public class AudioLevelObserverObserverEvents : RtpObserverObserverEvents
 {
-    public AudioLevelObserverVolume[] volumes;
-    public object?                    silence;
+    public List<AudioLevelObserverVolume> volumes;
+    public object?                        silence;
 }
 
 public class AudioLevelObserverConstructorOptions<TAudioLevelObserverAppData>
@@ -83,10 +83,8 @@ where TAudioLevelObserverAppData : new()
     /// <para>@emits volumes - (volumes: AudioLevelObserverVolume[])</para>
     /// <para>@emits silence</para>
     /// </summary>
-    public AudioLevelObserver(
-        AudioLevelObserverConstructorOptions<TAudioLevelObserverAppData> options
-    )
-        : base(options, new())
+    public AudioLevelObserver(AudioLevelObserverConstructorOptions<TAudioLevelObserverAppData> options) : base(options,
+        new())
     {
     }
 
@@ -117,26 +115,26 @@ where TAudioLevelObserverAppData : new()
 
                 if (volumes.Count > 0)
                 {
-                    Emit(nameof(volumes), volumes);
+                    this.Emit(static x=>x.volumes, volumes);
 
                     // Emit observer event.
-                    Observer.Emit(nameof(volumes), volumes);
+                    Observer.Emit(static x => x.volumes, volumes);
                 }
 
                 break;
             }
             case Event.AUDIOLEVELOBSERVER_SILENCE:
             {
-                Emit("silence");
+                this.Emit(static x => x.silence);
 
                 // Emit observer event.
-                Observer.Emit("silence");
+                Observer.Emit(static x => x.silence);
 
                 break;
             }
             default:
             {
-                logger.LogError("OnNotificationHandle() | Ignoring unknown event: {@event}", @event);
+                logger.LogError("OnNotificationHandle() | Ignoring unknown event: {Event}", @event);
                 break;
             }
         }

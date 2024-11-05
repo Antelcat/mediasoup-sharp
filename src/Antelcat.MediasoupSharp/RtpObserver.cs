@@ -20,11 +20,11 @@ public class RtpObserverEvents
 
 public class RtpObserverObserverEvents
 {
-    public object?   close;
-    public object?   pause;
-    public object?   resume;
-    public IProducer addproducer;
-    public IProducer removeproducer;
+    public object?           close;
+    public object?           pause;
+    public object?           resume;
+    public Task<IProducer?>? addproducer;
+    public Task<IProducer?>? removeproducer;
 }
 
 public class RtpObserverConstructorOptions<TRtpObserverAppData>
@@ -158,10 +158,10 @@ public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
                 Internal.RouterId
             ).ContinueWithOnFaultedHandleLog(logger);
 
-            Emit("@close");
+            this.Emit(static x => x._close);
 
             // Emit observer event.
-            Observer.Emit("close");
+            Observer.Emit(static x=>x.close);
         }
     }
 
@@ -184,10 +184,10 @@ public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
             // Remove notification subscriptions.
             Channel.OnNotification -= OnNotificationHandle;
 
-            Emit("routerclose");
+            this.Emit(static x => x.routerclose);
 
             // Emit observer event.
-            Observer.Emit("close");
+            Observer.Emit(static x=>x.close);
         }
     }
 
@@ -225,7 +225,7 @@ public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
                 // Emit observer event.
                 if (!wasPaused)
                 {
-                    Observer.Emit("pause");
+                    Observer.Emit(static x=>x.pause);
                 }
             }
             catch (Exception ex)
@@ -273,7 +273,7 @@ public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
                 // Emit observer event.
                 if (wasPaused)
                 {
-                    Observer.Emit("resume");
+                    Observer.Emit(static x=>x.resume);
                 }
             }
             catch (Exception ex)
@@ -326,7 +326,7 @@ public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
             ).ContinueWithOnFaultedHandleLog(logger);
 
             // Emit observer event.
-            Observer.Emit("addproducer", producer);
+            Observer.Emit(static x => x.addproducer, producer);
         }
     }
 
@@ -369,7 +369,7 @@ public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
             ).ContinueWithOnFaultedHandleLog(logger);
 
             // Emit observer event.
-            Observer.Emit("removeproducer", producer);
+            Observer.Emit(static x=>x.removeproducer, producer);
         }
     }
 

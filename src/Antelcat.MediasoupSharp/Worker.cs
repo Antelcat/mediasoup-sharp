@@ -147,7 +147,7 @@ public class WorkerObserverEvents
 {
     public object?       close;
     public IWebRtcServer newwebrtcserver;
-    public IRouter?      newrouter;
+    public IRouter       newrouter;
 }
 
 [AutoExtractInterface(Interfaces =
@@ -377,13 +377,13 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
             {
                 spawnDone = true;
                 Logger.LogError(ex, "Worker() | Worker process failed [pid:{ProcessId}]", Pid);
-                Emit("@failure", ex);
+                this.Emit(static x=>x._failure, ex);
             }
             else
             {
                 // 执行到这里的可能性？
                 Logger.LogError(ex, "Worker() | Worker process error [pid:{ProcessId}]", Pid);
-                Emit("died", ex);
+                this.Emit(static x=>x.died, ex);
             }
 
             return;
@@ -403,7 +403,7 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
 
                 Logger.LogDebug("worker process running [pid:{Pid}]", Pid);
 
-                Emit("@success");
+                this.Emit(static x=>x._success);
             }
         });
 
@@ -418,7 +418,7 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
 
             subprocessClosed = true;
 
-            Emit("subprocessclose");
+            this.Emit(static x=>x.subprocessclose);
         };
 
         channel.OnNotification += OnNotificationHandle;
@@ -577,8 +577,7 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
                 WebRtcServers.Add(webRtcServer);
             }
 
-            webRtcServer.On(
-                "@close",
+            webRtcServer.On(static x => x._close,
                 () =>
                 {
                     lock (webRtcServersLock)
@@ -591,7 +590,7 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
             );
 
             // Emit observer event.
-            Observer.Emit("newwebrtcserver", webRtcServer);
+            Observer.Emit(static x=>x.newwebrtcserver, webRtcServer);
 
             return webRtcServer;
         }
@@ -648,21 +647,18 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
                 routers.Add(router);
             }
 
-            router.On(
-                "@close",
+            router.On(static x => x._close,
                 () =>
                 {
                     lock (routersLock)
                     {
                         routers.Remove(router);
                     }
-
-                    return Task.CompletedTask;
                 }
             );
 
             // Emit observer event.
-            Observer.Emit("newrouter", router);
+            Observer.Emit(static x=>x.newrouter, router);
 
             return router;
         }
@@ -752,7 +748,7 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
             }
 
             // Emit observer event.
-            Observer.Emit("close");
+            Observer.Emit(static x=>x.close);
         }
     }
 
@@ -772,7 +768,7 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
         if (spawnDone || @event != Event.WORKER_RUNNING) return;
         spawnDone = true;
         Logger.LogDebug("Worker[{ProcessId}] process running", Pid);
-        Emit("@success");
+        this.Emit(static x => x._success);
         channel.OnNotification -= OnNotificationHandle;
     }
 
@@ -794,14 +790,14 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
             if (process.ExitCode == 42)
             {
                 Logger.LogError("OnExit() | Worker process failed due to wrong settings [pid:{ProcessId}]", Pid);
-                Emit("@failure", new Exception($"Worker process failed due to wrong settings [pid:{Pid}]"));
+                this.Emit(static x=>x._failure, new Exception($"Worker process failed due to wrong settings [pid:{Pid}]"));
             }
             else
             {
                 Logger.LogError(
                     "OnExit() | Worker process failed unexpectedly [pid:{ProcessId}, code:{ExitCode}, signal:{TermSignal}]",
                     Pid, process.ExitCode, process.TermSignal);
-                Emit("@failure",
+                this.Emit(static x=>x._failure,
                     new Exception(
                         $"Worker process failed unexpectedly [pid:{Pid}, code:{process.ExitCode}, signal:{process.TermSignal}]"
                     )
@@ -813,7 +809,7 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
             Logger.LogError(
                 "OnExit() | Worker process failed unexpectedly [pid:{ProcessId}, code:{ExitCode}, signal:{TermSignal}]",
                 Pid, process.ExitCode, process.TermSignal);
-            Emit("died",
+            this.Emit(static x=>x.died,
                 new Exception(
                     $"Worker process died unexpectedly [pid:{Pid}, code:{process.ExitCode}, signal:{process.TermSignal}]"
                 )

@@ -9,6 +9,7 @@ using FBS.SctpParameters;
 using FBS.SrtpParameters;
 using FBS.Transport;
 using Microsoft.Extensions.Logging;
+using TransportObserver = Antelcat.MediasoupSharp.IEnhancedEventEmitter<Antelcat.MediasoupSharp.TransportObserverEvents>;
 
 namespace Antelcat.MediasoupSharp;
 
@@ -89,7 +90,7 @@ public class PipeTransportObserverEvents : TransportObserverEvents
 public class PipeTransportConstructorOptions<TPipeTransportAppData>(PipeTransportData data)
     : TransportConstructorOptions<TPipeTransportAppData>(data)
 {
-    public override PipeTransportData Data { get; } = data;
+    public override PipeTransportData Data => base.Data.Sure<PipeTransportData>();
 }
 
 [AutoMetadataFrom(typeof(PipeTransportData), MemberTypes.Property,
@@ -111,7 +112,7 @@ public partial class PipeTransportData(DumpT dump) : TransportBaseData(dump)
     public SrtpParametersT? SrtpParameters { get; set; }
 }
 
-[AutoExtractInterface(Interfaces = [typeof(ITransport)], Exclude = [nameof(ConsumeAsync)])]
+[AutoExtractInterface(Interfaces = [typeof(ITransport),typeof(IEnhancedEventEmitter<PipeTransportObserver>)], Exclude = [nameof(ConsumeAsync)])]
 public class PipeTransport<TPipeTransportAppData>
     : Transport<TPipeTransportAppData, PipeTransportEvents, PipeTransportObserver>, IPipeTransport
     where TPipeTransportAppData : new()
@@ -125,6 +126,8 @@ public class PipeTransport<TPipeTransportAppData>
     /// PipeTransport data.
     /// </summary>
     public override PipeTransportData Data { get; }
+
+    public override PipeTransportObserver Observer => base.Observer.Sure<PipeTransportObserver>();
 
     /// <summary>
     /// <para>Events:</para> 
@@ -305,8 +308,8 @@ public class PipeTransport<TPipeTransportAppData>
         );
 
         consumer.On(
-            "@close",
-            async () =>
+            x=>x._close,
+            async _ =>
             {
                 await ConsumersLock.WaitAsync();
                 try
@@ -324,8 +327,8 @@ public class PipeTransport<TPipeTransportAppData>
             }
         );
         consumer.On(
-            "@producerclose",
-            async () =>
+            x => x._producerclose,
+            async _ =>
             {
                 await ConsumersLock.WaitAsync();
                 try
@@ -358,7 +361,7 @@ public class PipeTransport<TPipeTransportAppData>
         }
 
         // Emit observer event.
-        Observer.Emit("newconsumer", consumer);
+        Observer.Emit(static x => x.newconsumer, consumer);
 
         return consumer;
     }
@@ -385,10 +388,10 @@ public class PipeTransport<TPipeTransportAppData>
 
                 Data.SctpState = sctpStateChangeNotification.SctpState;
 
-                Emit("sctpstatechange", Data.SctpState);
+                this.Emit(static x => x.sctpstatechange, Data.SctpState);
 
                 // Emit observer event.
-                Observer.Emit("sctpstatechange", Data.SctpState);
+                Observer.Emit(static x => x.sctpstatechange, Data.SctpState);
 
                 break;
             }
@@ -396,10 +399,10 @@ public class PipeTransport<TPipeTransportAppData>
             {
                 var traceNotification = notification.BodyAsTransport_TraceNotification().UnPack();
 
-                Emit("trace", traceNotification);
+                this.Emit(static x => x.trace, traceNotification);
 
                 // Emit observer event.
-                Observer.Emit("trace", traceNotification);
+                Observer.Emit(static x => x.trace, traceNotification);
 
                 break;
             }

@@ -34,10 +34,7 @@ public class DirectTransportObserverEvents : TransportObserverEvents
 }
 
 public class DirectTransportConstructorOptions<TDirectTransportAppData>(TransportBaseData data)
-    : TransportConstructorOptions<TDirectTransportAppData>(data)
-{
-    public override TransportBaseData Data { get; } = data;
-}
+    : TransportConstructorOptions<TDirectTransportAppData>(data);
 
 
 [AutoExtractInterface(Interfaces = [typeof(ITransport)])]
@@ -69,20 +66,12 @@ public class DirectTransport<TDirectTransportAppData>
     /// <summary>
     /// Close the DirectTransport.
     /// </summary>
-    protected override Task OnCloseAsync()
-    {
-        // Do nothing
-        return Task.CompletedTask;
-    }
+    protected override Task OnCloseAsync() => Task.CompletedTask;
 
     /// <summary>
     /// Router was closed.
     /// </summary>
-    protected override Task OnRouterClosedAsync()
-    {
-        // Do nothing
-        return Task.CompletedTask;
-    }
+    protected override Task OnRouterClosedAsync() => Task.CompletedTask;
 
     /// <summary>
     /// Dump Transport.
@@ -156,7 +145,7 @@ public class DirectTransport<TDirectTransportAppData>
     /// </summary>
     public override Task<Producer.Producer> ProduceAsync(ProducerOptions producerOptions)
     {
-        logger.LogError("ProduceAsync() | DiectTransport:{TransportId}", Id);
+        logger.LogError("ProduceAsync() | DirectTransport:{TransportId}", Id);
         throw new NotImplementedException("ProduceAsync() is not implemented in DirectTransport");
     }*/
 
@@ -209,10 +198,10 @@ public class DirectTransport<TDirectTransportAppData>
             {
                 var traceNotification = notification.BodyAsTransport_TraceNotification().UnPack();
 
-                Emit("trace", traceNotification);
+                this.Emit(static x=>x.trace, traceNotification);
 
                 // Emit observer event.
-                Observer.Emit("trace", traceNotification);
+                Observer.Emit(static x=>x.trace, traceNotification);
 
                 break;
             }

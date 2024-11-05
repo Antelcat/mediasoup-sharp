@@ -14,34 +14,11 @@ namespace Antelcat.MediasoupSharp;
 
 using TransportObserver = IEnhancedEventEmitter<TransportObserverEvents>;
 
-public class TransportTraceEventData
-{
-    /// <summary>
-    /// Trace type.
-    /// </summary>
-    public TraceEventType Type { get; set; }
-
-    /// <summary>
-    /// Event timestamp.
-    /// </summary>
-    public long Timestamp { get; set; }
-
-    /// <summary>
-    /// Event direction.
-    /// </summary>
-    public TraceDirection Direction { get; set; }
-
-    /// <summary>
-    /// Per type information.
-    /// </summary>
-    public object Info { get; set; }
-}
-
 public class TransportEvents
 {
-    public object?                  routerclose;
-    public object?                  listenserverclose;
-    public TransportTraceEventData? trace;
+    public object?             routerclose;
+    public object?             listenserverclose;
+    public TraceNotificationT? trace;
 
     public (string, Exception)? listenererror;
 
@@ -56,12 +33,12 @@ public class TransportEvents
 
 public class TransportObserverEvents
 {
-    public object?                 close;
-    public IProducer               newproducer;
-    public IConsumer               newconsumer;
-    public IDataProducer           newdataproducer;
-    public IDataConsumer           newdataconsumer;
-    public TransportTraceEventData trace;
+    public object?            close;
+    public IProducer          newproducer;
+    public IConsumer          newconsumer;
+    public IDataProducer      newdataproducer;
+    public IDataConsumer      newdataconsumer;
+    public TraceNotificationT trace;
 }
 
 public class TransportConstructorOptions<TTransportAppData>(TransportBaseData data)
@@ -243,7 +220,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public TransportObserver Observer { get; }
+    public virtual TransportObserver Observer { get; }
 
     /// <summary>
     /// <para>Events:</para>
@@ -263,10 +240,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
     /// <para>@emits newdataproducer - (dataProducer: DataProducer)</para>
     /// <para>@emits newdataconsumer - (dataProducer: DataProducer)</para>
     /// </summary>
-    protected Transport(
-        TransportConstructorOptions<TTransportAppData> options,
-        TObserver observer
-    )
+    protected Transport(TransportConstructorOptions<TTransportAppData> options, TObserver observer)
     {
         Internal                 = options.Internal;
         Data                     = options.Data;
@@ -322,10 +296,10 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
 
             await CloseIternalAsync(true);
 
-            Emit("@close");
+            this.Emit(static x => x._close);
 
             // Emit observer event.
-            Observer.Emit("close");
+            Observer.Emit(static x => x.close);
         }
     }
 
@@ -354,10 +328,10 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
 
             await CloseIternalAsync(false);
 
-            Emit("routerclose");
+            this.Emit(static x => x.routerclose);
 
             // Emit observer event.
-            Observer.Emit("close");
+            Observer.Emit(static x => x.close);
         }
     }
 
@@ -374,7 +348,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 await producer.TransportClosedAsync();
 
                 // Must tell the Router.
-                Emit("@producerclose", producer);
+                this.Emit(static x => x._producerclose, producer);
             }
 
             Producers.Clear();
@@ -420,7 +394,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 if (tellRouter)
                 {
                     // Must tell the Router.
-                    Emit("@dataproducerclose", dataProducer);
+                    this.Emit(static x => x._dataproducerclose, dataProducer);
                 }
                 // NOTE: No need to tell the Router since it already knows (it has
                 // been closed in fact).
@@ -483,11 +457,11 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
             // Need to emit this event to let the parent Router know since
             // transport.listenServerClosed() is called by the listen server.
             // NOTE: Currently there is just WebRtcServer for WebRtcTransports.
-            Emit("@listenserverclose");
-            Emit("listenserverclose");
+            this.Emit(static x => x._listenserverclose);
+            this.Emit(static x => x.listenserverclose);
 
             // Emit observer event.
-            Observer.Emit("close");
+            Observer.Emit(static x => x.close);
         }
     }
 
@@ -656,8 +630,9 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
     /// <summary>
     /// Create a Producer.
     /// </summary>
-    public virtual async Task<Producer<TProducerAppData>> ProduceAsync<TProducerAppData>(ProducerOptions<TProducerAppData> producerOptions)
-    where TProducerAppData : new()
+    public virtual async Task<Producer<TProducerAppData>> ProduceAsync<TProducerAppData>(
+        ProducerOptions<TProducerAppData> producerOptions)
+        where TProducerAppData : new()
     {
         logger.LogDebug("ProduceAsync() | TransportId:{TransportId}", Id);
 
@@ -766,15 +741,14 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 producerOptions.Paused
             );
 
-            producer.On(
-                "@close",
-                async () =>
+            producer.On(x => x._close,
+                async _ =>
                 {
                     await ProducersLock.WaitAsync();
                     try
                     {
                         Producers.Remove(producer.Id);
-                        Emit("@producerclose", producer);
+                        this.Emit(static x => x._producerclose, producer);
                     }
                     catch (Exception ex)
                     {
@@ -801,10 +775,10 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 ProducersLock.Set();
             }
 
-            Emit("@newproducer", producer);
+            this.Emit(static x => x._newproducer, producer);
 
             // Emit observer event.
-            Observer.Emit("newproducer", producer);
+            Observer.Emit(static x => x.newproducer, producer);
 
             return producer;
         }
@@ -930,9 +904,8 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 data.PreferredLayers
             );
 
-            consumer.On(
-                "@close",
-                async () =>
+            consumer.On(static x => x._close,
+                async _ =>
                 {
                     await ConsumersLock.WaitAsync();
                     try
@@ -949,9 +922,8 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                     }
                 }
             );
-            consumer.On(
-                "@producerclose",
-                async () =>
+            consumer.On(static x => x._producerclose,
+                async _ =>
                 {
                     await ConsumersLock.WaitAsync();
                     try
@@ -984,7 +956,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
             }
 
             // Emit observer event.
-            Observer.Emit("newconsumer", consumer);
+            Observer.Emit(static x => x.newconsumer, consumer);
 
             return consumer;
         }
@@ -1088,9 +1060,8 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 dataProducerOptions.AppData
             );
 
-            dataProducer.On(
-                "@close",
-                async () =>
+            dataProducer.On(static x => x._close,
+                async _ =>
                 {
                     await DataProducersLock.WaitAsync();
                     try
@@ -1106,7 +1077,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                         DataProducersLock.Set();
                     }
 
-                    Emit("@dataproducerclose", dataProducer);
+                    this.Emit(static x => x._dataproducerclose, dataProducer);
                 }
             );
 
@@ -1124,10 +1095,10 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 DataProducersLock.Set();
             }
 
-            Emit("@newdataproducer", dataProducer);
+            this.Emit(static x => x._newdataproducer, dataProducer);
 
             // Emit observer event.
-            Observer.Emit("newdataproducer", dataProducer);
+            Observer.Emit(static x => x.newdataproducer, dataProducer);
 
             return dataProducer;
         }
@@ -1268,9 +1239,8 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 dataConsumerOptions.AppData
             );
 
-            dataConsumer.On(
-                "@close",
-                async () =>
+            dataConsumer.On(static x => x._close,
+                async _ =>
                 {
                     await DataConsumersLock.WaitAsync();
                     try
@@ -1295,9 +1265,8 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 }
             );
 
-            dataConsumer.On(
-                "@dataproducerclose",
-                async () =>
+            dataConsumer.On(static x => x._dataproducerclose,
+                async _ =>
                 {
                     await DataConsumersLock.WaitAsync();
                     try
@@ -1337,7 +1306,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
             }
 
             // Emit observer event.
-            Observer.Emit("newdataconsumer", dataConsumer);
+            Observer.Emit(static x => x.newdataconsumer, dataConsumer);
 
             return dataConsumer;
         }

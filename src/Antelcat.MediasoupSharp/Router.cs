@@ -9,6 +9,8 @@ using Microsoft.VisualStudio.Threading;
 
 namespace Antelcat.MediasoupSharp;
 
+using RouterObserver = EnhancedEventEmitter<RouterObserverEvents>;
+
 public class RouterOptions<TRouterAppData>
 {
     /// <summary>
@@ -96,6 +98,13 @@ public class RouterEvents
 
     // Private events.
     public object? _close;
+}
+
+public class RouterObserverEvents
+{
+    public object?      close;
+    public ITransport   newtransport;
+    public IRtpObserver newrtpobserver;
 }
 
 public class RouterInternal
@@ -189,7 +198,7 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EnhancedEventEmitter Observer { get; } = new();
+    public RouterObserver Observer { get; } = new();
 
     /// <summary>
     /// <para>Events:</para>
@@ -247,10 +256,10 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
 
             await CloseInternalAsync();
 
-            Emit("@close");
+            this.Emit(static x => x._close);
 
             // Emit observer event.
-            Observer.Emit("close");
+            Observer.Emit(static x => x.close);
         }
     }
 
@@ -272,10 +281,10 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
 
             await CloseInternalAsync();
 
-            Emit("workerclose");
+            this.Emit(static x => x.workerclose);
 
             // Emit observer event.
-            Observer.Emit("close");
+            Observer.Emit(static x => x.close);
         }
     }
 
@@ -517,8 +526,8 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
                 Base            = baseTransportOptions,
                 ListenInfo      = options.ListenInfo,
                 RtcpListenInfo  = options.RtcpListenInfo,
-                RtcpMux         = options.RtcpMux ?? true,
-                Comedia         = options.Comedia ?? false,
+                RtcpMux         = options.RtcpMux    ?? true,
+                Comedia         = options.Comedia    ?? false,
                 EnableSrtp      = options.EnableSrtp ?? false,
                 SrtpCryptoSuite = options.SrtpCryptoSuite
             };
@@ -769,42 +778,42 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
             transports[transport.Id] = transport;
         }
 
-        transport.On("@close", async () =>
+        transport.On(static x => x._close, async _ =>
         {
             await using (await transportsLock.WriteLockAsync())
             {
                 transports.Remove(transport.Id);
             }
         });
-        transport.On("@listenserverclose", async () =>
+        transport.On(static x => x._listenserverclose, async _ =>
         {
             await using (await transportsLock.WriteLockAsync())
             {
                 transports.Remove(transport.Id);
             }
         });
-        transport.On("@newproducer", async (IProducer producer) =>
+        transport.On(static x => x._newproducer, async producer =>
         {
             await using (await producersLock.WriteLockAsync())
             {
                 producers[producer.Id] = producer;
             }
         });
-        transport.On("@producerclose", async (IProducer producer) =>
+        transport.On(static x => x._producerclose, async producer =>
         {
             await using (await producersLock.WriteLockAsync())
             {
                 producers.Remove(producer.Id);
             }
         });
-        transport.On("@newdataproducer", async (IDataProducer dataProducer) =>
+        transport.On(static x => x._newdataproducer, async dataProducer =>
         {
             await using (await dataProducersLock.WriteLockAsync())
             {
                 dataProducers[dataProducer.Id] = dataProducer;
             }
         });
-        transport.On("@dataproducerclose", async (IDataProducer dataProducer) =>
+        transport.On(static x => x._dataproducerclose, async dataProducer =>
         {
             await using (await dataProducersLock.WriteLockAsync())
             {
@@ -813,7 +822,7 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
         });
 
         // Emit observer event.
-        Observer.Emit("newtransport", transport);
+        Observer.Emit(static x => x.newtransport, transport);
 
         if (webRtcServer != null && transport is IWebRtcTransport webRtcTransport)
         {
@@ -1169,7 +1178,8 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
     /// <summary>
     /// Create an AudioLevelObserver.
     /// </summary>
-    public async Task<AudioLevelObserver<TAudioLevelObserverAppData>> CreateAudioLevelObserverAsync<TAudioLevelObserverAppData>(
+    public async Task<AudioLevelObserver<TAudioLevelObserverAppData>> CreateAudioLevelObserverAsync<
+        TAudioLevelObserverAppData>(
         AudioLevelObserverOptions<TAudioLevelObserverAppData> audioLevelObserverOptions)
         where TAudioLevelObserverAppData : new()
     {
@@ -1328,7 +1338,7 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
     private Task ConfigureRtpObserverAsync(IRtpObserver rtpObserver)
     {
         rtpObservers[rtpObserver.Internal.RtpObserverId] = rtpObserver;
-        rtpObserver.On("@close", async () =>
+        rtpObserver.On(static x => x._close, async _ =>
         {
             await using (await rtpObserversLock.WriteLockAsync())
             {
@@ -1337,7 +1347,7 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
         });
 
         // Emit observer event.
-        Observer.Emit("newrtpobserver", rtpObserver);
+        Observer.Emit(static x => x.newrtpobserver, rtpObserver);
 
         return Task.CompletedTask;
     }

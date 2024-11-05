@@ -4,8 +4,6 @@ using System.Text.RegularExpressions;
 using Antelcat.MediasoupSharp.Internals.Extensions;
 using FBS.RtpParameters;
 using FBS.SctpParameters;
-using RtpCodecParameters = Antelcat.MediasoupSharp.RtpCodecParameters;
-using RtpHeaderExtensionParameters = Antelcat.MediasoupSharp.RtpHeaderExtensionParameters;
 
 // MediaKind, RtcpFeedbackT RtcpParametersT, RtpEncodingParametersT
 // SctpParameters, NumSctpStreamsT, SctpStreamParametersT
@@ -13,8 +11,7 @@ namespace Antelcat.MediasoupSharp;
 
 public static partial class Ortc
 {
-    private static readonly Regex MimeTypeRegex =
-        new("^(audio|video)/(.+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex MimeTypeRegex = new("^(audio|video)/(.+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     [GeneratedRegex("^.+/rtx$", RegexOptions.IgnoreCase | RegexOptions.Compiled, "zh-CN")]
     private static partial Regex RtxMimeTypeRegexGen();
@@ -445,7 +442,7 @@ public static partial class Ortc
     /// fields with default values.
     /// It throws if invalid.
     /// </summary>
-    public static void ValidateSctpParameters(FBS.SctpParameters.SctpParameters _ /*parameters*/)
+    public static void ValidateSctpParameters(SctpParameters _ /*parameters*/)
     {
         // port is mandatory.
         // 在 Node.js 实现中，判断了 port 的数据类型。在强类型语言中不需要。

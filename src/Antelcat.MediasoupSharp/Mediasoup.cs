@@ -7,8 +7,17 @@ using Microsoft.Extensions.Logging;
 
 namespace Antelcat.MediasoupSharp;
 
+using Observer = EnhancedEventEmitter<ObserverEvents>;
+
+public class ObserverEvents
+{
+    public IWorker newworker;
+}
+
 public partial class Mediasoup
 {
+    private Mediasoup() { }
+    
     private static readonly ILogger<Mediasoup> Logger = new Logger<Mediasoup>(); 
     public static Version Version { get; } = Version.Parse((string)typeof(Mediasoup)
         .Assembly
@@ -19,7 +28,7 @@ public partial class Mediasoup
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public static EnhancedEventEmitter Observer { get; } = new();
+    public static Observer Observer { get; } = new();
 
     public static Task<Worker<TWorkerAppData>>[] CreateWorkers<TWorkerAppData>(
         WorkerSettings<TWorkerAppData> settings, int numWorkers) where TWorkerAppData : new()
@@ -35,9 +44,9 @@ public partial class Mediasoup
             for (var i = 0; i < numWorkers; i++)
             {
                 var worker = new Worker<TWorkerAppData>(settings);
-                worker.On("@success", async () =>
+                worker.On(x=>x._success, async _ =>
                     {
-                        Observer.Emit("newworker", worker);
+                        Observer.Emit(static x => x.newworker, worker);
                         await Task.Delay(1);
                         lock (sources)
                         {
@@ -45,12 +54,12 @@ public partial class Mediasoup
                             source.SetResult(worker);
                         }
                     })
-                    .On("@failure", (Exception ex) =>
+                    .On(x=>x._failure, ex =>
                     {
                         lock (sources)
                         {
                             var source = sources[index++];
-                            source.SetException(ex);
+                            source.SetException(ex!);
                         }
                     });
             }

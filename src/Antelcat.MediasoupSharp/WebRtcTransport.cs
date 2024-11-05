@@ -1,12 +1,15 @@
 ﻿using System.Reflection;
 using Antelcat.AutoGen.ComponentModel;
 using Antelcat.AutoGen.ComponentModel.Diagnostic;
+using Antelcat.MediasoupSharp.Internals.Extensions;
 using FBS.Notification;
 using FBS.Request;
 using FBS.SctpAssociation;
 using FBS.Transport;
 using FBS.WebRtcTransport;
 using Microsoft.Extensions.Logging;
+using TransportObserver =
+    Antelcat.MediasoupSharp.IEnhancedEventEmitter<Antelcat.MediasoupSharp.TransportObserverEvents>;
 
 namespace Antelcat.MediasoupSharp;
 
@@ -14,7 +17,8 @@ using WebRtcTransportObserver = EnhancedEventEmitter<WebRtcTransportObserverEven
 
 [Serializable]
 [AutoDeconstruct]
-public partial record WebRtcTransportOptions<TWebRtcTransportAppData> : WebRtcTransportOptionsBase<TWebRtcTransportAppData>
+public partial record
+    WebRtcTransportOptions<TWebRtcTransportAppData> : WebRtcTransportOptionsBase<TWebRtcTransportAppData>
 {
     /// <summary>
     /// Instance of WebRtcServer. Mandatory unless listenIps is given.
@@ -76,7 +80,7 @@ public record WebRtcTransportOptionsBase<TWebRtcTransportAppData>
     /// Default 262144.
     /// </summary>
     public uint SctpSendBufferSize { get; set; } = 262144;
-  
+
     /// <summary>
     /// ICE consent timeout (in seconds). If 0 it is disabled. Default 30.
     /// </summary>
@@ -110,7 +114,6 @@ public class WebRtcTransportListenIndividual
     /// </summary>
     public ushort? Port { get; set; } = 0; // mediasoup-work needs >= 0
 }
-
 
 public class WebRtcTransportEvents : TransportEvents
 {
@@ -160,13 +163,12 @@ public partial class WebRtcTransportData(DumpT dump) : TransportBaseData(dump)
 public class WebRtcTransportConstructorOptions<TWebRtcTransportAppData>(WebRtcTransportData data)
     : TransportConstructorOptions<TWebRtcTransportAppData>(data)
 {
-    public override WebRtcTransportData Data { get; } = data;
+    public override WebRtcTransportData Data => base.Data.Sure<WebRtcTransportData>();
 }
 
-
-[AutoExtractInterface(Interfaces = [typeof(ITransport)])]
+[AutoExtractInterface(Interfaces = [typeof(ITransport), typeof(IEnhancedEventEmitter<WebRtcTransportEvents>)])]
 public class WebRtcTransport<TWebRtcTransportAppData> :
-    Transport<TWebRtcTransportAppData, WebRtcTransportEvents, WebRtcTransportObserver> , IWebRtcTransport
+    Transport<TWebRtcTransportAppData, WebRtcTransportEvents, WebRtcTransportObserver>, IWebRtcTransport
     where TWebRtcTransportAppData : new()
 {
     /// <summary>
@@ -175,6 +177,8 @@ public class WebRtcTransport<TWebRtcTransportAppData> :
     private readonly ILogger logger = new Logger<WebRtcTransport<TWebRtcTransportAppData>>();
 
     public override WebRtcTransportData Data { get; }
+
+    public override WebRtcTransportObserver Observer => base.Observer.Sure<WebRtcTransportObserver>();
 
     /// <summary>
     /// <para>Events:</para>
@@ -347,10 +351,10 @@ public class WebRtcTransport<TWebRtcTransportAppData> :
 
                 Data.IceState = iceStateChangeNotification.IceState;
 
-                Emit("icestatechange", Data.IceState);
+                this.Emit(static x => x.icestatechange, Data.IceState);
 
                 // Emit observer event.
-                Observer.Emit("icestatechange", Data.IceState);
+                Observer.Emit(static x => x.icestatechange, Data.IceState);
 
                 break;
             }
@@ -361,10 +365,10 @@ public class WebRtcTransport<TWebRtcTransportAppData> :
 
                 Data.IceSelectedTuple = iceSelectedTupleChangeNotification.Tuple;
 
-                Emit("iceselectedtuplechange", Data.IceSelectedTuple);
+                this.Emit(static x => x.iceselectedtuplechange, Data.IceSelectedTuple);
 
                 // Emit observer event.
-                Observer.Emit("iceselectedtuplechange", Data.IceSelectedTuple);
+                Observer.Emit(static x => x.iceselectedtuplechange, Data.IceSelectedTuple);
 
                 break;
             }
@@ -382,10 +386,10 @@ public class WebRtcTransport<TWebRtcTransportAppData> :
                     // Data.DtlsRemoteCert = dtlsStateChangeNotification.RemoteCert;
                 }
 
-                Emit("dtlsstatechange", Data.DtlsState);
+                this.Emit(static x => x.dtlsstatechange, Data.DtlsState);
 
                 // Emit observer event.
-                Observer.Emit("dtlsstatechange", Data.DtlsState);
+                Observer.Emit(static x => x.dtlsstatechange, Data.DtlsState);
 
                 break;
             }
@@ -395,10 +399,10 @@ public class WebRtcTransport<TWebRtcTransportAppData> :
 
                 Data.SctpState = sctpStateChangeNotification.SctpState;
 
-                Emit("sctpstatechange", Data.SctpState);
+                this.Emit(static x => x.sctpstatechange, Data.SctpState);
 
                 // Emit observer event.
-                Observer.Emit("sctpstatechange", Data.SctpState);
+                Observer.Emit(static x => x.sctpstatechange, Data.SctpState);
 
                 break;
             }
@@ -406,10 +410,10 @@ public class WebRtcTransport<TWebRtcTransportAppData> :
             {
                 var traceNotification = notification.BodyAsTransport_TraceNotification().UnPack();
 
-                Emit("trace", traceNotification);
+                this.Emit(static x => x.trace, traceNotification);
 
                 // Emit observer event.
-                Observer.Emit("trace", traceNotification);
+                Observer.Emit(static x => x.trace, traceNotification);
 
                 break;
             }

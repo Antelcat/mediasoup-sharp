@@ -1,5 +1,7 @@
-﻿using System.Reflection;
+﻿using System.Linq.Expressions;
+using System.Reflection;
 using Antelcat.AutoGen.ComponentModel.Diagnostic;
+using Antelcat.MediasoupSharp.Internals.Extensions;
 using FBS.Notification;
 using FBS.PlainTransport;
 using FBS.Request;
@@ -8,6 +10,7 @@ using FBS.SctpParameters;
 using FBS.SrtpParameters;
 using FBS.Transport;
 using Microsoft.Extensions.Logging;
+using TransportObserver = Antelcat.MediasoupSharp.IEnhancedEventEmitter<Antelcat.MediasoupSharp.TransportObserverEvents>;
 
 namespace Antelcat.MediasoupSharp;
 
@@ -96,7 +99,7 @@ public class PlainTransportObserverEvents : TransportObserverEvents
 public class PlainTransportConstructorOptions<TPlainTransportAppData>(PlainTransportData data)
     : TransportConstructorOptions<TPlainTransportAppData>(data)
 {
-    public override PlainTransportData Data { get; } = data;
+    public override PlainTransportData Data => base.Data.Sure<PlainTransportData>();
 }
 
 [AutoMetadataFrom(typeof(PlainTransportData), MemberTypes.Property,
@@ -122,7 +125,7 @@ public partial class PlainTransportData(DumpT dump) : TransportBaseData(dump)
     public SrtpParametersT? SrtpParameters { get; set; }
 }
 
-[AutoExtractInterface(Interfaces = [typeof(ITransport)])]
+[AutoExtractInterface(Interfaces = [typeof(ITransport), typeof(IEnhancedEventEmitter<PlainTransportEvents>)])]
 public class PlainTransport<TPlainTransportAppData>
     : Transport<TPlainTransportAppData, PlainTransportEvents, PlainTransportObserver>, IPlainTransport
     where TPlainTransportAppData : new()
@@ -136,6 +139,8 @@ public class PlainTransport<TPlainTransportAppData>
     /// Producer data.
     /// </summary>
     public override PlainTransportData Data { get; }
+
+    public override PlainTransportObserver Observer => base.Observer.Sure<PlainTransportObserver>();
 
     /// <summary>
     /// <para>Events:</para>
@@ -274,10 +279,10 @@ public class PlainTransport<TPlainTransportAppData>
 
                 Data.Tuple = tupleNotification.Tuple;
 
-                Emit("tuple", Data.Tuple);
+                this.Emit(static x => x.tuple, Data.Tuple);
 
                 // Emit observer event.
-                Observer.Emit("tuple", Data.Tuple);
+                Observer.Emit(static x => x.tuple, Data.Tuple);
 
                 break;
             }
@@ -287,10 +292,10 @@ public class PlainTransport<TPlainTransportAppData>
 
                 Data.RtcpTuple = rtcpTupleNotification.Tuple;
 
-                Emit("rtcptuple", Data.RtcpTuple);
+                this.Emit((PlainTransportEvents x) => x.rtcptuple, Data.RtcpTuple);
 
                 // Emit observer event.
-                Observer.Emit("rtcptuple", Data.RtcpTuple);
+                Observer.Emit(static x => x.rtcptuple, Data.RtcpTuple);
 
                 break;
             }
@@ -300,10 +305,10 @@ public class PlainTransport<TPlainTransportAppData>
 
                 Data.SctpState = sctpStateChangeNotification.SctpState;
 
-                Emit("sctpstatechange", Data.SctpState);
+                this.Emit(static x => x.sctpstatechange, Data.SctpState);
 
                 // Emit observer event.
-                Observer.Emit("sctpstatechange", Data.SctpState);
+                Observer.Emit(static x => x.sctpstatechange, Data.SctpState);
 
                 break;
             }
@@ -311,10 +316,10 @@ public class PlainTransport<TPlainTransportAppData>
             {
                 var traceNotification = notification.BodyAsTransport_TraceNotification().UnPack();
 
-                Emit("trace", traceNotification);
+                this.Emit(static x=>x.trace, traceNotification);
 
                 // Emit observer event.
-                Observer.Emit("trace", traceNotification);
+                Observer.Emit(static x => x.trace, traceNotification);
 
                 break;
             }

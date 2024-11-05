@@ -202,10 +202,10 @@ public class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataProdu
                 @internal.TransportId
             ).ContinueWithOnFaultedHandleLog(logger);
 
-            Emit("close");
+            this.Emit(static x => x._close);
 
             // Emit observer event.
-            Observer.Emit("close");
+            Observer.Emit(static x=>x.close);
         }
     }
 
@@ -228,10 +228,10 @@ public class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataProdu
             // Remove notification subscriptions.
             //_channel.OnNotification -= OnNotificationHandle;
 
-            Emit("transportclose");
+            this.Emit(static x=>x.transportclose);
 
             // Emit observer event.
-            Observer.Emit("close");
+            Observer.Emit(static x=>x.close);
         }
     }
 
@@ -320,7 +320,7 @@ public class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataProdu
             // Emit observer event.
             if (!wasPaused)
             {
-                Observer.Emit("pause");
+                Observer.Emit(static x=>x.pause);
             }
         }
     }
@@ -354,7 +354,7 @@ public class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataProdu
             // Emit observer event.
             if (wasPaused)
             {
-                Observer.Emit("resume");
+                Observer.Emit(static x=>x.resume);
             }
         }
     }

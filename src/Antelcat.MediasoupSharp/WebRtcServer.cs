@@ -7,6 +7,8 @@ using Microsoft.VisualStudio.Threading;
 
 namespace Antelcat.MediasoupSharp;
 
+using WebRtcServerObserver = EnhancedEventEmitter<WebRtcServerObserverEvents>;
+
 public record WebRtcServerOptions<TWebRtcServerAppData>
 {
     /// <summary>
@@ -28,6 +30,13 @@ public class WebRtcServerEvents
 
     // Private events.
     public object? _close;
+}
+
+public class WebRtcServerObserverEvents
+{
+    public object?           close;
+    public IWebRtcTransport? webrtctransporthandled;
+    public IWebRtcTransport? webrtctransportunhandled;
 }
 
 public class WebRtcServerInternal
@@ -82,7 +91,7 @@ public class WebRtcServer<TWebRtcServerAppData> : EnhancedEventEmitter<WebRtcSer
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public EnhancedEventEmitter Observer { get; } = new();
+    public WebRtcServerObserver Observer { get; } = new();
 
     /// <summary>
     /// <para>Events:</para>
@@ -138,10 +147,10 @@ public class WebRtcServer<TWebRtcServerAppData> : EnhancedEventEmitter<WebRtcSer
 
             await CloseInternalAsync();
 
-            Emit("@close");
+            this.Emit(static x => x._close);
 
             // Emit observer event.
-            Observer.Emit("close");
+            Observer.Emit(static x => x.close);
         }
     }
 
@@ -163,10 +172,10 @@ public class WebRtcServer<TWebRtcServerAppData> : EnhancedEventEmitter<WebRtcSer
 
             await CloseInternalAsync();
 
-            Emit("workerclose");
+            this.Emit(static x => x.workerclose);
 
             // Emit observer event.
-            Observer.Emit("close");
+            Observer.Emit(static x => x.close);
         }
     }
 
@@ -180,7 +189,7 @@ public class WebRtcServer<TWebRtcServerAppData> : EnhancedEventEmitter<WebRtcSer
                 await webRtcTransport.ListenServerClosedAsync();
 
                 // Emit observer event.
-                Observer.Emit("webrtctransportunhandled", webRtcTransport);
+                Observer.Emit(static x => x.webrtctransportunhandled, webRtcTransport);
             }
 
             webRtcTransports.Clear();
@@ -223,9 +232,9 @@ public class WebRtcServer<TWebRtcServerAppData> : EnhancedEventEmitter<WebRtcSer
         }
 
         // Emit observer event.
-        Observer.Emit("webrtctransporthandled", webRtcTransport);
+        Observer.Emit(static x => x.webrtctransporthandled, webRtcTransport);
 
-        webRtcTransport.On("@close", async () =>
+        webRtcTransport.On<WebRtcTransportEvents, object?>(static x => x._close, async () =>
         {
             await using (await webRtcTransportsLock.WriteLockAsync())
             {
@@ -233,7 +242,7 @@ public class WebRtcServer<TWebRtcServerAppData> : EnhancedEventEmitter<WebRtcSer
             }
 
             // Emit observer event.
-            Observer.Emit("webrtctransportunhandled", webRtcTransport);
+            Observer.Emit(static x => x.webrtctransportunhandled, webRtcTransport);
         });
     }
 }
