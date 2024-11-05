@@ -4,7 +4,7 @@ using System.Data;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.Serialization;
-using Antelcat.MediasoupSharp.Exceptions;
+using Antelcat.MediasoupSharp;
 using Antelcat.MediasoupSharp.Internals.Converters;
 
 namespace Antelcat.MediasoupSharp.Internals.Extensions;

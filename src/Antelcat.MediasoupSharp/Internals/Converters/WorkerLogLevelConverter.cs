@@ -1,7 +1,4 @@
-﻿using Antelcat.MediasoupSharp;
-using Antelcat.MediasoupSharp.Settings;
-
-namespace Antelcat.MediasoupSharp.Internals.Converters;
+﻿namespace Antelcat.MediasoupSharp.Internals.Converters;
 
 internal class WorkerLogLevelConverter : EnumStringConverter<WorkerLogLevel>
 {

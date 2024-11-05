@@ -1,33 +1,31 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text;
 using Antelcat.AspNetCore.ProtooSharp;
-using Antelcat.MediasoupSharp.DataConsumer;
-using Antelcat.MediasoupSharp.DataProducer;
-using Antelcat.MediasoupSharp.DirectTransport;
 using FBS.DataConsumer;
 
 namespace Antelcat.MediasoupSharp.Demo.Lib;
 
-public class Bot(ILogger logger,DirectTransport.DirectTransport transport, DataProducer.DataProducer dataProducer)
+public class Bot<TWorkerAppData>(ILogger logger, DirectTransport<TWorkerAppData> transport, DataProducer<TWorkerAppData> dataProducer)
+where TWorkerAppData : new()
 {
-    public static async Task<Bot> CreateAsync(ILoggerFactory loggerFactory, Router.Router mediasoupRouter)
+    public static async Task<Bot<TWorkerAppData>> CreateAsync(ILoggerFactory loggerFactory, IRouter mediasoupRouter)
     {
-        var transport = await mediasoupRouter.CreateDirectTransportAsync(new ()
+        var transport = await mediasoupRouter.CreateDirectTransportAsync<TWorkerAppData>(new ()
         {
             MaxMessageSize = 512
         });
 
-        var dataProducer = await transport.ProduceDataAsync(new ()
+        var dataProducer = await transport.ProduceDataAsync<TWorkerAppData>(new ()
         {
             Label = "bot"
         });
 
-        var bot = new Bot(loggerFactory.CreateLogger<Bot>(), transport, dataProducer);
+        var bot = new Bot<TWorkerAppData>(loggerFactory.CreateLogger<Bot<TWorkerAppData>>(), transport, dataProducer);
 
         return bot;
     }
 
-    public DataProducer.DataProducer DataProducer => dataProducer;
+    public DataProducer<TWorkerAppData> DataProducer => dataProducer;
 
     public void Close()
     {
@@ -36,7 +34,7 @@ public class Bot(ILogger logger,DirectTransport.DirectTransport transport, DataP
 
     public async Task HandlePeerDataProducerAsync(string dataProducerId, Peer peer)
     {
-        var dataConsumer = await transport.ConsumeDataAsync(new DataConsumerOptions
+        var dataConsumer = await transport.ConsumeDataAsync(new DataConsumerOptions<TWorkerAppData>
         {
             DataProducerId = dataProducerId
         });

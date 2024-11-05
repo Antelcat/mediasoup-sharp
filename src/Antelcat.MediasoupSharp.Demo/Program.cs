@@ -4,19 +4,16 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Antelcat.AspNetCore.ProtooSharp;
 using Antelcat.MediasoupSharp;
+using Antelcat.MediasoupSharp.AspNetCore;
 using Antelcat.MediasoupSharp.Demo;
 using Antelcat.MediasoupSharp.Demo.Extensions;
 using Antelcat.MediasoupSharp.Demo.Lib;
-using Antelcat.MediasoupSharp.Logger;
-using Antelcat.MediasoupSharp.Settings;
-using Antelcat.MediasoupSharp.Worker;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Primitives;
 using Room = Antelcat.MediasoupSharp.Demo.Lib.Room;
 
-
-List<Worker>                     mediasoupWorkers       = [];
+List<Worker<TWorkerAppData>>     mediasoupWorkers       = [];
 Dictionary<string, Room>         rooms                  = [];
 var                              nextMediasoupWorkerIdx = 0;
 WebSocketServer                  protooWebSocketServer;
@@ -25,13 +22,15 @@ FileExtensionContentTypeProvider provider = new();
 var                              current  = AppContext.BaseDirectory;
 
 var builder = WebApplication.CreateBuilder(args);
-
+builder.Logging.AddConsole();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var app           = builder.Build();
+var app = builder.Build();
+
 var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
-var logger        = loggerFactory.CreateLogger<Program>();
+Logger.LoggerFactory = loggerFactory;
+var logger = loggerFactory.CreateLogger<Program>();
 var jsonSerializerOptions = new JsonSerializerOptions
 {
     PropertyNameCaseInsensitive = true,
@@ -42,9 +41,9 @@ foreach (var converter in Mediasoup.JsonConverters)
     jsonSerializerOptions.Converters.Add(converter);
 }
 
-var options = JsonSerializer.Deserialize<MediasoupOptions>(
+var options = JsonSerializer.Deserialize<MediasoupOptions<TWorkerAppData>>(
     File.ReadAllText(Path.Combine(current, "mediasoup.config.json")), jsonSerializerOptions)!;
-MediasoupServiceCollectionExtensions.Configure(MediasoupOptions.Default, options);
+MediasoupServiceCollectionExtensions.Configure(MediasoupOptions<TWorkerAppData>.Default, options);
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -63,7 +62,6 @@ return;
 
 async Task Run()
 {
-    Logger.LoggerFactory = loggerFactory;
     // Open the interactive server.
     Interactive.InteractiveServer();
 
@@ -79,14 +77,16 @@ async Task Run()
 
 async Task RunMediasoupWorkersAsync()
 {
-    var numWorkers = MediasoupOptions.Default.NumWorkers;
+    var o          = MediasoupOptions<TWorkerAppData>.Default;
+    var numWorkers = o.NumWorkers!;
 
     logger.LogInformation("running {Num} mediasoup Workers...", numWorkers);
 
     var useWebRtcServer = Environment.GetEnvironmentVariable("MEDIASOUP_USE_WEBRTC_SERVER") != "false";
 
-    await foreach (var worker in Mediasoup.CreateWorkersAsync(MediasoupOptions.Default))
+    foreach (var task in Mediasoup.CreateWorkers(o .WorkerSettings!, numWorkers.Value))
     {
+        var worker = await task;
         worker.On("died", async () =>
         {
             logger.LogError("mediasoup Worker died, exiting in 2 seconds... [pid:{Pid}]", worker.Pid);
@@ -109,7 +109,7 @@ async Task RunMediasoupWorkersAsync()
             listenInfo.Port += (ushort)portIncrement;
         }
 
-        var webRtcServer = await worker.CreateWebRtcServerAsync(new()
+        var webRtcServer = await worker.CreateWebRtcServerAsync<TWorkerAppData>(new()
         {
             ListenInfos = webRtcServerOptions.ListenInfos
         });
@@ -331,7 +331,7 @@ void RunProtooWebSocketServer()
 }
 
 //Get next mediasoup Worker.
-Worker GetMediasoupWorker()
+Worker<TWorkerAppData> GetMediasoupWorker()
 {
     var worker = mediasoupWorkers[nextMediasoupWorkerIdx];
 
@@ -351,7 +351,7 @@ async Task<Room> GetOrCreateRoomAsync(string roomId, int consumerReplicas)
     var mediasoupWorker = GetMediasoupWorker();
 
     room = await Room.CreateAsync(loggerFactory, options,
-        (mediasoupWorker as WorkerProcess)!,
+        mediasoupWorker,
         roomId,
         consumerReplicas);
 

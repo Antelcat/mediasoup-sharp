@@ -1,11 +1,8 @@
-﻿using System.Text.Json.Serialization;
-using Antelcat.MediasoupSharp.RtpParameters;
-using Antelcat.MediasoupSharp.SctpParameters;
+﻿using Antelcat.MediasoupSharp.RtpParameters;
 using FBS.Consumer;
 using FBS.RtpParameters;
 using FBS.SctpParameters;
 using FBS.WebRtcTransport;
-using SctpStreamParameters = Antelcat.MediasoupSharp.SctpParameters.SctpStreamParameters;
 
 namespace Antelcat.MediasoupSharp.Demo.Lib;
 
@@ -37,11 +34,11 @@ public record ConnectWebRtcTransportRequest(
 public record RestartIceRequest(string TransportId);
 
 [Serializable]
-public record ProduceRequest(
+public record ProduceRequest<TWorkerAppData>(
     string TransportId, 
     MediaKind Kind, 
     RtpParameters.RtpParameters RtpParameters, 
-    Dictionary<string,object> AppData
+    TWorkerAppData AppData
 );
 
 [Serializable]

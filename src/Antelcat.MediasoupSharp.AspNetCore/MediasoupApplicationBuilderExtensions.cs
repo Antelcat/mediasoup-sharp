@@ -1,30 +1,23 @@
-﻿using Antelcat.LibuvSharp;
-using Antelcat.MediasoupSharp;
+﻿using Antelcat.MediasoupSharp;
 using Antelcat.MediasoupSharp.AspNetCore;
 using Antelcat.MediasoupSharp.Internals.Extensions;
-using Antelcat.MediasoupSharp.Logger;
-using Antelcat.MediasoupSharp.Settings;
-using Antelcat.MediasoupSharp.WebRtcServer;
-using Antelcat.MediasoupSharp.Worker;
 
 // ReSharper disable once CheckNamespace
 namespace Microsoft.AspNetCore.Builder;
 
 public static class MediasoupApplicationBuilderExtensions
 {
-    public static IApplicationBuilder UseMediasoup(this IApplicationBuilder app)
+    public static IApplicationBuilder UseMediasoup<T>(this IApplicationBuilder app)
     {
         var service                     = app.ApplicationServices;
         var loggerFactory               = service.GetService<ILoggerFactory>();
         if (loggerFactory != null) Logger.LoggerFactory = loggerFactory;
-        var mediasoupOptions            = app.ApplicationServices.GetRequiredService<MediasoupOptions>();
-        if (mediasoupOptions.NumWorkers is null or <= 0) mediasoupOptions.NumWorkers = Environment.ProcessorCount;
-        var mediasoupService = app.ApplicationServices.GetRequiredService<MediasoupService>();
         
         return app;
     }
 
-    private static Task<WebRtcServer> CreateWebRtcServerAsync(Worker worker, ushort portIncrement, WebRtcServerOptions defaultWebRtcServerSettings)
+    private static Task<WebRtcServer<T>> CreateWebRtcServerAsync<T>(Worker<T> worker, ushort portIncrement, WebRtcServerOptions<T> defaultWebRtcServerSettings)
+    where T : new()
     {
         var webRtcServerSettings = defaultWebRtcServerSettings.DeepClone();
         var listenInfos          = webRtcServerSettings.ListenInfos;
@@ -36,10 +29,10 @@ public static class MediasoupApplicationBuilderExtensions
             }
         }
 
-        var webRtcServerOptions = new WebRtcServerOptions
+        var webRtcServerOptions = new WebRtcServerOptions<T>
         {
             ListenInfos = listenInfos,
-            AppData     = new Dictionary<string, object>()
+            AppData     = new()
         };
         return worker.CreateWebRtcServerAsync(webRtcServerOptions);
     }

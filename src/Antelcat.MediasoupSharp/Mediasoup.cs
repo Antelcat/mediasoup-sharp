@@ -1,20 +1,16 @@
 ﻿using System.Reflection;
 using System.Text.Json.Serialization;
 using Antelcat.LibuvSharp;
-using Antelcat.MediasoupSharp.RtpParameters;
-using Antelcat.MediasoupSharp.EnhancedEvent;
 using Antelcat.MediasoupSharp.Internals.Converters;
 using Antelcat.MediasoupSharp.Internals.Extensions;
-using Antelcat.MediasoupSharp.Logger;
-using Antelcat.MediasoupSharp.Settings;
-using Antelcat.MediasoupSharp.Worker;
+using Antelcat.MediasoupSharp.RtpParameters;
 using Microsoft.Extensions.Logging;
 
 namespace Antelcat.MediasoupSharp;
 
 public partial class Mediasoup
 {
-    private static readonly ILogger<Mediasoup> Logger = new Logger.Logger<Mediasoup>(); 
+    private static readonly ILogger<Mediasoup> Logger = new Logger<Mediasoup>(); 
     public static Version Version { get; } = Version.Parse((string)typeof(Mediasoup)
         .Assembly
         .CustomAttributes
@@ -25,53 +21,42 @@ public partial class Mediasoup
     /// Observer instance.
     /// </summary>
     public static EnhancedEventEmitter Observer { get; } = new();
-  
-    public static async IAsyncEnumerable<Worker.Worker> CreateWorkersAsync(MediasoupOptions workerSettings)
-    {
-        var num = workerSettings.NumWorkers;
-        if (num is not > 0) throw new ArgumentException("Num workers should be > 0");
 
-        var sources = new TaskCompletionSource<Worker.Worker>[num.Value];
+    public static Task<Worker<TWorkerAppData>>[] CreateWorkers<TWorkerAppData>(
+        WorkerSettings<TWorkerAppData> settings, int numWorkers) where TWorkerAppData : new()
+    {
+        var sources = new TaskCompletionSource<Worker<TWorkerAppData>>[numWorkers];
+
+        var index = 0;
         
-        for (var i = 0; i < num.Value; i++) sources[i] = new();
+        for (var i = 0; i < numWorkers; i++) sources[i] = new();
+        
         Queue(() =>
         {
-            for (var i = 0; i < num.Value; i++)
+            for (var i = 0; i < numWorkers; i++)
             {
-                var worker = new WorkerProcess(workerSettings);
+                var worker = new Worker<TWorkerAppData>(settings);
                 worker.On("@success", async () =>
                     {
                         Observer.Emit("newworker", worker);
                         await Task.Delay(1);
                         lock (sources)
                         {
-                            foreach (var source in sources)
-                            {
-                                if (source.Task.IsCompleted) continue;
-                                source.SetResult(worker);
-                            }
+                            var source = sources[index++];
+                            source.SetResult(worker);
                         }
                     })
-                    .On("@failure", () =>
+                    .On("@failure", (Exception ex) =>
                     {
                         lock (sources)
                         {
-                            foreach (var source in sources)
-                            {
-                                if (source.Task.IsCompleted) continue;
-                                source.SetException(new Exception("Worker create failed"));
-                            }
+                            var source = sources[index++];
+                            source.SetException(ex);
                         }
                     });
             }
         });
-
-        foreach (var source in sources)
-        {
-#pragma warning disable VSTHRD003
-            yield return await source.Task;
-#pragma warning restore VSTHRD003
-        }
+        return sources.Select(x => x.Task).ToArray();
     }
 
     /// <summary>
@@ -111,9 +96,9 @@ public partial class Mediasoup
             errorLogEmitter.On(static x => x.errorlog, x => listeners.OnError(x.Item1, x.Item2, x.Item3));
         }
 
-        MediasoupSharp.Logger.Logger.DebugLogEmitter = debugLogEmitter;
-        MediasoupSharp.Logger.Logger.WarnLogEmitter  = warnLogEmitter;
-        MediasoupSharp.Logger.Logger.DebugLogEmitter = errorLogEmitter;
+        MediasoupSharp.Logger.DebugLogEmitter = debugLogEmitter;
+        MediasoupSharp.Logger.WarnLogEmitter  = warnLogEmitter;
+        MediasoupSharp.Logger.DebugLogEmitter = errorLogEmitter;
     }
 
     public static IReadOnlyCollection<JsonConverter> JsonConverters => IEnumStringConverter.JsonConverters;
@@ -123,17 +108,19 @@ partial class Mediasoup
 {
     private static void Queue(Action action)
     {
-        ThreadPool.QueueUserWorkItem(_ =>
+        var loop = Loop.Default;
+        if (loop.IsRunning) throw new OperationCanceledException("loop is already running");
+        lock (loop)
         {
-            var loop = Loop.Default;
-            while (loop.IsRunning)
+            if (loop.IsRunning) throw new OperationCanceledException("loop is already running");
+            ThreadPool.QueueUserWorkItem(_ =>
             {
-            }
-
-            if (!loop.Run(action))
-            {
-                throw new OperationCanceledException("Loop failed");
-            }
-        });
+                if (!loop.Run(action))
+                {
+                    throw new OperationCanceledException("loop run failed");
+                }
+            });
+        }
     }
+
 }

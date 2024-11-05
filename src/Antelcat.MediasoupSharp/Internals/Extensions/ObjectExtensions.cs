@@ -2,6 +2,7 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Xml;
 
 namespace Antelcat.MediasoupSharp.Internals.Extensions;
 
@@ -63,7 +64,7 @@ internal static class ObjectExtensions
         if (type.IsArray) return GetArrayMapper(type.GetElementType()!);
 
         // is {}
-        var fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+        var fields = type.GetAllFields();
         Func<object, object> handle = arg =>
         {
             var ret = RuntimeHelpers.GetUninitializedObject(type);
@@ -99,10 +100,22 @@ internal static class ObjectExtensions
             var array  = Array.CreateInstance(elementType, length);
             for (var i = 0; i < length; i++)
             {
-                var value = arr.GetValue(0);
+                var value = arr.GetValue(i);
                 array.SetValue(value?.DeepClone(value.GetType()), i);
             }
 
             return array;
         };
+
+    private static IEnumerable<FieldInfo> GetAllFields(this Type? type)
+    {
+        while (type != null && type != typeof(object))
+        {
+            foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+            {
+                yield return field;
+            }
+            type = type.BaseType;
+        }
+    }
 }

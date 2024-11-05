@@ -9,10 +9,10 @@
     </PropertyGroup>
     
     <ItemGroup>
-        <None Include="mediasoup-worker">
+        <None Include="linux-x64/mediasoup-worker">
             <Pack>true</Pack>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <Link>/runtimes/win-x64/native/mediasoup-worker</Link>
+            <Link>/runtimes/linux-x64/native/mediasoup-worker</Link>
             <PackagePath>/runtimes/linux-x64/native/mediasoup-worker</PackagePath>
         </None>
     </ItemGroup>

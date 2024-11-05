@@ -1,15 +1,14 @@
 ﻿using System.Reflection;
 using Antelcat.AutoGen.ComponentModel.Diagnostic;
-using Antelcat.MediasoupSharp.Settings;
 
 namespace Antelcat.MediasoupSharp.AspNetCore;
 
-[AutoMetadataFrom(typeof(WorkerSettings), MemberTypes.Property,
+[AutoMetadataFrom(typeof(WorkerSettings<object>), MemberTypes.Property,
     BindingFlags = BindingFlags.Public,
     Leading = """
-              public static global::Antelcat.MediasoupSharp.Settings.WorkerSettings Apply(
-              this global::Antelcat.MediasoupSharp.Settings.WorkerSettings current,
-              global::Antelcat.MediasoupSharp.Settings.WorkerSettings another
+              public static global::Antelcat.MediasoupSharp.WorkerSettings<T> Apply<T>(
+              this global::Antelcat.MediasoupSharp.WorkerSettings<T> current,
+              global::Antelcat.MediasoupSharp.WorkerSettings<T> another
               ){ return current with {
               """,
     Template = """
@@ -17,12 +16,12 @@ namespace Antelcat.MediasoupSharp.AspNetCore;
                
                """,
     Trailing = "};}")]
-[AutoMetadataFrom(typeof(WebRtcTransportOptions), MemberTypes.Property,
+[AutoMetadataFrom(typeof(WebRtcTransportOptions<object>), MemberTypes.Property,
     BindingFlags = BindingFlags.Public,
     Leading = """
-              public static global::Antelcat.MediasoupSharp.Settings.WebRtcTransportOptions Apply(
-              this global::Antelcat.MediasoupSharp.Settings.WebRtcTransportOptions current,
-              global::Antelcat.MediasoupSharp.Settings.WebRtcTransportOptions another
+              public static global::Antelcat.MediasoupSharp.WebRtcTransportOptions<T> Apply<T>(
+              this global::Antelcat.MediasoupSharp.WebRtcTransportOptions<T> current,
+              global::Antelcat.MediasoupSharp.WebRtcTransportOptions<T> another
               ){ return current with {
               """,
     Template = """
@@ -30,12 +29,12 @@ namespace Antelcat.MediasoupSharp.AspNetCore;
 
                """,
     Trailing = "};}")]
-[AutoMetadataFrom(typeof(PlainTransportOptions), MemberTypes.Property, 
+[AutoMetadataFrom(typeof(PlainTransportOptions<object>), MemberTypes.Property, 
     BindingFlags = BindingFlags.Public,
     Leading = """
-              public static global::Antelcat.MediasoupSharp.Settings.PlainTransportOptions Apply(
-              this global::Antelcat.MediasoupSharp.Settings.PlainTransportOptions current,
-              global::Antelcat.MediasoupSharp.Settings.PlainTransportOptions another
+              public static global::Antelcat.MediasoupSharp.PlainTransportOptions<T> Apply<T>(
+              this global::Antelcat.MediasoupSharp.PlainTransportOptions<T> current,
+              global::Antelcat.MediasoupSharp.PlainTransportOptions<T> another
               ){ return current with {
               """,
     Template = """

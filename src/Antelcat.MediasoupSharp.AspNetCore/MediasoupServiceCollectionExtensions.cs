@@ -1,11 +1,9 @@
 ﻿using System.Net;
 using System.Net.Sockets;
-using FBS.Transport;
 using Antelcat.MediasoupSharp;
 using Antelcat.MediasoupSharp.AspNetCore;
 using Antelcat.MediasoupSharp.Internals.Extensions;
-using Antelcat.MediasoupSharp.Settings;
-using Antelcat.MediasoupSharp.Worker;
+using FBS.Transport;
 using IPAddressExtensions = Antelcat.MediasoupSharp.AspNetCore.Extensions.IPAddressExtensions;
 
 // ReSharper disable once CheckNamespace
@@ -13,29 +11,27 @@ namespace Microsoft.Extensions.DependencyInjection;
 
 public static class MediasoupServiceCollectionExtensions
 {
-    public static IServiceCollection AddMediasoup(this IServiceCollection services,
-                                                  Action<MediasoupOptions>? configure = null) =>
-        AddMediasoup(services, MediasoupOptions.Default, configure);
+    public static IServiceCollection AddMediasoup<T>(this IServiceCollection services,
+                                                     Action<MediasoupOptionsContext<T>>? configure = null) =>
+        AddMediasoup(services, MediasoupOptionsContext<T>.Default, configure);
 
-    public static IServiceCollection AddMediasoup(this IServiceCollection services,
-                                                  MediasoupOptions mediasoupOptions,
-                                                  Action<MediasoupOptions>? configure = null)
+    public static IServiceCollection AddMediasoup<T>(this IServiceCollection services,
+                                                     MediasoupOptionsContext<T> mediasoupOptions,
+                                                     Action<MediasoupOptionsContext<T>>? configure = null)
     {
         services
-            .AddSingleton<MediasoupOptions>(x =>
+            .AddSingleton<MediasoupOptionsContext<T>>(x =>
             {
-                var conf = x.GetService<IConfiguration>()?.GetSection(nameof(MediasoupOptions)).Get<MediasoupOptions>();
+                var conf = x.GetService<IConfiguration>()?.GetSection(nameof(MediasoupOptionsContext<T>)).Get<MediasoupOptionsContext<T>>();
                 if (conf != null) Configure(mediasoupOptions, conf);
                 configure?.Invoke(mediasoupOptions);
                 return mediasoupOptions;
             })
-            .AddSingleton<Mediasoup>()
-            .AddTransient<WorkerProcess>()
-            .AddTransient<WorkerNative>();
+            .AddSingleton<Mediasoup>();
         return services;
     }
 
-    public static void Configure(MediasoupOptions defaultOptions, MediasoupOptions userOptions)
+    public static void Configure<T>(MediasoupOptionsContext<T> defaultOptions, MediasoupOptionsContext<T> userOptions)
     {
         var userWorkerSettings         = userOptions.WorkerSettings;
         var userRouterOptions          = userOptions.RouterOptions;

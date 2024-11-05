@@ -1,17 +1,9 @@
-﻿using System.Data;
+﻿global using TWorkerAppData = System.Collections.Generic.Dictionary<string,object>;
+using System.Data;
 using Antelcat.AspNetCore.ProtooSharp;
-using Antelcat.MediasoupSharp.ActiveSpeakerObserver;
-using Antelcat.MediasoupSharp.AudioLevelObserver;
-using Antelcat.MediasoupSharp.Consumer;
-using Antelcat.MediasoupSharp.DataConsumer;
-using Antelcat.MediasoupSharp.DataProducer;
+using Antelcat.MediasoupSharp.AspNetCore;
 using Antelcat.MediasoupSharp.Demo.Extensions;
-using Antelcat.MediasoupSharp.Exceptions;
-using Antelcat.MediasoupSharp.Producer;
-using Antelcat.MediasoupSharp.RtpObserver;
 using Antelcat.MediasoupSharp.RtpParameters;
-using Antelcat.MediasoupSharp.SctpParameters;
-using Antelcat.MediasoupSharp.Settings;
 using Antelcat.NodeSharp.Events;
 using FBS.AudioLevelObserver;
 using FBS.Common;
@@ -22,13 +14,12 @@ using FBS.SctpAssociation;
 using FBS.SctpParameters;
 using FBS.Transport;
 using FBS.WebRtcTransport;
-using PlainTransportOptions = Antelcat.MediasoupSharp.PlainTransport.PlainTransportOptions;
 using TraceEventType = FBS.Transport.TraceEventType;
 using TraceNotification = FBS.Transport.TraceNotification;
 using TraceNotificationT = FBS.Transport.TraceNotificationT;
-using WebRtcTransportOptions = Antelcat.MediasoupSharp.WebRtcTransport.WebRtcTransportOptions;
 
 namespace Antelcat.MediasoupSharp.Demo.Lib;
+
 
 public class Room : EventEmitter
 {
@@ -53,20 +44,21 @@ public class Room : EventEmitter
 	/// </summary>
 	private readonly Dictionary<string, Broadcaster> broadcasters = [];
 
-	private readonly WebRtcServer.WebRtcServer                   webRtcServer;
-	private readonly Router.Router                               mediasoupRouter;
-	private readonly AudioLevelObserver.AudioLevelObserver       audioLevelObserver;
-	private readonly ActiveSpeakerObserver.ActiveSpeakerObserver activeSpeakerObserver;
-	private readonly Bot                                         bot;
-	private readonly int                                         consumerReplicas;
-	private          bool                                        networkThrottled;
+	private readonly IWebRtcServer                         webRtcServer;
+	private readonly Router<TWorkerAppData>                mediasoupRouter;
+	private readonly AudioLevelObserver<TWorkerAppData>    audioLevelObserver;
+	private readonly ActiveSpeakerObserver<TWorkerAppData> activeSpeakerObserver;
+	private readonly Bot<TWorkerAppData>                   bot;
+	private readonly int                                   consumerReplicas;
+	private          bool                                  networkThrottled;
 
 	public static async Task<Room> CreateAsync(
 		ILoggerFactory loggerFactory,
-		MediasoupOptions options,
-		Worker.WorkerProcess mediasoupWorkerProcess,
+		MediasoupOptions<TWorkerAppData> options,
+		Worker<TWorkerAppData> mediasoupWorkerProcess,
 		string roomId,
 		int consumerReplicas)
+	
 	{
 		// Create a protoo Room instance.
 		var protooRoom = new Antelcat.AspNetCore.ProtooSharp.Room(loggerFactory);
@@ -75,13 +67,13 @@ public class Room : EventEmitter
 		var mediaCodecs = options.RouterOptions!.MediaCodecs;
 
 		// Create a mediasoup Router.
-		var mediasoupRouter = await mediasoupWorkerProcess.CreateRouterAsync(new()
+		var mediasoupRouter = await mediasoupWorkerProcess.CreateRouterAsync<TWorkerAppData>(new()
 		{
 			MediaCodecs = mediaCodecs
 		});
 
 		// Create a mediasoup AudioLevelObserver.
-		var audioLevelObserver = await mediasoupRouter.CreateAudioLevelObserverAsync(new()
+		var audioLevelObserver = await mediasoupRouter.CreateAudioLevelObserverAsync<TWorkerAppData>(new()
 		{
 			MaxEntries = 1,
 			Threshold  = -80,
@@ -89,15 +81,15 @@ public class Room : EventEmitter
 		});
 
 		// Create a mediasoup ActiveSpeakerObserver.
-		var activeSpeakerObserver = await mediasoupRouter.CreateActiveSpeakerObserverAsync(new());
+		var activeSpeakerObserver = await mediasoupRouter.CreateActiveSpeakerObserverAsync<TWorkerAppData>(new());
 
-		var bot = await Bot.CreateAsync(loggerFactory, mediasoupRouter);
+		var bot = await Bot<TWorkerAppData>.CreateAsync(loggerFactory, mediasoupRouter);
 
 		return new Room(
 			loggerFactory.CreateLogger<Room>(),
 			roomId,
 			protooRoom,
-			webRtcServer: mediasoupWorkerProcess.AppData[nameof(webRtcServer)] as WebRtcServer.WebRtcServer ??
+			webRtcServer: mediasoupWorkerProcess.AppData[nameof(webRtcServer)] as WebRtcServer<TWorkerAppData> ??
 			              throw new ArgumentNullException(),
 			mediasoupRouter,
 			audioLevelObserver,
@@ -110,12 +102,12 @@ public class Room : EventEmitter
 	public Room(ILogger logger,
 	            string roomId,
 	            Antelcat.AspNetCore.ProtooSharp.Room protooRoom,
-	            WebRtcServer.WebRtcServer webRtcServer,
-	            Router.Router mediasoupRouter,
-	            AudioLevelObserver.AudioLevelObserver audioLevelObserver,
-	            ActiveSpeakerObserver.ActiveSpeakerObserver activeSpeakerObserver,
+	            WebRtcServer<TWorkerAppData> webRtcServer,
+	            Router<TWorkerAppData> mediasoupRouter,
+	            AudioLevelObserver<TWorkerAppData> audioLevelObserver,
+	            ActiveSpeakerObserver<TWorkerAppData> activeSpeakerObserver,
 	            int consumerReplicas,
-	            Bot bot)
+	            Bot<TWorkerAppData> bot)
 	{
 		MaxListeners               = int.MaxValue;
 		this.logger                = logger;
@@ -419,12 +411,12 @@ public class Room : EventEmitter
 		{
 			case "webrtc":
 			{
-				var options = MediasoupOptions.Default.WebRtcTransportOptions;
-				var webRtcTransportOptions = new WebRtcTransportOptions
+				var options = MediasoupOptionsContext<TWorkerAppData>.Default.WebRtcTransportOptions;
+				var webRtcTransportOptions = new WebRtcTransportOptions<TWorkerAppData>
 				{
 					ListenInfos                     = options.ListenInfos,
-					MaxSctpMessageSize              = options.MaxSctpMessageSize              ?? 0,
-					InitialAvailableOutgoingBitrate = options.InitialAvailableOutgoingBitrate ?? 0,
+					MaxSctpMessageSize              = options.MaxSctpMessageSize             ,
+					InitialAvailableOutgoingBitrate = options.InitialAvailableOutgoingBitrate,
 
 					WebRtcServer      = webRtcServer,
 					IceConsentTimeout = 20,
@@ -449,11 +441,11 @@ public class Room : EventEmitter
 
 			case "plain":
 			{
-				var options = MediasoupOptions.Default.PlainTransportOptions;
-				var plainTransportOptions = new PlainTransportOptions
+				var options = MediasoupOptionsContext<TWorkerAppData>.Default.PlainTransportOptions;
+				var plainTransportOptions = new PlainTransportOptions<TWorkerAppData>
 				{
 					ListenInfo         = options.ListenInfo!,
-					MaxSctpMessageSize = options.MaxSctpMessageSize ?? 0,
+					MaxSctpMessageSize = options.MaxSctpMessageSize,
 					RtcpMux            = rtcpMux,
 					Comedia            = comedia
 				};
@@ -494,7 +486,7 @@ public class Room : EventEmitter
 		if (transport == null)
 			throw new KeyNotFoundException($"transport with id {transportId} does not exist");
 
-		if (transport is not WebRtcTransport.WebRtcTransport)
+		if (transport is not IWebRtcTransport)
 		{
 			throw new ArgumentException($"transport with id {transportId} is not a WebRtcTransport");
 		}
@@ -520,7 +512,7 @@ public class Room : EventEmitter
 			throw new KeyNotFoundException($"transport with id {transportId} does not exist");
 
 		var producer =
-			await transport.ProduceAsync(new ProducerOptions
+			await transport.ProduceAsync(new ProducerOptions<TWorkerAppData>
 			{
 				Kind          = kind,
 				RtpParameters = rtpParameters
@@ -591,7 +583,7 @@ public class Room : EventEmitter
 		if (transport == null)
 			throw new KeyNotFoundException($"transport with id {transportId} does not exist");
 
-		var consumer = await transport.ConsumeAsync(new ConsumerOptions
+		var consumer = await transport.ConsumeAsync(new ConsumerOptions<TWorkerAppData>
 		{
 			ProducerId      = producerId,
 			RtpCapabilities = broadcaster.Data.RtpCapabilities
@@ -641,7 +633,7 @@ public class Room : EventEmitter
 		if (transport == null)
 			throw new KeyNotFoundException($"transport with id {transportId} does not exist");
 
-		var dataConsumer = await transport.ConsumeDataAsync(new DataConsumerOptions
+		var dataConsumer = await transport.ConsumeDataAsync(new DataConsumerOptions<TWorkerAppData>
 		{
 			DataProducerId = dataProducerId
 		});
@@ -675,7 +667,7 @@ public class Room : EventEmitter
 		string label,
 		string protocol,
 		SctpStreamParametersT sctpStreamParameters,
-		Dictionary<string, object> appData
+		TWorkerAppData appData
 	)
 	{
 		var broadcaster = broadcasters.GetValueOrDefault(broadcasterId);
@@ -691,7 +683,7 @@ public class Room : EventEmitter
 		if (transport == null)
 			throw new KeyNotFoundException($"transport with id {transportId} does not exist");
 
-		var dataProducer = await transport.ProduceDataAsync(new DataProducerOptions
+		var dataProducer = await transport.ProduceDataAsync(new DataProducerOptions<TWorkerAppData>
 		{
 			SctpStreamParameters = sctpStreamParameters,
 			Label                = label,
@@ -892,18 +884,22 @@ public class Room : EventEmitter
 					) = handler.Request
 					.WithData<CreateWebRtcTransportRequest>()!.Data!;
 
-				var options = MediasoupOptions.Default.WebRtcTransportOptions;
-				var webRtcTransportOptions = new WebRtcTransportOptions
+				var options = MediasoupOptionsContext<TWorkerAppData>.Default.WebRtcTransportOptions;
+				var webRtcTransportOptions = new WebRtcTransportOptions<TWorkerAppData>
 				{
 					ListenInfos                     = options.ListenInfos,
-					MaxSctpMessageSize              = options.MaxSctpMessageSize              ?? 0,
-					InitialAvailableOutgoingBitrate = options.InitialAvailableOutgoingBitrate ?? 0,
+					MaxSctpMessageSize              = options.MaxSctpMessageSize,
+					InitialAvailableOutgoingBitrate = options.InitialAvailableOutgoingBitrate,
 
 					WebRtcServer      = webRtcServer,
 					IceConsentTimeout = 20,
 					EnableSctp        = sctpCapabilities is not null,
 					NumSctpStreams    = sctpCapabilities?.NumStreams,
-					AppData           = new() { { nameof(producing), producing }, { nameof(consuming), consuming } }
+					AppData = new()
+					{
+						{ nameof(producing), producing },
+						{ nameof(consuming), consuming }
+					}
 				};
 
 				if (forceTcp)
@@ -972,10 +968,10 @@ public class Room : EventEmitter
 					iceParameters  = transport.Data.IceParameters,
 					iceCandidates  = transport.Data.IceCandidates,
 					dtlsParameters = transport.Data.DtlsParameters,
-					sctpParameters = ((Transport.Transport)transport).Data.SctpParameters
+					sctpParameters = transport.Data.SctpParameters
 				});
 
-				var maxIncomingBitrate = MediasoupOptions.Default.WebRtcTransportOptions!
+				var maxIncomingBitrate = MediasoupOptions<TWorkerAppData>.Default.WebRtcTransportOptions!
 					.MaximumIncomingBitrate;
 
 				// If set, apply max incoming bitrate limit.
@@ -1019,7 +1015,7 @@ public class Room : EventEmitter
 				var transportId = handler.Request.WithData<RestartIceRequest>()!.Data!.TransportId;
 				var transport   = peer.Data().Transports.GetValueOrDefault(transportId);
 
-				if (transport is not WebRtcTransport.WebRtcTransport webRtcTransport)
+				if (transport is not IWebRtcTransport webRtcTransport)
 					throw new KeyNotFoundException($"transport with id {transportId} not found");
 
 				var iceParameters = await webRtcTransport.RestartIceAsync();
@@ -1036,7 +1032,7 @@ public class Room : EventEmitter
 					throw new InvalidStateException("Peer not yet joined");
 
 				var (transportId, kind, rtpParameters, appData) =
-					handler.Request.WithData<ProduceRequest>()!.Data!;
+					handler.Request.WithData<ProduceRequest<TWorkerAppData>>()!.Data!;
 
 				var transport = peer.Data().Transports.GetValueOrDefault(transportId);
 
@@ -1047,7 +1043,7 @@ public class Room : EventEmitter
 				// the 'loudest' event of the audioLevelObserver.
 				appData.Add("peerId", peer.Id);
 
-				var producer = await transport.ProduceAsync(new()
+				var producer = await transport.ProduceAsync<TWorkerAppData>(new()
 				{
 					Kind          = kind,
 					RtpParameters = rtpParameters,
@@ -1300,7 +1296,7 @@ public class Room : EventEmitter
 				if (transport == null)
 					throw new KeyNotFoundException($"transport with id '{transportId}' not found");
 
-				var dataProducer = await transport.ProduceDataAsync(new()
+				var dataProducer = await transport.ProduceDataAsync<TWorkerAppData>(new()
 				{
 					SctpStreamParameters = sctpStreamParameters,
 					Label                = label,
@@ -1544,7 +1540,7 @@ public class Room : EventEmitter
 			.Peers
 			.Where(x => x.Data().Joined && (excludePeer is null || x != excludePeer));
 
-	private async Task CreateConsumerAsync(Peer consumerPeer, string producerPeerId, Producer.Producer producer)
+	private async Task CreateConsumerAsync(Peer consumerPeer, string producerPeerId, Producer<TWorkerAppData> producer)
 	{
 		// Optimization:
 		// - Create the server-side Consumer in paused mode.
@@ -1566,7 +1562,7 @@ public class Room : EventEmitter
 		}
 
 		// Must take the Transport the remote Peer is using for consuming.
-		var transport = consumerPeer.Data().Transports.Values.FirstOrDefault(x => x.AppData["consuming"] is true);
+		var transport = consumerPeer.Data().Transports.Values.FirstOrDefault(x => x.AppData()["consuming"] is true);
 
 		// This should not happen.
 		if (transport == null)
@@ -1585,11 +1581,11 @@ public class Room : EventEmitter
 			tasks.Add(Task.Run(async () =>
 				{
 					// Create the Consumer in paused mode.
-					Consumer.Consumer? consumer;
+					Consumer<TWorkerAppData>? consumer;
 
 					try
 					{
-						consumer = await transport.ConsumeAsync(new()
+						consumer = await transport.ConsumeAsync<TWorkerAppData>(new()
 						{
 							ProducerId      = producer.Id,
 							RtpCapabilities = consumerPeer.Data().RtpCapabilities,
@@ -1722,7 +1718,7 @@ public class Room : EventEmitter
 	private async Task CreateDataConsumerAsync(
 		Peer dataConsumerPeer,
 		string? dataProducerPeerId, // This is null for the bot DataProducer.
-		DataProducer.DataProducer dataProducer)
+		DataProducer<TWorkerAppData> dataProducer)
 	{
 		// NOTE: Don't create the DataConsumer if the remote Peer cannot consume it.
 		if (dataConsumerPeer.Data().SctpCapabilities == null)
@@ -1730,7 +1726,7 @@ public class Room : EventEmitter
 
 		// Must take the Transport the remote Peer is using for consuming.
 		var transport = dataConsumerPeer.Data().Transports.Values
-			.FirstOrDefault(t => t.AppData["consuming"] is true);
+			.FirstOrDefault(t => t.AppData()["consuming"] is true);
 
 		// This should not happen.
 		if (transport == null)
@@ -1741,11 +1737,11 @@ public class Room : EventEmitter
 		}
 
 		// Create the DataConsumer.
-		DataConsumer.DataConsumer dataConsumer;
+		DataConsumer<TWorkerAppData> dataConsumer;
 
 		try
 		{
-			dataConsumer = await transport.ConsumeDataAsync(
+			dataConsumer = await transport.ConsumeDataAsync<TWorkerAppData>(
 				new()
 				{
 					DataProducerId = dataProducer.Id
@@ -1791,7 +1787,7 @@ public class Room : EventEmitter
 					SctpStreamParameters = dataConsumer.Data.SctpStreamParameters,
 					Label                = dataConsumer.Data.Label,
 					Protocol             = dataConsumer.Data.Protocol,
-					AppData              = (Dictionary<string, object>)dataProducer.AppData
+					AppData              = dataProducer.AppData
 				});
 		}
 		catch (Exception ex)
@@ -1810,14 +1806,14 @@ public class Room : EventEmitter
 
 	internal class BroadcasterData
 	{
-		public required string                                        DisplayName     { get; set; }
-		public required DeviceR                                       Device          { get; set; }
-		public          RtpCapabilities?                              RtpCapabilities { get; set; }
-		public          Dictionary<string, Transport.Transport>       Transports      { get; init; } = [];
-		public          Dictionary<string, Producer.Producer>         Producers       { get; init; } = [];
-		public          Dictionary<string, Consumer.Consumer>         Consumers       { get; init; } = [];
-		public          Dictionary<string, DataProducer.DataProducer> DataProducers   { get; init; } = [];
-		public          Dictionary<string, DataConsumer.DataConsumer> DataConsumers   { get; init; } = [];
+		public required string                                           DisplayName     { get; set; }
+		public required DeviceR                                          Device          { get; set; }
+		public          RtpCapabilities?                                 RtpCapabilities { get; set; }
+		public          Dictionary<string, ITransport>                   Transports      { get; init; } = [];
+		public          Dictionary<string, Producer<TWorkerAppData>>     Producers       { get; init; } = [];
+		public          Dictionary<string, Consumer<TWorkerAppData>>     Consumers       { get; init; } = [];
+		public          Dictionary<string, DataProducer<TWorkerAppData>> DataProducers   { get; init; } = [];
+		public          Dictionary<string, DataConsumer<TWorkerAppData>>                DataConsumers   { get; init; } = [];
 	}
 
 	internal class PeerData : BroadcasterData
@@ -1834,4 +1830,13 @@ public class Room : EventEmitter
 file static class PeerExtensions
 {
 	public static Room.PeerData Data(this Peer peer) => peer.Data.As<Room.PeerData>();
+
+	public static TWorkerAppData AppData(this ITransport transport) => transport switch
+	{
+		PlainTransport<TWorkerAppData> plainTransport  => plainTransport.AppData,
+		WebRtcTransport<TWorkerAppData> plainTransport => plainTransport.AppData,
+		DirectTransport<TWorkerAppData> plainTransport => plainTransport.AppData,
+		PipeTransport<TWorkerAppData> plainTransport   => plainTransport.AppData,
+		_                                              => throw new ArgumentOutOfRangeException(nameof(transport))
+	};
 }
