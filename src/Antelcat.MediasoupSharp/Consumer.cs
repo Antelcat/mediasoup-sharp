@@ -1,6 +1,5 @@
 ﻿using Antelcat.AutoGen.ComponentModel.Diagnostic;
 using Antelcat.MediasoupSharp.Internals.Extensions;
-using FBS.Common;
 using FBS.Consumer;
 using FBS.Notification;
 using FBS.Request;
@@ -37,7 +36,7 @@ public class ConsumerOptions<TConsumerAppData>
     /// to make it possible for the consuming endpoint to render the video as far
     /// as possible. If the server side Consumer was created with paused: false,
     /// mediasoup will immediately request a key frame to the remote Producer and
-    /// suych a key frame may reach the consuming endpoint even before it's ready
+    /// such a key frame may reach the consuming endpoint even before it's ready
     /// to consume it, generating “black” video until the device requests a keyframe
     /// by itself.
     /// </para>
@@ -84,33 +83,8 @@ public class ConsumerOptions<TConsumerAppData>
     public TConsumerAppData? AppData { get; set; }
 }
 
-/// <summary>
-/// 'trace' event data.
-/// </summary>
-public class ConsumerTraceEventData
-{
-    /// <summary>
-    /// Trace type.
-    /// </summary>
-    public ConsumerTraceEventType Type { get; set; }
 
-    /// <summary>
-    /// Event timestamp.
-    /// </summary>
-    public long Timestamp { get; set; }
-
-    /// <summary>
-    /// Event direction.
-    /// </summary>
-    public TraceDirection Direction { get; set; }
-
-    /// <summary>
-    /// Per type information.
-    /// </summary>
-    public object Info { get; set; }
-}
-
-public class ConsumerEvents
+public abstract class ConsumerEvents
 {
     public object?            transportclose;
     public object?            producerclose;
@@ -124,12 +98,12 @@ public class ConsumerEvents
     public (string, Exception) listenererror;
 
     // Private events.
-    public object? _close;
-    public object? _producerclose;
+    internal object? _close;
+    internal object? _producerclose;
 }
 
 
-public class ConsumerObserverEvents
+public abstract class ConsumerObserverEvents
 {
     public object?             close;
     public object?             pause;
@@ -262,23 +236,23 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
 
     /// <summary>
     /// <para>Events:</para>
-    /// <para>@emits transportclose</para>
-    /// <para>@emits producerclose</para>
-    /// <para>@emits producerpause</para>
-    /// <para>@emits producerresume</para>
-    /// <para>@emits score - (score: ConsumerScore)</para>
-    /// <para>@emits layerschange - (layers: ConsumerLayers | undefined)</para>
-    /// <para>@emits trace - (trace: ConsumerTraceEventData)</para>
-    /// <para>@emits @close</para>
-    /// <para>@emits @producerclose</para>
+    /// <para>@emits <see cref="ConsumerEvents.transportclose"/></para>
+    /// <para>@emits <see cref="ConsumerEvents.producerclose"/></para>
+    /// <para>@emits <see cref="ConsumerEvents.producerpause"/></para>
+    /// <para>@emits <see cref="ConsumerEvents.producerresume"/></para>
+    /// <para>@emits <see cref="ConsumerEvents.score"/> - (score: ConsumerScore)</para>
+    /// <para>@emits <see cref="ConsumerEvents.layerschange"/> - (layers: ConsumerLayers | undefined)</para>
+    /// <para>@emits <see cref="ConsumerEvents.trace"/> - (trace: ConsumerTraceEventData)</para>
+    /// <para>@emits <see cref="ConsumerEvents.rtp"/> - (packet: Buffer)</para>
+    /// <para>@emits <see cref="ConsumerEvents._close"/>@</para>
+    /// <para>@emits <see cref="ConsumerEvents._producerclose"/>@</para>
     /// <para>Observer events:</para>
-    /// <para>@emits close</para>
-    /// <para>@emits pause</para>
-    /// <para>@emits resume</para>
-    /// <para>@emits score - (score: ConsumerScore)</para>
-    /// <para>@emits layerschange - (layers: ConsumerLayers | undefined)</para>
-    /// <para>@emits rtp - (packet: Buffer)</para>
-    /// <para>@emits trace - (trace: ConsumerTraceEventData)</para>
+    /// <para>@emits <see cref="ConsumerObserverEvents.close"/></para>
+    /// <para>@emits <see cref="ConsumerObserverEvents.pause"/></para>
+    /// <para>@emits <see cref="ConsumerObserverEvents.resume"/></para>
+    /// <para>@emits <see cref="ConsumerObserverEvents.score"/> - (score: ConsumerScore)</para>
+    /// <para>@emits <see cref="ConsumerObserverEvents.layerschange"/> - (layers: ConsumerLayers | undefined)</para>
+    /// <para>@emits <see cref="ConsumerObserverEvents.trace"/> - (trace: ConsumerTraceEventData)</para>
     /// </summary>
     public Consumer(
         ConsumerInternal @internal,

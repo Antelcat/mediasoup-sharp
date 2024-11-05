@@ -8,7 +8,7 @@ namespace Antelcat.MediasoupSharp;
 
 using RtpObserverObserver = IEnhancedEventEmitter<RtpObserverObserverEvents>;
 
-public class RtpObserverEvents
+public abstract class RtpObserverEvents
 {
     public object? routerclose;
 
@@ -18,7 +18,7 @@ public class RtpObserverEvents
     public object? _close;
 }
 
-public class RtpObserverObserverEvents
+public abstract class RtpObserverObserverEvents
 {
     public object?           close;
     public object?           pause;
@@ -100,14 +100,14 @@ public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
 
     /// <summary>
     /// <para>Events:</para>
-    /// <para>@emits routerclose</para>
-    /// <para>@emits @close</para>
+    /// <para>@emits <see cref="RtpObserverEvents.routerclose"/></para>
+    /// <para>@emits <see cref="RtpObserverEvents._close"/></para>
     /// <para>Observer events:</para>
-    /// <para>@emits close</para>
-    /// <para>@emits pause</para>
-    /// <para>@emits resume</para>
-    /// <para>@emits addproducer - (producer: Producer)</para>
-    /// <para>@emits removeproducer - (producer: Producer)</para>
+    /// <para>@emits <see cref="RtpObserverObserverEvents.close"/></para>
+    /// <para>@emits <see cref="RtpObserverObserverEvents.pause"/></para>
+    /// <para>@emits <see cref="RtpObserverObserverEvents.resume"/></para>
+    /// <para>@emits <see cref="RtpObserverObserverEvents.addproducer"/> - (producer: Producer)</para>
+    /// <para>@emits <see cref="RtpObserverObserverEvents.removeproducer"/> - (producer: Producer)</para>
     /// </summary>
     protected RtpObserver(
         RtpObserverConstructorOptions<TRtpObserverAppData> options,

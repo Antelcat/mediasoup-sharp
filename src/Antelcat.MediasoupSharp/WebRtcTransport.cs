@@ -115,7 +115,7 @@ public class WebRtcTransportListenIndividual
     public ushort? Port { get; set; } = 0; // mediasoup-work needs >= 0
 }
 
-public class WebRtcTransportEvents : TransportEvents
+public abstract class WebRtcTransportEvents : TransportEvents
 {
     public IceState  icestatechange;
     public TupleT    iceselectedtuplechange;
@@ -123,7 +123,7 @@ public class WebRtcTransportEvents : TransportEvents
     public SctpState sctpstatechange;
 }
 
-public class WebRtcTransportObserverEvents : TransportObserverEvents
+public abstract class WebRtcTransportObserverEvents : TransportObserverEvents
 {
     public IceState  icestatechange;
     public TupleT    iceselectedtuplechange;
@@ -182,22 +182,22 @@ public class WebRtcTransport<TWebRtcTransportAppData> :
 
     /// <summary>
     /// <para>Events:</para>
-    /// <para>@emits icestatechange - (iceState: IceState)</para>
-    /// <para>@emits iceselectedtuplechange - (iceSelectedTuple: TransportTuple)</para>
-    /// <para>@emits dtlsstatechange - (dtlsState: DtlsState)</para>
-    /// <para>@emits sctpstatechange - (sctpState: SctpState)</para>
-    /// <para>@emits trace - (trace: TransportTraceEventData)</para>
+    /// <para>@emits <see cref="WebRtcTransportEvents.icestatechange"/> - (iceState: IceState)</para>
+    /// <para>@emits <see cref="WebRtcTransportEvents.iceselectedtuplechange"/> - (iceSelectedTuple: TransportTuple)</para>
+    /// <para>@emits <see cref="WebRtcTransportEvents.dtlsstatechange"/> - (dtlsState: DtlsState)</para>
+    /// <para>@emits <see cref="WebRtcTransportEvents.sctpstatechange"/> - (sctpState: SctpState)</para>
+    /// <para>@emits <see cref="WebRtcTransportEvents.trace"/> - (trace: TransportTraceEventData)</para>
     /// <para>Observer events:</para>
-    /// <para>@emits close</para>
-    /// <para>@emits newproducer - (producer: Producer)</para>
-    /// <para>@emits newconsumer - (consumer: Consumer)</para>
-    /// <para>@emits newdataproducer - (dataProducer: DataProducer)</para>
-    /// <para>@emits newdataconsumer - (dataConsumer: DataConsumer)</para>
-    /// <para>@emits icestatechange - (iceState: IceState)</para>
-    /// <para>@emits iceselectedtuplechange - (iceSelectedTuple: TransportTuple)</para>
-    /// <para>@emits dtlsstatechange - (dtlsState: DtlsState)</para>
-    /// <para>@emits sctpstatechange - (sctpState: SctpState)</para>
-    /// <para>@emits trace - (trace: TransportTraceEventData)</para>
+    /// <para>@emits <see cref="WebRtcTransportObserverEvents.close"/></para>
+    /// <para>@emits <see cref="WebRtcTransportObserverEvents.newproducer"/> - (producer: Producer)</para>
+    /// <para>@emits <see cref="WebRtcTransportObserverEvents.newconsumer"/> - (consumer: Consumer)</para>
+    /// <para>@emits <see cref="WebRtcTransportObserverEvents.newdataproducer"/> - (dataProducer: DataProducer)</para>
+    /// <para>@emits <see cref="WebRtcTransportObserverEvents.newdataconsumer"/> - (dataConsumer: DataConsumer)</para>
+    /// <para>@emits <see cref="WebRtcTransportObserverEvents.icestatechange"/> - (iceState: IceState)</para>
+    /// <para>@emits <see cref="WebRtcTransportObserverEvents.iceselectedtuplechange"/> - (iceSelectedTuple: TransportTuple)</para>
+    /// <para>@emits <see cref="WebRtcTransportObserverEvents.dtlsstatechange"/> - (dtlsState: DtlsState)</para>
+    /// <para>@emits <see cref="WebRtcTransportObserverEvents.sctpstatechange"/> - (sctpState: SctpState)</para>
+    /// <para>@emits <see cref="WebRtcTransportObserverEvents.trace"/> - (trace: TransportTraceEventData)</para>
     /// </summary>
     public WebRtcTransport(WebRtcTransportConstructorOptions<TWebRtcTransportAppData> options)
         : base(options, new WebRtcTransportObserver())

@@ -90,17 +90,17 @@ public class PipeToRouterResult
     public IDataProducer? PipeDataProducer { get; set; }
 }
 
-public class RouterEvents
+public abstract class RouterEvents
 {
     public object? workerclose;
 
     public (string, Exception)? listenererror;
 
     // Private events.
-    public object? _close;
+    internal object? _close;
 }
 
-public class RouterObserverEvents
+public abstract class RouterObserverEvents
 {
     public object?      close;
     public ITransport   newtransport;
@@ -202,12 +202,12 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
 
     /// <summary>
     /// <para>Events:</para>
-    /// <para>@emits workerclose</para>
-    /// <para>@emits @close</para>
+    /// <para>@emits <see cref="RouterEvents.workerclose"/></para>
+    /// <para>@emits <see cref="RouterEvents._close"/></para>
     /// <para>Observer events:</para>
-    /// <para>@emits close</para>
-    /// <para>@emits newtransport - (transport: Transport)</para>
-    /// <para>@emits newrtpobserver - (rtpObserver: RtpObserver)</para>
+    /// <para>@emits <see cref="RouterObserverEvents.close"/></para>
+    /// <para>@emits <see cref="RouterObserverEvents.newtransport"/> - (transport: Transport)</para>
+    /// <para>@emits <see cref="RouterObserverEvents.newrtpobserver"/> - (rtpObserver: RtpObserver)</para>
     /// </summary>
     public Router(
         RouterInternal @internal,

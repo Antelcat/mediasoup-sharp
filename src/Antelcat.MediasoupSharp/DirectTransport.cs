@@ -23,12 +23,12 @@ public class DirectTransportOptions<TDirectTransportAppData>
     public TDirectTransportAppData? AppData { get; set; }
 }
 
-public class DirectTransportEvents : TransportEvents
+public abstract class DirectTransportEvents : TransportEvents
 {
     public List<byte> rtcp;
 }
 
-public class DirectTransportObserverEvents : TransportObserverEvents
+public abstract class DirectTransportObserverEvents : TransportObserverEvents
 {
     public List<byte> rtcp;
 }
@@ -49,13 +49,13 @@ public class DirectTransport<TDirectTransportAppData>
 
     /// <summary>
     /// <para>Events:</para>
-    /// <para>@emits rtcp - (packet: Buffer)</para>
-    /// <para>@emits trace - (trace: TransportTraceEventData)</para>
+    /// <para>@emits <see cref="DirectTransportEvents.rtcp"/> - (packet: Buffer)</para>
+    /// <para>@emits <see cref="DirectTransportEvents.trace"/> - (trace: TransportTraceEventData)</para>
     /// <para>Observer events:</para>
-    /// <para>@emits close</para>
-    /// <para>@emits newdataproducer - (dataProducer: DataProducer)</para>
-    /// <para>@emits newdataconsumer - (dataProducer: DataProducer)</para>
-    /// <para>@emits trace - (trace: TransportTraceEventData)</para>
+    /// <para>@emits <see cref="DirectTransportObserverEvents.close"/></para>
+    /// <para>@emits <see cref="DirectTransportObserverEvents.newdataproducer"/> - (dataProducer: DataProducer)</para>
+    /// <para>@emits <see cref="DirectTransportObserverEvents.newdataconsumer"/> - (dataProducer: DataProducer)</para>
+    /// <para>@emits <see cref="DirectTransportObserverEvents.trace"/> - (trace: TransportTraceEventData)</para>
     /// </summary>
     public DirectTransport(DirectTransportConstructorOptions<TDirectTransportAppData> options)
         : base(options, new DirectTransportObserver())

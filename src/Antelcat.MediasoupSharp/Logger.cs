@@ -43,7 +43,7 @@ internal class Logger<TCategoryName>(ILogger<TCategoryName> proxy) : Logger(prox
     }
 }
 
-public class LoggerEmitterEvents
+public abstract class LoggerEmitterEvents
 {
     public (string, string)            debuglog;
     public (string, string)            warnlog;

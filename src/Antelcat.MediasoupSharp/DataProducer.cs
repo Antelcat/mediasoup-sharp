@@ -45,17 +45,17 @@ public class DataProducerOptions<TDataProducerAppData>
     public TDataProducerAppData? AppData { get; set; }
 }
 
-public class DataProducerEvents
+public abstract class DataProducerEvents
 {
     public object? transportclose;
 
     public (string, Exception)? listenererror;
 
     // Private events.
-    public object? _close;
+    internal object? _close;
 }
 
-public class DataProducerObserverEvents
+public abstract class DataProducerObserverEvents
 {
     public object? close;
     public object? pause;
@@ -143,10 +143,10 @@ public class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataProdu
 
     /// <summary>
     /// <para>Events:</para>
-    /// <para>@emits transportclose</para>
-    /// <para>@emits @close</para>
+    /// <para>@emits <see cref="DataProducerEvents.transportclose"/></para>
+    /// <para>@emits <see cref="DataProducerEvents._close"/></para>
     /// <para>Observer events:</para>
-    /// <para>@emits close</para>
+    /// <para>@emits <see cref="DataProducerObserverEvents.close"/></para>
     /// </summary>
     public DataProducer(
         DataProducerInternal @internal,

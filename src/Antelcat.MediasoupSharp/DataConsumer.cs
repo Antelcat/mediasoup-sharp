@@ -61,7 +61,7 @@ public class DataConsumerOptions<TDataConsumerAppData>
     public TDataConsumerAppData? AppData { get; set; }
 }
 
-public class DataConsumerEvents
+public abstract class DataConsumerEvents
 {
     public object?              transportclose;
     public object?              dataproducerclose;
@@ -73,11 +73,11 @@ public class DataConsumerEvents
     public (string, Exception)  listenererror;
 
     // Private events.
-    public object? _close;
-    public object? _dataproducerclose;
+    internal object? _close;
+    internal object? _dataproducerclose;
 }
 
-public class DataConsumerObserverEvents
+public abstract class DataConsumerObserverEvents
 {
     public object? close;
     public object? pause;
@@ -184,17 +184,17 @@ public class DataConsumer<TDataConsumerAppData>
 
     /// <summary>
     /// <para>Events:</para>
-    /// <para>@emits transportclose</para>
-    /// <para>@emits dataproducerclose</para>
-    /// <para>@emits message - (message: Buffer, ppid: number)</para>
-    /// <para>@emits sctpsendbufferfull</para>
-    /// <para>@emits bufferedamountlow - (bufferedAmount: number)</para>
-    /// <para>@emits @close</para>
-    /// <para>@emits @dataproducerclose</para>
+    /// <para>@emits <see cref="DataConsumerEvents.transportclose"/></para>
+    /// <para>@emits <see cref="DataConsumerEvents.dataproducerclose"/></para>
+    /// <para>@emits <see cref="DataConsumerEvents.message"/> - (message: Buffer, ppid: number)</para>
+    /// <para>@emits <see cref="DataConsumerEvents.sctpsendbufferfull"/></para>
+    /// <para>@emits <see cref="DataConsumerEvents.bufferedamountlow"/> - (bufferedAmount: number)</para>
+    /// <para>@emits <see cref="DataConsumerEvents._close"/>@</para>
+    /// <para>@emits <see cref="DataConsumerEvents._dataproducerclose"/>@</para>
     /// <para>Observer events:</para>
-    /// <para>@emits close</para>
-    /// <para>@emits pause</para>
-    /// <para>@emits resume</para>
+    /// <para>@emits <see cref="DataConsumerObserverEvents.close"/></para>
+    /// <para>@emits <see cref="DataConsumerObserverEvents.pause"/></para>
+    /// <para>@emits <see cref="DataConsumerObserverEvents.resume"/></para>
     /// </summary>
     public DataConsumer(
         DataConsumerInternal @internal,

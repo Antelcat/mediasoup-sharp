@@ -77,12 +77,12 @@ public class PipeConsumerOptions<TConsumerAppData>
     public TConsumerAppData? AppData { get; set; }
 }
 
-public class PipeTransportEvents : TransportEvents
+public abstract class PipeTransportEvents : TransportEvents
 {
     public SctpState sctpstatechange;
 }
 
-public class PipeTransportObserverEvents : TransportObserverEvents
+public abstract class PipeTransportObserverEvents : TransportObserverEvents
 {
     public SctpState sctpstatechange;
 }
@@ -140,7 +140,7 @@ public class PipeTransport<TPipeTransportAppData>
     /// <para>@emits <see cref="PipeTransportObserverEvents.newdataproducer"/> - (dataProducer: DataProducer)</para>
     /// <para>@emits <see cref="PipeTransportObserverEvents.newdataconsumer"/> - (dataConsumer: DataConsumer)</para>
     /// <para>@emits <see cref="PipeTransportObserverEvents.sctpstatechange"/> - (sctpState: SctpState)</para>
-    /// <para>@emits trace - (trace: TransportTraceEventData)</para>
+    /// <para>@emits <see cref="PipeTransportObserverEvents.trace"/> - (trace: TransportTraceEventData)</para>
     /// </summary>
     public PipeTransport(PipeTransportConstructorOptions<TPipeTransportAppData> options)
         : base(options, new PipeTransportObserver())

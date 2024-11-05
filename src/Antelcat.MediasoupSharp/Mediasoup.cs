@@ -9,7 +9,7 @@ namespace Antelcat.MediasoupSharp;
 
 using Observer = EnhancedEventEmitter<ObserverEvents>;
 
-public class ObserverEvents
+public abstract class ObserverEvents
 {
     public IWorker newworker;
 }
@@ -71,6 +71,7 @@ public partial class Mediasoup
     /// Get a cloned copy of the mediasoup supported RTP capabilities.
     /// </summary>
     public static RtpCapabilities GetSupportedRtpCapabilities() => RtpCapabilities.SupportedRtpCapabilities.DeepClone();
+    
     public class LogEventListeners
     {
         public Action<string, string>?            OnDebug;

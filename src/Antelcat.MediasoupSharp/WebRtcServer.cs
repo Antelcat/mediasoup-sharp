@@ -22,7 +22,7 @@ public record WebRtcServerOptions<TWebRtcServerAppData>
     public TWebRtcServerAppData? AppData { get; set; }
 }
 
-public class WebRtcServerEvents
+public abstract class WebRtcServerEvents
 {
     public object? workerclose;
 
@@ -32,11 +32,11 @@ public class WebRtcServerEvents
     public object? _close;
 }
 
-public class WebRtcServerObserverEvents
+public abstract class WebRtcServerObserverEvents
 {
     public object?           close;
-    public IWebRtcTransport? webrtctransporthandled;
-    public IWebRtcTransport? webrtctransportunhandled;
+    public IWebRtcTransport webrtctransporthandled;
+    public IWebRtcTransport webrtctransportunhandled;
 }
 
 public class WebRtcServerInternal
@@ -95,12 +95,12 @@ public class WebRtcServer<TWebRtcServerAppData> : EnhancedEventEmitter<WebRtcSer
 
     /// <summary>
     /// <para>Events:</para>
-    /// <para>@emits workerclose</para>
-    /// <para>@emits @close</para>
+    /// <para>@emits <see cref="WebRtcServerEvents.workerclose"/></para>
+    /// <para>@emits <see cref="WebRtcServerEvents._close"/></para>
     /// <para>Observer events:</para>
-    /// <para>@emits close</para>
-    /// <para>@emits webrtctransporthandled - (webRtcTransport: WebRtcTransport)</para>
-    /// <para>@emits webrtctransportunhandled - (webRtcTransport: WebRtcTransport)</para>
+    /// <para>@emits <see cref="WebRtcServerObserverEvents.close"/></para>
+    /// <para>@emits <see cref="WebRtcServerObserverEvents.webrtctransporthandled"/> - (webRtcTransport: WebRtcTransport)</para>
+    /// <para>@emits <see cref="WebRtcServerObserverEvents.webrtctransportunhandled"/> - (webRtcTransport: WebRtcTransport)</para>
     /// </summary>
     public WebRtcServer(
         WebRtcServerInternal @internal,

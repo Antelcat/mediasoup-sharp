@@ -61,10 +61,10 @@ public class Channel : EnhancedEventEmitter, IChannel
     #region Constants
 
     private const int RecvBufferMaxLen = PayloadMaxLen * 2;
-    
-    protected const int MessageMaxLen = PayloadMaxLen + sizeof(int);
 
-    protected const int PayloadMaxLen = 1024 * 1024 * 4;
+    private const int MessageMaxLen = PayloadMaxLen + sizeof(int);
+
+    private const int PayloadMaxLen = 1024 * 1024 * 4;
 
     #endregion Constants
 
@@ -73,33 +73,33 @@ public class Channel : EnhancedEventEmitter, IChannel
     /// <summary>
     /// Logger
     /// </summary>
-    protected readonly ILogger Logger = new Logger<Channel>();
+    private readonly ILogger logger = new Logger<Channel>();
 
     /// <summary>
     /// Closed flag.
     /// </summary>
-    protected bool Closed;
+    private bool closed;
 
     /// <summary>
     /// Close locker.
     /// </summary>
-    protected readonly AsyncReaderWriterLock CloseLock = new();
+    private readonly AsyncReaderWriterLock closeLock = new();
 
     /// <summary>
     /// Worker id.
     /// </summary>
-    protected readonly int WorkerId;
+    private readonly int workerId;
 
     /// <summary>
     /// Next id for messages sent to the worker process.
     /// </summary>
-    protected uint NextId;
+    private uint nextId;
 
     /// <summary>
     /// Map of pending sent requests.
     /// </summary>
-    protected readonly ConcurrentDictionary<uint, Sent> Sents = new();
-    
+    private readonly ConcurrentDictionary<uint, Sent> sents = new();
+
     /// <summary>
     /// Unix Socket instance for sending messages to the worker process.
     /// </summary>
@@ -118,7 +118,6 @@ public class Channel : EnhancedEventEmitter, IChannel
 
     private int recvBufferCount;
 
-
     #endregion Protected Fields
 
     #region ObjectPool
@@ -135,21 +134,21 @@ public class Channel : EnhancedEventEmitter, IChannel
 
     #endregion Events
 
-    private class FlatBufferBuilderPooledObjectPolicy(int initialSize) 
+    private class FlatBufferBuilderPooledObjectPolicy(int initialSize)
         : IPooledObjectPolicy<FlatBufferBuilder>
     {
         public FlatBufferBuilder Create() => new(initialSize);
 
         public bool Return(FlatBufferBuilder obj) => true;
     }
-    
+
     public Channel(UVStream producerSocket, UVStream consumerSocket, int workerId)
     {
-        WorkerId = workerId;
-        
+        this.workerId = workerId;
+
         var policy = new FlatBufferBuilderPooledObjectPolicy(1024);
         BufferPool = objectPoolProvider.Create(policy);
-        
+
         this.producerSocket = producerSocket;
         this.consumerSocket = consumerSocket;
 
@@ -165,36 +164,36 @@ public class Channel : EnhancedEventEmitter, IChannel
 
     public async Task CloseAsync()
     {
-        Logger.LogDebug("CloseAsync() | Worker[{WorkId}]", WorkerId);
+        logger.LogDebug("CloseAsync() | Worker[{WorkId}]", workerId);
 
-        await using(await CloseLock.WriteLockAsync())
+        await using (await closeLock.WriteLockAsync())
         {
-            if(Closed)
+            if (closed)
             {
                 return;
             }
 
-            Closed = true;
+            closed = true;
 
             Cleanup();
         }
     }
 
-    public virtual void Cleanup()
+    public void Cleanup()
     {
         // Close every pending sent.
         try
         {
-            foreach (var value in Sents.Values)
+            foreach (var value in sents.Values)
             {
                 value.Close();
             }
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
-            Logger.LogError(ex, "Cleanup() | Worker[{WorkId}] _sents.Values.ForEach(m => m.Close.Invoke())", WorkerId);
+            logger.LogError(ex, "Cleanup() | Worker[{WorkId}] _sents.Values.ForEach(m => m.Close.Invoke())", workerId);
         }
-        
+
         // Remove event listeners but leave a fake 'error' hander to avoid
         // propagation.
         consumerSocket.Data   -= ConsumerSocketOnData;
@@ -211,7 +210,7 @@ public class Channel : EnhancedEventEmitter, IChannel
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, $"CloseAsync() | Worker[{{WorkerId}}] {nameof(producerSocket)}.Close()", WorkerId);
+            logger.LogError(ex, $"CloseAsync() | Worker[{{WorkerId}}] {nameof(producerSocket)}.Close()", workerId);
         }
 
         try
@@ -220,23 +219,25 @@ public class Channel : EnhancedEventEmitter, IChannel
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, $"CloseAsync() | Worker[{{WorkerId}}] {nameof(consumerSocket)}.Close()", WorkerId);
+            logger.LogError(ex, $"CloseAsync() | Worker[{{WorkerId}}] {nameof(consumerSocket)}.Close()", workerId);
         }
     }
 
-    public async Task NotifyAsync(FlatBufferBuilder bufferBuilder, FBS.Notification.Event @event, FBS.Notification.Body? bodyType, int? bodyOffset, string? handlerId)
+    public async Task NotifyAsync(FlatBufferBuilder bufferBuilder, FBS.Notification.Event @event,
+                                  FBS.Notification.Body? bodyType, int? bodyOffset, string? handlerId)
     {
-        Logger.LogDebug("NotifyAsync() | Worker[{WorkId}] Event:{Event}", WorkerId, @event);
+        logger.LogDebug("NotifyAsync() | Worker[{WorkId}] Event:{Event}", workerId, @event);
 
-        await using(await CloseLock.ReadLockAsync())
+        await using (await closeLock.ReadLockAsync())
         {
-            if(Closed)
+            if (closed)
             {
                 BufferPool.Return(bufferBuilder);
                 throw new InvalidStateException("Channel closed");
             }
 
-            var notificationRequestMessage = CreateNotificationRequestMessage(bufferBuilder, @event, bodyType, bodyOffset, handlerId);
+            var notificationRequestMessage =
+                CreateNotificationRequestMessage(bufferBuilder, @event, bodyType, bodyOffset, handlerId);
             SendNotification(notificationRequestMessage);
         }
     }
@@ -254,25 +255,27 @@ public class Channel : EnhancedEventEmitter, IChannel
                     {
                         if (ex != null)
                         {
-                            Logger.LogError(ex, "_producerSocket.Write() | Worker[{WorkerId}] Error", WorkerId);
+                            logger.LogError(ex, "_producerSocket.Write() | Worker[{WorkerId}] Error", workerId);
                         }
                     }
                 );
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "_producerSocket.Write() | Worker[{WorkerId}] Error", WorkerId);
+                logger.LogError(ex, "_producerSocket.Write() | Worker[{WorkerId}] Error", workerId);
             }
         });
     }
 
-    public async Task<FBS.Response.Response?> RequestAsync(FlatBufferBuilder bufferBuilder, FBS.Request.Method method, FBS.Request.Body? bodyType = null, int? bodyOffset = null, string? handlerId = null)
+    public async Task<FBS.Response.Response?> RequestAsync(FlatBufferBuilder bufferBuilder, FBS.Request.Method method,
+                                                           FBS.Request.Body? bodyType = null, int? bodyOffset = null,
+                                                           string? handlerId = null)
     {
-        Logger.LogDebug("RequestAsync() | Worker[{WorkId}] Method:{Method}", WorkerId, method);
+        logger.LogDebug("RequestAsync() | Worker[{WorkId}] Method:{Method}", workerId, method);
 
-        await using(await CloseLock.ReadLockAsync())
+        await using (await closeLock.ReadLockAsync())
         {
-            if(Closed)
+            if (closed)
             {
                 BufferPool.Return(bufferBuilder);
                 throw new InvalidStateException("Channel closed");
@@ -286,7 +289,7 @@ public class Channel : EnhancedEventEmitter, IChannel
                 RequestMessage = requestMessage,
                 Resolve = data =>
                 {
-                    if(!Sents.TryRemove(requestMessage.Id!.Value, out _))
+                    if (!sents.TryRemove(requestMessage.Id!.Value, out _))
                     {
                         tcs.TrySetException(
                             new Exception($"Received response does not match any sent request [id:{requestMessage.Id}]")
@@ -298,7 +301,7 @@ public class Channel : EnhancedEventEmitter, IChannel
                 },
                 Reject = e =>
                 {
-                    if(!Sents.TryRemove(requestMessage.Id!.Value, out _))
+                    if (!sents.TryRemove(requestMessage.Id!.Value, out _))
                     {
                         tcs.TrySetException(
                             new Exception($"Received response does not match any sent request [id:{requestMessage.Id}]")
@@ -310,14 +313,14 @@ public class Channel : EnhancedEventEmitter, IChannel
                 },
                 Close = () => tcs.TrySetException(new InvalidStateException("Channel closed"))
             };
-            if(!Sents.TryAdd(requestMessage.Id!.Value, sent))
+            if (!sents.TryAdd(requestMessage.Id!.Value, sent))
             {
                 throw new Exception($"Error add sent request [id:{requestMessage.Id}]");
             }
 
             tcs.WithTimeout(
-                TimeSpan.FromSeconds(15 + 0.1 * Sents.Count),
-                () => Sents.TryRemove(requestMessage.Id!.Value, out _)
+                TimeSpan.FromSeconds(15 + 0.1 * sents.Count),
+                () => sents.TryRemove(requestMessage.Id!.Value, out _)
             );
 
             SendRequest(sent);
@@ -338,14 +341,14 @@ public class Channel : EnhancedEventEmitter, IChannel
                     ex =>
                     {
                         if (ex == null) return;
-                        Logger.LogError(ex, "_producerSocket.Write() | Worker[{WorkerId}] Error", WorkerId);
+                        logger.LogError(ex, "_producerSocket.Write() | Worker[{WorkerId}] Error", workerId);
                         sent.Reject(ex);
                     }
                 );
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "producerSocket.Write() | Worker[{WorkerId}] Error", WorkerId);
+                logger.LogError(ex, "producerSocket.Write() | Worker[{WorkerId}] Error", workerId);
                 sent.Reject(ex);
             }
         });
@@ -357,7 +360,7 @@ public class Channel : EnhancedEventEmitter, IChannel
     {
         try
         {
-            switch(message.DataType)
+            switch (message.DataType)
             {
                 case FBS.Message.Body.Response:
                     ThreadPool.QueueUserWorkItem(_ =>
@@ -382,44 +385,45 @@ public class Channel : EnhancedEventEmitter, IChannel
                     break;
                 default:
                 {
-                    Logger.LogWarning("ProcessMessage() | Worker[{WorkerId}] unexpected", WorkerId);
+                    logger.LogWarning("ProcessMessage() | Worker[{WorkerId}] unexpected", workerId);
                 }
                     break;
             }
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
-            Logger.LogError(ex, "ProcessMessage() | Worker[{WorkerId}] Received invalid message from the worker process", WorkerId);
+            logger.LogError(ex,
+                "ProcessMessage() | Worker[{WorkerId}] Received invalid message from the worker process", workerId);
         }
     }
 
     private void ProcessResponse(Response response)
     {
-        if(!Sents.TryGetValue(response.Id, out var sent))
+        if (!sents.TryGetValue(response.Id, out var sent))
         {
-            Logger.LogError(
+            logger.LogError(
                 "ProcessResponse() | Worker[{WorkerId}] Received response does not match any sent request [id:{Id}]",
-                WorkerId,
+                workerId,
                 response.Id
             );
             return;
         }
 
-        if(response.Accepted)
+        if (response.Accepted)
         {
-            Logger.LogDebug(
+            logger.LogDebug(
                 "ProcessResponse() | Worker[{WorkerId}] Request succeed [method:{Method}, id:{Id}]",
-                WorkerId,
+                workerId,
                 sent.RequestMessage.Method,
                 response.Id
             );
             sent.Resolve(response);
         }
-        else if(!response.Error.IsNullOrWhiteSpace())
+        else if (!response.Error.IsNullOrWhiteSpace())
         {
-            Logger.LogWarning(
+            logger.LogWarning(
                 "ProcessResponse() | Worker[{WorkerId}] Request failed [method:{Method}, id:{Id}, reason:\"{Reason}\"]",
-                WorkerId,
+                workerId,
                 sent.RequestMessage.Method,
                 response.Reason,
                 response.Id
@@ -433,9 +437,9 @@ public class Channel : EnhancedEventEmitter, IChannel
         }
         else
         {
-            Logger.LogError(
+            logger.LogError(
                 "ProcessResponse() | Worker[{WorkerId}] Received response is not accepted nor rejected [method:{Method}, id:{Id}]",
-                WorkerId,
+                workerId,
                 sent.RequestMessage.Method,
                 response.Id
             );
@@ -456,13 +460,13 @@ public class Channel : EnhancedEventEmitter, IChannel
     private void ProcessLog(Log log)
     {
         var logData = log.Data;
-        if(logData is null) return;
-        switch(logData[0])
+        if (logData is null) return;
+        switch (logData[0])
         {
             // 'D' (a debug log).
             case 'D':
             {
-                Logger.LogDebug("Worker[{WorkerId}] {Flag}", WorkerId, logData[1..]);
+                logger.LogDebug("Worker[{WorkerId}] {Flag}", workerId, logData[1..]);
 
                 break;
             }
@@ -479,7 +483,7 @@ public class Channel : EnhancedEventEmitter, IChannel
             // 'E' (a error log).
             case 'E':
             {
-                Logger.LogError("Worker[{WorkerId}] {Flag}", WorkerId, logData[1..]);
+                logger.LogError("Worker[{WorkerId}] {Flag}", workerId, logData[1..]);
 
                 break;
             }
@@ -488,7 +492,7 @@ public class Channel : EnhancedEventEmitter, IChannel
             case 'X':
             {
                 // eslint-disable-next-line no-console
-                Logger.LogTrace("Worker[{WorkerId}] {Flag}", WorkerId, logData[1..]);
+                logger.LogTrace("Worker[{WorkerId}] {Flag}", workerId, logData[1..]);
 
                 break;
             }
@@ -505,13 +509,13 @@ public class Channel : EnhancedEventEmitter, IChannel
         string? handlerId
     )
     {
-        var id = NextId.Increment();
+        var id = nextId.Increment();
 
         var handlerIdOffset = bufferBuilder.CreateString(handlerId ?? "");
 
         Offset<Request> requestOffset;
 
-        if(bodyType.HasValue && bodyOffset.HasValue)
+        if (bodyType.HasValue && bodyOffset.HasValue)
         {
             requestOffset = Request.CreateRequest(
                 bufferBuilder,
@@ -533,14 +537,15 @@ public class Channel : EnhancedEventEmitter, IChannel
         bufferBuilder.FinishSizePrefixed(messageOffset.Value);
 
         // Zero copy.
-        var buffer = bufferBuilder.DataBuffer.ToArraySegment(bufferBuilder.DataBuffer.Position, bufferBuilder.DataBuffer.Length - bufferBuilder.DataBuffer.Position);
+        var buffer = bufferBuilder.DataBuffer.ToArraySegment(bufferBuilder.DataBuffer.Position,
+            bufferBuilder.DataBuffer.Length - bufferBuilder.DataBuffer.Position);
 
         // Clear the buffer builder so it's reused for the next request.
         bufferBuilder.Clear();
 
         BufferPool.Return(bufferBuilder);
 
-        if(buffer.Count > MessageMaxLen)
+        if (buffer.Count > MessageMaxLen)
         {
             throw new Exception($"request too big [method:{method}]");
         }
@@ -567,7 +572,7 @@ public class Channel : EnhancedEventEmitter, IChannel
 
         Offset<Notification> notificationOffset;
 
-        if(bodyType.HasValue && bodyOffset.HasValue)
+        if (bodyType.HasValue && bodyOffset.HasValue)
         {
             notificationOffset = Notification.CreateNotification(
                 bufferBuilder,
@@ -586,20 +591,22 @@ public class Channel : EnhancedEventEmitter, IChannel
             );
         }
 
-        var messageOffset = Message.CreateMessage(bufferBuilder, FBS.Message.Body.Notification, notificationOffset.Value);
+        var messageOffset =
+            Message.CreateMessage(bufferBuilder, FBS.Message.Body.Notification, notificationOffset.Value);
 
         // Finalizes the buffer and adds a 4 byte prefix with the size of the buffer.
         bufferBuilder.FinishSizePrefixed(messageOffset.Value);
 
         // Zero copy.
-        var buffer = bufferBuilder.DataBuffer.ToArraySegment(bufferBuilder.DataBuffer.Position, bufferBuilder.DataBuffer.Length - bufferBuilder.DataBuffer.Position);
+        var buffer = bufferBuilder.DataBuffer.ToArraySegment(bufferBuilder.DataBuffer.Position,
+            bufferBuilder.DataBuffer.Length - bufferBuilder.DataBuffer.Position);
 
         // Clear the buffer builder so it's reused for the next request.
         bufferBuilder.Clear();
 
         BufferPool.Return(bufferBuilder);
 
-        if(buffer.Count > MessageMaxLen)
+        if (buffer.Count > MessageMaxLen)
         {
             throw new Exception($"notification too big [event:{@event}]");
         }
@@ -612,17 +619,17 @@ public class Channel : EnhancedEventEmitter, IChannel
         };
         return requestMessage;
     }
-    
-       #region Event handles
+
+    #region Event handles
 
     private void ConsumerSocketOnData(ArraySegment<byte> data)
     {
         // 数据回调通过单一线程进入，所以 _recvBuffer 是 Thread-safe 的。
         if (recvBufferCount + data.Count > RecvBufferMaxLen)
         {
-            Logger.LogError(
+            logger.LogError(
                 "ConsumerSocketOnData() | Worker[{WorkerId}] Receiving buffer is full, discarding all data into it",
-                WorkerId
+                workerId
             );
             recvBufferCount = 0;
             return;
@@ -667,31 +674,31 @@ public class Channel : EnhancedEventEmitter, IChannel
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex,
-                "ConsumerSocketOnData() | Worker[{WorkerId}] Invalid data received from the worker process", WorkerId);
+            logger.LogError(ex,
+                "ConsumerSocketOnData() | Worker[{WorkerId}] Invalid data received from the worker process", workerId);
         }
     }
 
     private void ConsumerSocketOnClosed()
     {
-        Logger.LogDebug("ConsumerSocketOnClosed() | Worker[{WorkerId}] Consumer Channel ended by the worker process",
-            WorkerId);
+        logger.LogDebug("ConsumerSocketOnClosed() | Worker[{WorkerId}] Consumer Channel ended by the worker process",
+            workerId);
     }
 
     private void ConsumerSocketOnError(Exception? exception)
     {
-        Logger.LogDebug(exception, "ConsumerSocketOnError() | Worker[{WorkerId}] Consumer Channel error", WorkerId);
+        logger.LogDebug(exception, "ConsumerSocketOnError() | Worker[{WorkerId}] Consumer Channel error", workerId);
     }
 
     private void ProducerSocketOnClosed()
     {
-        Logger.LogDebug("ProducerSocketOnClosed() | Worker[{WorkerId}] Producer Channel ended by the worker process",
-            WorkerId);
+        logger.LogDebug("ProducerSocketOnClosed() | Worker[{WorkerId}] Producer Channel ended by the worker process",
+            workerId);
     }
 
     private void ProducerSocketOnError(Exception? exception)
     {
-        Logger.LogDebug(exception, "ProducerSocketOnError() | Worker[{WorkerId}] Producer Channel error", WorkerId);
+        logger.LogDebug(exception, "ProducerSocketOnError() | Worker[{WorkerId}] Producer Channel error", workerId);
     }
 
     #endregion Event handles

@@ -82,14 +82,14 @@ public record PlainTransportOptions<TPlainTransportAppData>
     public TPlainTransportAppData? AppData { get; set; }
 }
 
-public class PlainTransportEvents : TransportEvents
+public abstract class PlainTransportEvents : TransportEvents
 {
     public TupleT    tuple;
     public TupleT    rtcptuple;
     public SctpState sctpstatechange;
 }
 
-public class PlainTransportObserverEvents : TransportObserverEvents
+public abstract class PlainTransportObserverEvents : TransportObserverEvents
 {
     public TupleT    tuple;
     public TupleT    rtcptuple;
@@ -145,19 +145,19 @@ public class PlainTransport<TPlainTransportAppData>
     /// <summary>
     /// <para>Events:</para>
     /// <para>@emits tuple - (tuple: TransportTuple)</para>
-    /// <para>@emits rtcptuple - (rtcpTuple: TransportTuple)</para>
-    /// <para>@emits sctpstatechange - (sctpState: SctpState)</para>
+    /// <para>@emits <see cref="PlainTransportEvents.rtcptuple"/> - (rtcpTuple: TransportTuple)</para>
+    /// <para>@emits <see cref="PlainTransportEvents.sctpstatechange"/> - (sctpState: SctpState)</para>
     /// <para>@emits trace - (trace: TransportTraceEventData)</para>
     /// <para>Observer events:</para>
     /// <para>@emits close</para>
-    /// <para>@emits newproducer - (producer: Producer)</para>
-    /// <para>@emits newconsumer - (consumer: Consumer)</para>
-    /// <para>@emits newdataproducer - (dataProducer: DataProducer)</para>
-    /// <para>@emits newdataconsumer - (dataConsumer: DataConsumer)</para>
-    /// <para>@emits tuple - (tuple: TransportTuple)</para>
-    /// <para>@emits rtcptuple - (rtcpTuple: TransportTuple)</para>
-    /// <para>@emits sctpstatechange - (sctpState: SctpState)</para>
-    /// <para>@emits trace - (trace: TransportTraceEventData)</para>
+    /// <para>@emits <see cref="PlainTransportObserverEvents.newproducer"/> - (producer: Producer)</para>
+    /// <para>@emits <see cref="PlainTransportObserverEvents.newconsumer"/> - (consumer: Consumer)</para>
+    /// <para>@emits <see cref="PlainTransportObserverEvents.newdataproducer"/> - (dataProducer: DataProducer)</para>
+    /// <para>@emits <see cref="PlainTransportObserverEvents.newdataconsumer"/> - (dataConsumer: DataConsumer)</para>
+    /// <para>@emits <see cref="PlainTransportObserverEvents.tuple"/> - (tuple: TransportTuple)</para>
+    /// <para>@emits <see cref="PlainTransportObserverEvents.rtcptuple"/> - (rtcpTuple: TransportTuple)</para>
+    /// <para>@emits <see cref="PlainTransportObserverEvents.sctpstatechange"/> - (sctpState: SctpState)</para>
+    /// <para>@emits <see cref="PlainTransportObserverEvents.trace"/> - (trace: TransportTraceEventData)</para>
     /// </summary>
     public PlainTransport(PlainTransportConstructorOptions<TPlainTransportAppData> options)
         : base(options, new PlainTransportObserver())

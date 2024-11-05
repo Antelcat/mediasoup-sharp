@@ -14,7 +14,7 @@ namespace Antelcat.MediasoupSharp;
 
 using TransportObserver = IEnhancedEventEmitter<TransportObserverEvents>;
 
-public class TransportEvents
+public abstract class TransportEvents
 {
     public object?             routerclose;
     public object?             listenserverclose;
@@ -23,15 +23,15 @@ public class TransportEvents
     public (string, Exception)? listenererror;
 
     // Private events.
-    public object?       _close;
-    public IProducer     _newproducer;
-    public IProducer     _producerclose;
-    public IDataProducer _newdataproducer;
-    public IDataProducer _dataproducerclose;
-    public object?       _listenserverclose;
+    internal object?       _close;
+    internal IProducer     _newproducer;
+    internal IProducer     _producerclose;
+    internal IDataProducer _newdataproducer;
+    internal IDataProducer _dataproducerclose;
+    internal object?       _listenserverclose;
 }
 
-public class TransportObserverEvents
+public abstract class TransportObserverEvents
 {
     public object?            close;
     public IProducer          newproducer;
@@ -224,21 +224,21 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
 
     /// <summary>
     /// <para>Events:</para>
-    /// <para>@emits routerclose</para>
-    /// <para>@emits listenserverclose</para>
-    /// <para>@emits trace - (trace: TransportTraceEventData)</para>
-    /// <para>@emits @close</para>
-    /// <para>@emits @newproducer - (producer: Producer)</para>
-    /// <para>@emits @producerclose - (producer: Producer)</para>
-    /// <para>@emits @newdataproducer - (dataProducer: DataProducer)</para>
-    /// <para>@emits @dataproducerclose - (dataProducer: DataProducer)</para>
-    /// <para>@emits @listenserverclose</para>
+    /// <para>@emits <see cref="TransportEvents.routerclose"/></para>
+    /// <para>@emits <see cref="TransportEvents.listenserverclose"/></para>
+    /// <para>@emits <see cref="TransportEvents.trace"/> - (trace: TransportTraceEventData)</para>
+    /// <para>@emits <see cref="TransportEvents._close"/>@</para>
+    /// <para>@emits <see cref="TransportEvents._newproducer"/>@ - (producer: Producer)</para>
+    /// <para>@emits <see cref="TransportEvents._producerclose"/>@ - (producer: Producer)</para>
+    /// <para>@emits <see cref="TransportEvents._newdataproducer"/>@ - (dataProducer: DataProducer)</para>
+    /// <para>@emits <see cref="TransportEvents._dataproducerclose"/>@ - (dataProducer: DataProducer)</para>
+    /// <para>@emits <see cref="TransportEvents._listenserverclose"/>@</para>
     /// <para>Observer events:</para>
     /// <para>@emits close</para>
-    /// <para>@emits newproducer - (producer: Producer)</para>
-    /// <para>@emits newconsumer - (producer: Producer)</para>
-    /// <para>@emits newdataproducer - (dataProducer: DataProducer)</para>
-    /// <para>@emits newdataconsumer - (dataProducer: DataProducer)</para>
+    /// <para>@emits <see cref="TransportObserverEvents.newproducer"/> - (producer: Producer)</para>
+    /// <para>@emits <see cref="TransportObserverEvents.newconsumer"/> - (producer: Producer)</para>
+    /// <para>@emits <see cref="TransportObserverEvents.newdataproducer"/> - (dataProducer: DataProducer)</para>
+    /// <para>@emits <see cref="TransportObserverEvents.newdataconsumer"/> - (dataProducer: DataProducer)</para>
     /// </summary>
     protected Transport(TransportConstructorOptions<TTransportAppData> options, TObserver observer)
     {

@@ -44,14 +44,14 @@ public class AudioLevelObserverVolume
     public int Volume { get; set; }
 }
 
-public class AudioLevelObserverEvents : RtpObserverEvents
+public abstract class AudioLevelObserverEvents : RtpObserverEvents
 {
     public List<AudioLevelObserverVolume> volumes;
     public object?                        silence;
 }
 
 
-public class AudioLevelObserverObserverEvents : RtpObserverObserverEvents
+public abstract class AudioLevelObserverObserverEvents : RtpObserverObserverEvents
 {
     public List<AudioLevelObserverVolume> volumes;
     public object?                        silence;
@@ -72,16 +72,16 @@ where TAudioLevelObserverAppData : new()
 
     /// <summary>
     /// <para>Events:</para>
-    /// <para>@emits volumes - (volumes: AudioLevelObserverVolume[])</para>
-    /// <para>@emits silence</para>
+    /// <para>@emits <see cref="AudioLevelObserverEvents.volumes"/> - (volumes: AudioLevelObserverVolume[])</para>
+    /// <para>@emits <see cref="AudioLevelObserverEvents.silence"/></para>
     /// <para>Observer events:</para>
-    /// <para>@emits close</para>
-    /// <para>@emits pause</para>
-    /// <para>@emits resume</para>
-    /// <para>@emits addproducer - (producer: Producer)</para>
-    /// <para>@emits removeproducer - (producer: Producer)</para>
-    /// <para>@emits volumes - (volumes: AudioLevelObserverVolume[])</para>
-    /// <para>@emits silence</para>
+    /// <para>@emits <see cref="AudioLevelObserverObserverEvents.close"/></para>
+    /// <para>@emits <see cref="AudioLevelObserverObserverEvents.pause"/></para>
+    /// <para>@emits <see cref="AudioLevelObserverObserverEvents.resume"/></para>
+    /// <para>@emits <see cref="AudioLevelObserverObserverEvents.addproducer"/> - (producer: Producer)</para>
+    /// <para>@emits <see cref="AudioLevelObserverObserverEvents.removeproducer"/> - (producer: Producer)</para>
+    /// <para>@emits <see cref="AudioLevelObserverObserverEvents.volumes"/> - (volumes: AudioLevelObserverVolume[])</para>
+    /// <para>@emits <see cref="AudioLevelObserverObserverEvents.silence"/></para>
     /// </summary>
     public AudioLevelObserver(AudioLevelObserverConstructorOptions<TAudioLevelObserverAppData> options) : base(options,
         new())

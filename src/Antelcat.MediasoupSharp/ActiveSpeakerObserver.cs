@@ -27,12 +27,12 @@ public class ActiveSpeakerObserverDominantSpeaker
     public IProducer? Producer { get; set; }
 }
 
-public class ActiveSpeakerObserverEvents : RtpObserverEvents
+public abstract class ActiveSpeakerObserverEvents : RtpObserverEvents
 {
     public ActiveSpeakerObserverDominantSpeaker dominantspeaker;
 }
 
-public class ActiveSpeakerObserverObserverEvents : RtpObserverObserverEvents
+public abstract class ActiveSpeakerObserverObserverEvents : RtpObserverObserverEvents
 {
     public ActiveSpeakerObserverDominantSpeaker dominantspeaker;
 }
@@ -52,8 +52,8 @@ public class ActiveSpeakerObserver<TActiveSpeakerObserverAppData>
 
     /// <summary>
     /// <para>Events:</para>
-    /// <para>@emits volumes - (volumes: AudioLevelObserverVolume[])</para>
-    /// <para>@emits silence</para>
+    /// <para>@emits <see cref="ActiveSpeakerObserverEvents.volumes"/> - (volumes: AudioLevelObserverVolume[])</para>
+    /// <para>@emits <see cref="ActiveSpeakerObserverEvents.silence"/></para>
     /// <para>Observer events:</para>
     /// <para>@emits close</para>
     /// <para>@emits pause</para>

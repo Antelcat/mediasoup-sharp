@@ -47,7 +47,7 @@ public class ProducerOptions<TProducerAppData>
     public TProducerAppData? AppData { get; set; }
 }
 
-public class ProducerEvents
+public abstract class ProducerEvents
 {
     public object?                              transportclose;
     public List<ScoreT>                         score;
@@ -57,10 +57,10 @@ public class ProducerEvents
     public (string, Exception)? listenererror;
 
     // Private events.
-    public object? _close;
+    internal object? _close;
 }
 
-public class ProducerObserverEvents
+public abstract class ProducerObserverEvents
 {
     public object?                              close;
     public object?                              pause;
@@ -183,18 +183,18 @@ public class Producer<TProducerAppData> : EnhancedEventEmitter<ProducerEvents>, 
 
     /// <summary>
     /// <para>Events:</para>
-    /// <para>@emits transportclose</para></para>
-    /// <para>@emits score - (score: ProducerScore[])</para>
-    /// <para>@emits videoorientationchange - (videoOrientation: ProducerVideoOrientation)</para>
-    /// <para>@emits trace - (trace: ProducerTraceEventData)</para>
-    /// <para>@emits @close</para>
+    /// <para>@emits <see cref="ProducerEvents.transportclose"/></para></para>
+    /// <para>@emits <see cref="ProducerEvents.score"/> - (score: ProducerScore[])</para>
+    /// <para>@emits <see cref="ProducerEvents.videoorientationchange"/> - (videoOrientation: ProducerVideoOrientation)</para>
+    /// <para>@emits <see cref="ProducerEvents.trace"/> - (trace: ProducerTraceEventData)</para>
+    /// <para>@emits <see cref="ProducerEvents._close"/></para>
     /// <para>Observer events:</para>
-    /// <para>@emits close</para>
-    /// <para>@emits pause</para>
-    /// <para>@emits resume</para>
-    /// <para>@emits score - (score: ProducerScore[])</para>
-    /// <para>@emits videoorientationchange - (videoOrientation: ProducerVideoOrientation)</para>
-    /// <para>@emits trace - (trace: ProducerTraceEventData)</para>
+    /// <para>@emits <see cref="ProducerObserverEvents.close"/></para>
+    /// <para>@emits <see cref="ProducerObserverEvents.pause"/></para>
+    /// <para>@emits <see cref="ProducerObserverEvents.resume"/></para>
+    /// <para>@emits <see cref="ProducerObserverEvents.score"/> - (score: ProducerScore[])</para>
+    /// <para>@emits <see cref="ProducerObserverEvents.videoorientationchange"/> - (videoOrientation: ProducerVideoOrientation)</para>
+    /// <para>@emits <see cref="ProducerObserverEvents.trace"/> - (trace: ProducerTraceEventData)</para>
     /// </summary>
     public Producer(
         ProducerInternal @internal,
