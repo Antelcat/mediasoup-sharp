@@ -1,6 +1,6 @@
 namespace Antelcat.MediasoupSharp.H264ProfileLevelId;
 
-public enum Profile
+internal enum Profile
 {
     ConstrainedBaseline = 1,
     Baseline            = 2,

@@ -1,6 +1,6 @@
 namespace Antelcat.MediasoupSharp.H264ProfileLevelId;
 
-public enum Level
+internal enum Level
 {
     L1B = 0,
     L1  = 10,

@@ -6,13 +6,6 @@ namespace Antelcat.MediasoupSharp;
 
 public class EnhancedEventEmitter : EventEmitter
 {
-    public EnhancedEventEmitter()
-    {
-        EmitError += (eventName, exception) =>
-        {
-            Debugger.Break();
-        };
-    }
     public void On(string eventName, Func<object?, Task> method) =>
         base.On(eventName, (Func<object[], Task>)(args => method(args.Length > 0 ? args[0] : null)));
 }

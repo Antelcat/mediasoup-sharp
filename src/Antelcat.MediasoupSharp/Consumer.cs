@@ -1,6 +1,5 @@
 ﻿using Antelcat.AutoGen.ComponentModel.Diagnostic;
 using Antelcat.MediasoupSharp.Internals.Extensions;
-using Antelcat.MediasoupSharp.RtpParameters;
 using FBS.Common;
 using FBS.Consumer;
 using FBS.Notification;
@@ -156,7 +155,7 @@ public class ConsumerData
     /// <summary>
     /// RTP parameters.
     /// </summary>
-    public RtpParameters.RtpParameters RtpParameters { get; set; }
+    public RtpParameters RtpParameters { get; set; }
 
     /// <summary>
     /// Consumer type.

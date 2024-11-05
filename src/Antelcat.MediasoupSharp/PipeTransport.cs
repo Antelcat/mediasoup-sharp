@@ -1,7 +1,6 @@
 ﻿using System.Reflection;
 using Antelcat.AutoGen.ComponentModel.Diagnostic;
 using Antelcat.MediasoupSharp.Internals.Extensions;
-using Antelcat.MediasoupSharp.RtpParameters.Extensions;
 using FBS.Notification;
 using FBS.PipeTransport;
 using FBS.Request;
@@ -18,7 +17,7 @@ using PipeTransportObserver = EnhancedEventEmitter<PipeTransportObserverEvents>;
 public class PipeTransportOptions<TPipeTransportAppData>
 {
     /// <summary>
-    /// Listening Infomation.
+    /// Listening Information.
     /// </summary>
     public ListenInfoT ListenInfo { get; set; }
 

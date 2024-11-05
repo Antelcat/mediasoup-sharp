@@ -1,6 +1,6 @@
 using FBS.RtpParameters;
 
-namespace Antelcat.MediasoupSharp.RtpParameters.Extensions;
+namespace Antelcat.MediasoupSharp.Internals.Extensions;
 
 public static class RtpParametersExtensions
 {

@@ -1,6 +1,5 @@
 using Antelcat.AutoGen.ComponentModel.Diagnostic;
 using Antelcat.MediasoupSharp.Internals.Extensions;
-using Antelcat.MediasoupSharp.RtpParameters;
 using FBS.Request;
 using FBS.Router;
 using FBS.SctpParameters;

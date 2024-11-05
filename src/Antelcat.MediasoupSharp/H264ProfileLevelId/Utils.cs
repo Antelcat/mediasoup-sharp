@@ -7,7 +7,7 @@ namespace Antelcat.MediasoupSharp.H264ProfileLevelId;
 /// <para><see cref="https://webrtc.googlesource.com/src/+/refs/heads/main/api/video_codecs/h264_profile_level_id.cc"/></para>
 /// <para><see cref="https://webrtc.googlesource.com/src/+/refs/heads/main/api/video_codecs/test/h264_profile_level_id_unittest.cc"/></para>
 /// </summary>
-public static class Utils
+internal static class Utils
 {
     // This is from https://tools.ietf.org/html/rfc6184#section-8.1.
     private static readonly ProfilePattern[] ProfilePatterns =

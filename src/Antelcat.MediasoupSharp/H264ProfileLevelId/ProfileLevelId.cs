@@ -3,7 +3,7 @@
 /// <summary>
 /// Represents a parsed h264 profile-level-id value.
 /// </summary>
-public class ProfileLevelId(Profile profile, Level level)
+internal class ProfileLevelId(Profile profile, Level level)
 {
     /// <summary>
     /// <para>Default ProfileLevelId.</para>

@@ -4,7 +4,7 @@
 /// Class for matching bit patterns such as "x1xx0000" where 'x' is allowed to be
 /// either 0 or 1.
 /// </summary>
-public class BitPattern(string str)
+internal class BitPattern(string str)
 {
     private readonly int mask = ~ByteMaskString('x', str);
 

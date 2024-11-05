@@ -28,7 +28,7 @@ public class ProducerOptions<TProducerAppData>
     /// <summary>
     /// RTP parameters defining what the endpoint is sending.
     /// </summary>
-    public RtpParameters.RtpParameters RtpParameters { get; set; }
+    public RtpParameters RtpParameters { get; set; }
 
     /// <summary>
     /// Whether the producer must start in paused mode. Default false.
@@ -88,7 +88,7 @@ public class ProducerData
     /// <summary>
     /// RTP parameters.
     /// </summary>
-    public RtpParameters.RtpParameters RtpParameters { get; init; }
+    public RtpParameters RtpParameters { get; init; }
 
     /// <summary>
     /// Producer type.
@@ -98,7 +98,7 @@ public class ProducerData
     /// <summary>
     /// Consumable RTP parameters.
     /// </summary>
-    public RtpParameters.RtpParameters ConsumableRtpParameters { get; init; }
+    public RtpParameters ConsumableRtpParameters { get; init; }
 }
 
 [AutoExtractInterface]

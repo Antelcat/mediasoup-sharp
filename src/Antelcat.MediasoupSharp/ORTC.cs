@@ -2,11 +2,10 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Antelcat.MediasoupSharp.Internals.Extensions;
-using Antelcat.MediasoupSharp.RtpParameters;
 using FBS.RtpParameters;
 using FBS.SctpParameters;
-using RtpCodecParameters = Antelcat.MediasoupSharp.RtpParameters.RtpCodecParameters;
-using RtpHeaderExtensionParameters = Antelcat.MediasoupSharp.RtpParameters.RtpHeaderExtensionParameters;
+using RtpCodecParameters = Antelcat.MediasoupSharp.RtpCodecParameters;
+using RtpHeaderExtensionParameters = Antelcat.MediasoupSharp.RtpHeaderExtensionParameters;
 
 // MediaKind, RtcpFeedbackT RtcpParametersT, RtpEncodingParametersT
 // SctpParameters, NumSctpStreamsT, SctpStreamParametersT
@@ -188,7 +187,7 @@ public static partial class Ortc
     /// fields with default values.
     /// It throws if invalid.
     /// </summary>
-    public static void ValidateRtpParameters(RtpParameters.RtpParameters parameters)
+    public static void ValidateRtpParameters(RtpParameters parameters)
     {
         if (parameters == null)
         {
@@ -613,7 +612,7 @@ public static partial class Ortc
     /// </para>
     /// <para>It may throw if invalid or non supported RTP parameters are given.</para>
     /// </summary>
-    public static RtpMappingT GetProducerRtpParametersMapping(RtpParameters.RtpParameters parameters,
+    public static RtpMappingT GetProducerRtpParametersMapping(RtpParameters parameters,
                                                               RtpCapabilities caps)
     {
         var rtpMapping = new RtpMappingT
@@ -698,10 +697,10 @@ public static partial class Ortc
     /// Generate RTP parameters to be internally used by Consumers given the RTP
     /// parameters in a Producer and the RTP capabilities in the Router.
     /// </summary>
-    public static RtpParameters.RtpParameters GetConsumableRtpParameters(
-        MediaKind kind, RtpParameters.RtpParameters parameters, RtpCapabilities caps, RtpMappingT rtpMapping)
+    public static RtpParameters GetConsumableRtpParameters(
+        MediaKind kind, RtpParameters parameters, RtpCapabilities caps, RtpMappingT rtpMapping)
     {
-        var consumableParams = new RtpParameters.RtpParameters
+        var consumableParams = new RtpParameters
         {
             Codecs           = [],
             HeaderExtensions = [],
@@ -808,7 +807,7 @@ public static partial class Ortc
     /// <summary>
     /// Check whether the given RTP capabilities can consume the given Producer.
     /// </summary>
-    public static bool CanConsume(RtpParameters.RtpParameters consumableParams, RtpCapabilities caps)
+    public static bool CanConsume(RtpParameters consumableParams, RtpCapabilities caps)
     {
         // This may throw.
         ValidateRtpCapabilities(caps);
@@ -840,10 +839,10 @@ public static partial class Ortc
     /// or disabled RTX.
     /// </para>
     /// </summary>
-    public static RtpParameters.RtpParameters GetConsumerRtpParameters(RtpParameters.RtpParameters consumableParams,
+    public static RtpParameters GetConsumerRtpParameters(RtpParameters consumableParams,
                                                                        RtpCapabilities caps, bool pipe)
     {
-        var consumerParams = new RtpParameters.RtpParameters
+        var consumerParams = new RtpParameters
         {
             Codecs           = [],
             HeaderExtensions = [],
@@ -1009,10 +1008,10 @@ public static partial class Ortc
     /// enableRtx is false, it also removes RTX and NACK support.
     /// </para>
     /// </summary>
-    public static RtpParameters.RtpParameters GetPipeConsumerRtpParameters(
-        RtpParameters.RtpParameters consumableParams, bool enableRtx = false)
+    public static RtpParameters GetPipeConsumerRtpParameters(
+        RtpParameters consumableParams, bool enableRtx = false)
     {
-        var consumerParams = new RtpParameters.RtpParameters
+        var consumerParams = new RtpParameters
         {
             Codecs           = [],
             HeaderExtensions = [],
@@ -1075,11 +1074,8 @@ public static partial class Ortc
         return RtxMimeTypeRegex.IsMatch(mimeType);
     }
 
-    /// <summary>
-    /// key 要么都存在于 a 和 b，要么都不存在于 a 和 b。
-    /// </summary>
-    private static bool CheckDirectoryValueEquals(IDictionary<string, object> a, 
-                                                  IDictionary<string, object> b, 
+    private static bool CheckDirectoryValueEquals(Dictionary<string, object>? a, 
+                                                  Dictionary<string, object>? b, 
                                                   string key)
     {
         if (a != null && b != null)
@@ -1120,7 +1116,7 @@ public static partial class Ortc
         return true;
     }
 
-    private static bool MatchCodecs(RtpCodecBase aCodec, RtpCodecBase bCodec, bool strict = false, bool modify = false)
+    private static bool MatchCodecs(RtpCodecShared aCodec, RtpCodecShared bCodec, bool strict = false, bool modify = false)
     {
         var aMimeType = aCodec.MimeType.ToLower();
         var bMimeType = bCodec.MimeType.ToLower();

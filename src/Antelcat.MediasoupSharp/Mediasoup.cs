@@ -3,7 +3,6 @@ using System.Text.Json.Serialization;
 using Antelcat.LibuvSharp;
 using Antelcat.MediasoupSharp.Internals.Converters;
 using Antelcat.MediasoupSharp.Internals.Extensions;
-using Antelcat.MediasoupSharp.RtpParameters;
 using Microsoft.Extensions.Logging;
 
 namespace Antelcat.MediasoupSharp;

@@ -3,7 +3,6 @@ using System.Data;
 using Antelcat.AspNetCore.ProtooSharp;
 using Antelcat.MediasoupSharp.AspNetCore;
 using Antelcat.MediasoupSharp.Demo.Extensions;
-using Antelcat.MediasoupSharp.RtpParameters;
 using Antelcat.NodeSharp.Events;
 using FBS.AudioLevelObserver;
 using FBS.Common;
@@ -498,7 +497,7 @@ public class Room : EventEmitter
 		string broadcasterId,
 		string transportId,
 		MediaKind kind,
-		RtpParameters.RtpParameters rtpParameters
+		RtpParameters rtpParameters
 	)
 	{
 		var broadcaster = broadcasters.GetValueOrDefault(broadcasterId);

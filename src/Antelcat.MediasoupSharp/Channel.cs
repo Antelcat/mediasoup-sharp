@@ -3,7 +3,6 @@ using System.Text.Json.Serialization;
 using Antelcat.AutoGen.ComponentModel.Diagnostic;
 using Antelcat.LibuvSharp;
 using Antelcat.MediasoupSharp.Internals.Extensions;
-using Antelcat.MediasoupSharp.PooledObjectPolicies;
 using Antelcat.NodeSharp.Events;
 using FBS.Log;
 using FBS.Message;
@@ -136,6 +135,14 @@ public class Channel : EnhancedEventEmitter, IChannel
 
     #endregion Events
 
+    private class FlatBufferBuilderPooledObjectPolicy(int initialSize) 
+        : IPooledObjectPolicy<FlatBufferBuilder>
+    {
+        public FlatBufferBuilder Create() => new(initialSize);
+
+        public bool Return(FlatBufferBuilder obj) => true;
+    }
+    
     public Channel(UVStream producerSocket, UVStream consumerSocket, int workerId)
     {
         WorkerId = workerId;

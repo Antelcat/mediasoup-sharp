@@ -1,6 +1,4 @@
-﻿using System.Runtime.Serialization.Formatters.Binary;
-using Antelcat.MediasoupSharp.RtpParameters;
-using FBS.RtpParameters;
+﻿using FBS.RtpParameters;
 
 namespace Antelcat.MediasoupSharp.Test;
 
@@ -14,7 +12,7 @@ public class TestActiveSpeakObserver
             MimeType  = "audio/opus",
             ClockRate = 48000,
             Channels  = 2,
-            Parameters = new Dictionary<string, object>
+            Parameters = new ()
             {
                 { "useinbandfec", 1 },
                 { "foo", "bar" }

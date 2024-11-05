@@ -1,6 +1,4 @@
-﻿using Antelcat.MediasoupSharp.RtpParameters;
-
-namespace Antelcat.MediasoupSharp.Internals.Converters;
+﻿namespace Antelcat.MediasoupSharp.Internals.Converters;
 
 internal class RtpHeaderExtensionDirectionConverter : EnumStringConverter<RtpHeaderExtensionDirection>
 {

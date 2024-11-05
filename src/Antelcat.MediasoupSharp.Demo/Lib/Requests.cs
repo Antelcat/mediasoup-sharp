@@ -1,5 +1,4 @@
-﻿using Antelcat.MediasoupSharp.RtpParameters;
-using FBS.Consumer;
+﻿using FBS.Consumer;
 using FBS.RtpParameters;
 using FBS.SctpParameters;
 using FBS.WebRtcTransport;
@@ -37,7 +36,7 @@ public record RestartIceRequest(string TransportId);
 public record ProduceRequest<TWorkerAppData>(
     string TransportId, 
     MediaKind Kind, 
-    RtpParameters.RtpParameters RtpParameters, 
+    RtpParameters RtpParameters, 
     TWorkerAppData AppData
 );
 
@@ -109,6 +108,6 @@ public record ConnectBroadcasterTransportRequest(DtlsParameters DtlsParameters);
 
 public record CreateBroadcasterProducerRequest(
     MediaKind Kind,
-    RtpParameters.RtpParameters RtpParameters);
+    RtpParameters RtpParameters);
 
 #endregion
