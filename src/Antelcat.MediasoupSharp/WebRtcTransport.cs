@@ -29,7 +29,7 @@ public partial record WebRtcTransportOptions<TWebRtcTransportAppData>
     /// Listening IP address or addresses in order of preference (first one is the
     /// preferred one).
     /// </summary>
-    public FBS.Transport.ListenInfoT[]? ListenInfos { get; set; }
+    public FBS.Transport.ListenInfoT[] ListenInfos { get; set; } = [];
 }
 
 public record WebRtcTransportOptionsBase<TWebRtcTransportAppData>

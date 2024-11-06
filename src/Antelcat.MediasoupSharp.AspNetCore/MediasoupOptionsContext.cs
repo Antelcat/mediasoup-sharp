@@ -6,11 +6,11 @@ namespace Antelcat.MediasoupSharp.AspNetCore;
 public class MediasoupOptionsContext<T>
 {
     public int?                       NumWorkers             { get; set; } = Environment.ProcessorCount;
-    public WorkerSettings<T>?         WorkerSettings         { get; set; }
-    public RouterOptions<T>?          RouterOptions          { get; set; }
-    public WebRtcServerOptions<T>?    WebRtcServerOptions    { get; set; }
-    public WebRtcTransportOptions<T>? WebRtcTransportOptions { get; set; }
-    public PlainTransportOptions<T>?  PlainTransportOptions  { get; set; }
+    public WorkerSettings<T>?         WorkerSettings         { get; init; }
+    public RouterOptions<T>?          RouterOptions          { get; init; }
+    public WebRtcServerOptions<T>?    WebRtcServerOptions    { get; init; }
+    public WebRtcTransportOptions<T>? WebRtcTransportOptions { get; init; }
+    public PlainTransportOptions<T>?  PlainTransportOptions  { get; init; }
     
     public static MediasoupOptionsContext<T> Default { get; } = new()
     {
@@ -131,9 +131,7 @@ public class MediasoupOptionsContext<T>
                 }
             ],
             InitialAvailableOutgoingBitrate = 1_000_000,
-            //MinimumAvailableOutgoingBitrate = 600_000,
             MaxSctpMessageSize              = 256 * 1024,
-            //MaximumIncomingBitrate          = 1_500_000,
         },
         PlainTransportOptions = new()
         {

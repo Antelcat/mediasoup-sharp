@@ -75,13 +75,13 @@
             {
                 "protocol": "udp",
                 "ip": "0.0.0.0",
-                "announcedAddress": "192.168.1.105",
+                "announcedAddress": null,
                 "port": 44444
             },
             {
                 "protocol": "tcp",
                 "ip": "0.0.0.0",
-                "announcedAddress": "192.168.1.105",
+                "announcedAddress": null,
                 "port": 44444
             }
         ]
@@ -91,7 +91,7 @@
             {
                 "protocol": "udp",
                 "ip": "0.0.0.0",
-                "announcedAddress": "192.168.1.105",
+                "announcedAddress": null,
                 "portRange": {
                     "min": 40000,
                     "max": 49999
@@ -100,7 +100,7 @@
             {
                 "protocol": "tcp",
                 "ip": "0.0.0.0",
-                "announcedAddress": "192.168.1.105",
+                "announcedAddress": null,
                 "portRange": {
                     "min": 40000,
                     "max": 49999
@@ -116,7 +116,7 @@
         "listenInfo": {
             "protocol": "udp",
             "ip": "0.0.0.0",
-            "announcedAddress": "192.168.1.105",
+            "announcedAddress": null,
             "portRange": {
                 "min": 40000,
                 "max": 49999

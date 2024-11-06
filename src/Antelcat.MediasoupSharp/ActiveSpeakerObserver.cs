@@ -24,7 +24,7 @@ public class ActiveSpeakerObserverDominantSpeaker
     /// <summary>
     /// The producer instance.
     /// </summary>
-    public IProducer? Producer { get; set; }
+    public IProducer? Producer { get; init; }
 }
 
 public abstract class ActiveSpeakerObserverEvents : RtpObserverEvents

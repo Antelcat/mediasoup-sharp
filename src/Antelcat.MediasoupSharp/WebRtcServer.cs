@@ -14,7 +14,7 @@ public record WebRtcServerOptions<TWebRtcServerAppData>
     /// <summary>
     /// Listen infos.
     /// </summary>
-    public required ListenInfoT[] ListenInfos { get; set; }
+    public ListenInfoT[] ListenInfos { get; set; } = [];
 
     /// <summary>
     /// Custom application data.

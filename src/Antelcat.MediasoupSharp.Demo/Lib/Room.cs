@@ -3,6 +3,7 @@ using System.Data;
 using Antelcat.AspNetCore.ProtooSharp;
 using Antelcat.MediasoupSharp.AspNetCore;
 using Antelcat.MediasoupSharp.Demo.Extensions;
+using Antelcat.MediasoupSharp.Internals.Extensions;
 using Antelcat.NodeSharp.Events;
 using FBS.Common;
 using FBS.RtpParameters;
@@ -19,6 +20,7 @@ public class Room : EventEmitter
     private readonly ILogger                              logger;
     private readonly string                               roomId;
     private readonly Antelcat.AspNetCore.ProtooSharp.Room protooRoom;
+    private readonly MediasoupOptions<TWorkerAppData>     options;
 
 
     /// <summary>
@@ -50,13 +52,12 @@ public class Room : EventEmitter
         Worker<TWorkerAppData> mediasoupWorkerProcess,
         string roomId,
         int consumerReplicas)
-
     {
         // Create a protoo Room instance.
         var protooRoom = new Antelcat.AspNetCore.ProtooSharp.Room(loggerFactory);
 
         // Router media codecs.
-        var mediaCodecs = options.RouterOptions!.MediaCodecs;
+        var mediaCodecs = options.RouterOptions.NotNull().MediaCodecs;
 
         // Create a mediasoup Router.
         var mediasoupRouter = await mediasoupWorkerProcess.CreateRouterAsync<TWorkerAppData>(new()
@@ -81,8 +82,9 @@ public class Room : EventEmitter
             loggerFactory.CreateLogger<Room>(),
             roomId,
             protooRoom,
-            webRtcServer: mediasoupWorkerProcess.AppData[nameof(webRtcServer)] as WebRtcServer<TWorkerAppData> ??
-                          throw new ArgumentNullException(),
+            options,
+            webRtcServer: mediasoupWorkerProcess.AppData[nameof(webRtcServer)] as WebRtcServer<TWorkerAppData> 
+                          ?? throw new ArgumentNullException(),
             mediasoupRouter,
             audioLevelObserver,
             activeSpeakerObserver,
@@ -94,6 +96,7 @@ public class Room : EventEmitter
     public Room(ILogger logger,
                 string roomId,
                 Antelcat.AspNetCore.ProtooSharp.Room protooRoom,
+                MediasoupOptions<TWorkerAppData> options,
                 WebRtcServer<TWorkerAppData> webRtcServer,
                 Router<TWorkerAppData> mediasoupRouter,
                 AudioLevelObserver<TWorkerAppData> audioLevelObserver,
@@ -102,6 +105,7 @@ public class Room : EventEmitter
                 Bot<TWorkerAppData> bot)
     {
         MaxListeners               = int.MaxValue;
+        this.options               = options;
         this.logger                = logger;
         this.roomId                = roomId;
         this.protooRoom            = protooRoom;
@@ -251,7 +255,7 @@ public class Room : EventEmitter
 
             // Iterate and close all mediasoup Transport associated to this Peer, so all
             // its Producers and Consumers will also be closed.
-            foreach (var transport in peer.Data.As<PeerData>()!.Transports.Values)
+            foreach (var transport in peer.Data.As<PeerData>().NotNull().Transports.Values)
             {
                 await transport.CloseAsync();
             }
@@ -433,11 +437,11 @@ public class Room : EventEmitter
 
             case "plain":
             {
-                var options = MediasoupOptionsContext<TWorkerAppData>.Default.PlainTransportOptions;
+                var op = options.PlainTransportOptions.NotNull();
                 var plainTransportOptions = new PlainTransportOptions<TWorkerAppData>
                 {
-                    ListenInfo         = options.ListenInfo!,
-                    MaxSctpMessageSize = options.MaxSctpMessageSize,
+                    ListenInfo         = op.ListenInfo.NotNull(),
+                    MaxSctpMessageSize = op.MaxSctpMessageSize,
                     RtcpMux            = rtcpMux,
                     Comedia            = comedia
                 };
@@ -649,7 +653,7 @@ public class Room : EventEmitter
         return new IdAndStreamIdR
         {
             Id       = dataConsumer.Id,
-            StreamId = dataConsumer.Data.SctpStreamParameters!.StreamId
+            StreamId = dataConsumer.Data.SctpStreamParameters.NotNull().StreamId
         };
     }
 
@@ -778,7 +782,7 @@ public class Room : EventEmitter
                     device,
                     rtpCapabilities,
                     sctpCapabilities
-                    ) = handler.Request.WithData<JoinRequest>()!.Data!;
+                    ) = handler.Request.WithData<JoinRequest>().NotNull().Data.NotNull();
 
                 // Store client data into the protoo Peer data object.
                 peer.Data().Joined           = true;
@@ -861,7 +865,7 @@ public class Room : EventEmitter
 
             case "createWebRtcTransport":
             {
-                // NOTE: Don"t require that the Peer is joined here, so the client can
+                // NOTE: Don't require that the Peer is joined here, so the client can
                 // initiate mediasoup Transports and be ready when he later joins.
 
                 var (
@@ -870,7 +874,7 @@ public class Room : EventEmitter
                     consuming,
                     sctpCapabilities
                     ) = handler.Request
-                    .WithData<CreateWebRtcTransportRequest>()!.Data!;
+                    .WithData<CreateWebRtcTransportRequest>().NotNull().Data.NotNull();
 
                 var options = MediasoupOptionsContext<TWorkerAppData>.Default.WebRtcTransportOptions;
                 var webRtcTransportOptions = new WebRtcTransportOptions<TWorkerAppData>
@@ -892,8 +896,10 @@ public class Room : EventEmitter
 
                 if (forceTcp)
                 {
-                    webRtcTransportOptions.ListenInfos = webRtcTransportOptions.ListenInfos!
-                        .Where(x => x.Protocol == Protocol.TCP).ToArray();
+                    webRtcTransportOptions.ListenInfos = webRtcTransportOptions
+                        .ListenInfos
+                        .Where(x => x.Protocol == Protocol.TCP)
+                        .ToArray();
 
                     webRtcTransportOptions.EnableUdp = false;
                     webRtcTransportOptions.EnableTcp = true;
@@ -964,8 +970,8 @@ public class Room : EventEmitter
                     sctpParameters = transport.Data.SctpParameters
                 });
 
-                var maxIncomingBitrate = MediasoupOptions<TWorkerAppData>.Default.WebRtcTransportOptions!
-                    .MaximumIncomingBitrate;
+
+                var maxIncomingBitrate = this.options.WebRtcTransportOptions.NotNull().MaxIncomingBitrate;
 
                 // If set, apply max incoming bitrate limit.
                 if (maxIncomingBitrate is not null)
@@ -986,7 +992,7 @@ public class Room : EventEmitter
             case "connectWebRtcTransport":
             {
                 var (transportId, dtlsParameters) =
-                    handler.Request.WithData<ConnectWebRtcTransportRequest>()!.Data!;
+                    handler.Request.WithData<ConnectWebRtcTransportRequest>().NotNull().Data!;
 
                 var transport = peer.Data().Transports.GetValueOrDefault(transportId);
 
@@ -1005,7 +1011,7 @@ public class Room : EventEmitter
 
             case "restartIce":
             {
-                var transportId = handler.Request.WithData<RestartIceRequest>()!.Data!.TransportId;
+                var transportId = handler.Request.WithData<RestartIceRequest>().NotNull().Data.NotNull().TransportId;
                 var transport   = peer.Data().Transports.GetValueOrDefault(transportId);
 
                 if (transport is not IWebRtcTransport webRtcTransport)
@@ -1025,7 +1031,7 @@ public class Room : EventEmitter
                     throw new InvalidStateException("Peer not yet joined");
 
                 var (transportId, kind, rtpParameters, appData) =
-                    handler.Request.WithData<ProduceRequest<TWorkerAppData>>()!.Data!;
+                    handler.Request.WithData<ProduceRequest<TWorkerAppData>>().NotNull().Data!;
 
                 var transport = peer.Data().Transports.GetValueOrDefault(transportId);
 
@@ -1109,7 +1115,7 @@ public class Room : EventEmitter
                 if (!peer.Data().Joined)
                     throw new InvalidStateException("Peer not yet joined");
 
-                var producerId = handler.Request.WithData<ProducerRequest>()!.Data!.ProducerId;
+                var producerId = handler.Request.WithData<ProducerRequest>().NotNull().Data.NotNull().ProducerId;
                 var producer   = peer.Data().Producers.GetValueOrDefault(producerId);
 
                 if (producer == null)
@@ -1131,7 +1137,7 @@ public class Room : EventEmitter
                 if (!peer.Data().Joined)
                     throw new InvalidStateException("Peer not yet joined");
 
-                var producerId = handler.Request.WithData<ProducerRequest>()!.Data!.ProducerId;
+                var producerId = handler.Request.WithData<ProducerRequest>().NotNull().Data.NotNull().ProducerId;
 
                 var producer = peer.Data().Producers.GetValueOrDefault(producerId);
 
@@ -1151,7 +1157,7 @@ public class Room : EventEmitter
                 if (!peer.Data().Joined)
                     throw new InvalidStateException("Peer not yet joined");
 
-                var producerId = handler.Request.WithData<ProducerRequest>()!.Data!.ProducerId;
+                var producerId = handler.Request.WithData<ProducerRequest>().NotNull().Data.NotNull().ProducerId;
 
                 var producer = peer.Data().Producers.GetValueOrDefault(producerId);
 
@@ -1171,7 +1177,7 @@ public class Room : EventEmitter
                 if (!peer.Data().Joined)
                     throw new InvalidStateException("Peer not yet joined");
 
-                var consumerId = handler.Request.WithData<ConsumerRequest>()!.Data!.ConsumerId;
+                var consumerId = handler.Request.WithData<ConsumerRequest>().NotNull().Data.NotNull().ConsumerId;
                 var consumer   = peer.Data().Consumers.GetValueOrDefault(consumerId);
 
                 if (consumer == null)
@@ -1190,7 +1196,7 @@ public class Room : EventEmitter
                 if (!peer.Data().Joined)
                     throw new InvalidStateException("Peer not yet joined");
 
-                var consumerId = handler.Request.WithData<ConsumerRequest>()!.Data!.ConsumerId;
+                var consumerId = handler.Request.WithData<ConsumerRequest>().NotNull().Data.NotNull().ConsumerId;
                 var consumer   = peer.Data().Consumers.GetValueOrDefault(consumerId);
 
                 if (consumer == null)
@@ -1210,7 +1216,7 @@ public class Room : EventEmitter
                     throw new InvalidStateException("Peer not yet joined");
 
                 var (consumerId, spatialLayer, temporalLayer) =
-                    handler.Request.WithData<SetConsumerPreferredLayersRequest>()!.Data!;
+                    handler.Request.WithData<SetConsumerPreferredLayersRequest>().NotNull().Data!;
 
                 var consumer = peer.Data().Consumers.GetValueOrDefault(consumerId);
 
@@ -1237,7 +1243,7 @@ public class Room : EventEmitter
                 if (!peer.Data().Joined)
                     throw new InvalidStateException("Peer not yet joined");
 
-                var (consumerId, priority) = handler.Request.WithData<SetConsumerPriorityRequest>()!.Data!;
+                var (consumerId, priority) = handler.Request.WithData<SetConsumerPriorityRequest>().NotNull().Data!;
                 var consumer = peer.Data().Consumers.GetValueOrDefault(consumerId);
 
                 if (consumer == null)
@@ -1256,7 +1262,7 @@ public class Room : EventEmitter
                 if (!peer.Data().Joined)
                     throw new InvalidStateException("Peer not yet joined");
 
-                var consumerId = handler.Request.WithData<ConsumerRequest>()!.Data!.ConsumerId;
+                var consumerId = handler.Request.WithData<ConsumerRequest>().NotNull().Data.NotNull().ConsumerId;
 
                 var consumer = peer.Data().Consumers.GetValueOrDefault(consumerId);
 
@@ -1282,9 +1288,9 @@ public class Room : EventEmitter
                     label,
                     protocol,
                     appData
-                    ) = handler.Request.WithData<ProduceDataRequest>()!.Data!;
+                    ) = handler.Request.WithData<ProduceDataRequest>().NotNull().Data.NotNull();
 
-                var transport = peer.Data().Transports.GetValueOrDefault(transportId);
+                var transport = transportId is null ? null : peer.Data().Transports.GetValueOrDefault(transportId);
 
                 if (transport == null)
                     throw new KeyNotFoundException($"transport with id '{transportId}' not found");
@@ -1332,7 +1338,7 @@ public class Room : EventEmitter
                 if (!peer.Data().Joined)
                     throw new InvalidStateException("Peer not yet joined");
 
-                var displayName    = handler.Request.WithData<ChangeDisplayNameRequest>()!.Data!.DisplayName;
+                var displayName    = handler.Request.WithData<ChangeDisplayNameRequest>().NotNull().Data.NotNull().DisplayName;
                 var oldDisplayName = peer.Data().DisplayName;
 
                 // Store the display name into the custom data Object of the protoo
@@ -1359,7 +1365,7 @@ public class Room : EventEmitter
 
             case "getTransportStats":
             {
-                var transportId = handler.Request.WithData<TransportRequest>()!.Data!.TransportId;
+                var transportId = handler.Request.WithData<TransportRequest>().NotNull().Data.NotNull().TransportId;
                 var transport   = peer.Data().Transports.GetValueOrDefault(transportId);
 
                 if (transport == null)
@@ -1374,7 +1380,7 @@ public class Room : EventEmitter
 
             case "getProducerStats":
             {
-                var producerId = handler.Request.WithData<ProducerRequest>()!.Data!.ProducerId;
+                var producerId = handler.Request.WithData<ProducerRequest>().NotNull().Data.NotNull().ProducerId;
 
                 var producer = peer.Data().Producers.GetValueOrDefault(producerId);
 
@@ -1390,7 +1396,7 @@ public class Room : EventEmitter
 
             case "getConsumerStats":
             {
-                var consumerId = handler.Request.WithData<ConsumerRequest>()!.Data!.ConsumerId;
+                var consumerId = handler.Request.WithData<ConsumerRequest>().NotNull().Data.NotNull().ConsumerId;
 
                 var consumer = peer.Data().Consumers.GetValueOrDefault(consumerId);
 
@@ -1406,7 +1412,7 @@ public class Room : EventEmitter
 
             case "getDataProducerStats":
             {
-                var dataProducerId = handler.Request.WithData<DataProducerRequest>()!.Data!.DataProducerId;
+                var dataProducerId = handler.Request.WithData<DataProducerRequest>().NotNull().Data.NotNull().DataProducerId;
 
                 var dataProducer = peer.Data().DataProducers.GetValueOrDefault(dataProducerId);
 
@@ -1422,7 +1428,7 @@ public class Room : EventEmitter
 
             case "getDataConsumerStats":
             {
-                var dataConsumerId = handler.Request.WithData<DataConsumerRequest>()!.Data!.DataConsumerId;
+                var dataConsumerId = handler.Request.WithData<DataConsumerRequest>().NotNull().Data.NotNull().DataConsumerId;
 
                 var dataConsumer = peer.Data().DataConsumers.GetValueOrDefault(dataConsumerId);
 
@@ -1444,7 +1450,7 @@ public class Room : EventEmitter
                 var DefaultPacketLoss = 0;
 
                 var (secret, uplink, downlink, rtt, packetLoss) =
-                    handler.Request.WithData<ApplyNetworkThrottleRequest>()!.Data!;
+                    handler.Request.WithData<ApplyNetworkThrottleRequest>().NotNull().Data.NotNull();
 
                 if (secret is not true ||
                     (bool.TryParse(Environment.GetEnvironmentVariable("NETWORK_THROTTLE_SECRET"), out var val) &&
@@ -1488,7 +1494,7 @@ public class Room : EventEmitter
 
             case "resetNetworkThrottle":
             {
-                var secret = handler.Request.WithData<ResetNetworkThrottleRequest>()!.Data!.Secret;
+                var secret = handler.Request.WithData<ResetNetworkThrottleRequest>().NotNull().Data.NotNull().Secret;
 
                 if (secret is not true ||
                     (bool.TryParse(Environment.GetEnvironmentVariable("NETWORK_THROTTLE_SECRET"), out var val) &&
@@ -1549,7 +1555,7 @@ public class Room : EventEmitter
 
         // NOTE: Don't create the Consumer if the remote Peer cannot consume it.
         if (consumerPeer.Data().RtpCapabilities == null ||
-            !await mediasoupRouter.CanConsumeAsync(producer.Id, consumerPeer.Data().RtpCapabilities!))
+            !await mediasoupRouter.CanConsumeAsync(producer.Id, consumerPeer.Data().RtpCapabilities.NotNull()))
         {
             return;
         }
@@ -1774,10 +1780,10 @@ public class Room : EventEmitter
                 "newDataConsumer", new NewDataConsumerRequestR
                 {
                     // This is null for bot DataProducer.
-                    PeerId               = dataProducerPeerId!,
+                    PeerId               = dataProducerPeerId.NotNull(),
                     DataProducerId       = dataProducer.Id,
                     Id                   = dataConsumer.Id,
-                    SctpStreamParameters = dataConsumer.Data.SctpStreamParameters,
+                    SctpStreamParameters = dataConsumer.Data.SctpStreamParameters.NotNull(),
                     Label                = dataConsumer.Data.Label,
                     Protocol             = dataConsumer.Data.Protocol,
                     AppData              = dataProducer.AppData

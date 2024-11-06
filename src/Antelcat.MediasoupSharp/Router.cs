@@ -16,7 +16,7 @@ public class RouterOptions<TRouterAppData>
     /// <summary>
     /// Router media codecs.
     /// </summary>
-    public RtpCodecCapability[]? MediaCodecs { get; set; }
+    public RtpCodecCapability[] MediaCodecs { get; set; } = [];
 
     /// <summary>
     /// Custom application data.

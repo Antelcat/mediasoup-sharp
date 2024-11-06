@@ -8,6 +8,7 @@ using Antelcat.MediasoupSharp.AspNetCore;
 using Antelcat.MediasoupSharp.Demo;
 using Antelcat.MediasoupSharp.Demo.Extensions;
 using Antelcat.MediasoupSharp.Demo.Lib;
+using Antelcat.MediasoupSharp.Internals.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Primitives;
@@ -43,7 +44,7 @@ foreach (var converter in Mediasoup.JsonConverters)
 
 var options = JsonSerializer.Deserialize<MediasoupOptions<TWorkerAppData>>(
     File.ReadAllText(Path.Combine(current, "mediasoup.config.json")), jsonSerializerOptions)!;
-MediasoupServiceCollectionExtensions.Configure(MediasoupOptions<TWorkerAppData>.Default, options);
+options.Correct();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -77,14 +78,11 @@ async Task Run()
 
 async Task RunMediasoupWorkersAsync()
 {
-    var o          = MediasoupOptions<TWorkerAppData>.Default;
-    var numWorkers = o.NumWorkers!;
-
-    logger.LogInformation("running {Num} mediasoup Workers...", numWorkers);
+    logger.LogInformation("running {Num} mediasoup Workers...", options.NumWorkers);
 
     var useWebRtcServer = Environment.GetEnvironmentVariable("MEDIASOUP_USE_WEBRTC_SERVER") != "false";
 
-    foreach (var task in Mediasoup.CreateWorkers(o .WorkerSettings!, numWorkers.Value))
+    foreach (var task in Mediasoup.CreateWorkers(options.WorkerSettings.NotNull(), options.NumWorkers.NotNull()))
     {
         var worker = await task;
         worker.On(x => x.Died, async () =>
@@ -99,7 +97,7 @@ async Task RunMediasoupWorkersAsync()
         if (!useWebRtcServer) continue;
 
         // Each mediasoup Worker will run its own WebRtcServer, so those cannot
-        // share the same listening ports. Hence we increase the value in config.js
+        // share the same listening ports. Hence, we increase the value in config.js
         // for each Worker.
         var webRtcServerOptions = options.WebRtcServerOptions! with { };
         var portIncrement       = mediasoupWorkers.Count - 1;
