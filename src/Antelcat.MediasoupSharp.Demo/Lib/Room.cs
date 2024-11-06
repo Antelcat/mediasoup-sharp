@@ -1780,7 +1780,7 @@ public class Room : EventEmitter
                 "newDataConsumer", new NewDataConsumerRequestR
                 {
                     // This is null for bot DataProducer.
-                    PeerId               = dataProducerPeerId.NotNull(),
+                    PeerId               = (string?)dataProducerPeerId,
                     DataProducerId       = dataProducer.Id,
                     Id                   = dataConsumer.Id,
                     SctpStreamParameters = dataConsumer.Data.SctpStreamParameters.NotNull(),
