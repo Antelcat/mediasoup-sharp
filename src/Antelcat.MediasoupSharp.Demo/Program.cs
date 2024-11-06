@@ -87,7 +87,7 @@ async Task RunMediasoupWorkersAsync()
     foreach (var task in Mediasoup.CreateWorkers(o .WorkerSettings!, numWorkers.Value))
     {
         var worker = await task;
-        worker.On(x => x.died, async () =>
+        worker.On(x => x.Died, async () =>
         {
             logger.LogError("mediasoup Worker died, exiting in 2 seconds... [pid:{Pid}]", worker.Pid);
 

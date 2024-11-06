@@ -21,10 +21,10 @@ public class RequestMessage
     #region Request
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public uint? Id { get; set; }
+    public uint? Id { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public Method? Method { get; set; }
+    public Method? Method { get; init; }
 
     #endregion
 
@@ -39,20 +39,20 @@ public class RequestMessage
 
     public string? HandlerId { get; set; }
 
-    public ArraySegment<byte> Payload { get; set; }
+    public ArraySegment<byte> Payload { get; init; }
 
     #endregion
 }
 
 public class Sent
 {
-    public RequestMessage RequestMessage { get; set; }
+    public required RequestMessage RequestMessage { get; init; }
 
-    public Action<Response> Resolve { get; set; }
+    public required Action<Response> Resolve { get; init; }
 
-    public Action<Exception> Reject { get; set; }
+    public required Action<Exception> Reject { get; init; }
 
-    public Action Close { get; set; }
+    public required Action Close { get; init; }
 }
 
 [AutoExtractInterface(Interfaces = [typeof(IEventEmitter)])]
@@ -191,10 +191,10 @@ public class Channel : EnhancedEventEmitter, IChannel
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Cleanup() | Worker[{WorkId}] _sents.Values.ForEach(m => m.Close.Invoke())", workerId);
+            logger.LogError(ex, $"{nameof(Cleanup)}() | Worker[{{WorkId}}] sents.Values.ForEach(m => m.Close.Invoke())", workerId);
         }
 
-        // Remove event listeners but leave a fake 'error' hander to avoid
+        // Remove event listeners but leave a fake 'error' handler to avoid
         // propagation.
         consumerSocket.Data   -= ConsumerSocketOnData;
         consumerSocket.Closed -= ConsumerSocketOnClosed;
@@ -210,7 +210,7 @@ public class Channel : EnhancedEventEmitter, IChannel
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, $"CloseAsync() | Worker[{{WorkerId}}] {nameof(producerSocket)}.Close()", workerId);
+            logger.LogError(ex, $"{nameof(CloseAsync)}() | Worker[{{WorkerId}}] {nameof(producerSocket)}.Close()", workerId);
         }
 
         try
@@ -219,7 +219,7 @@ public class Channel : EnhancedEventEmitter, IChannel
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, $"CloseAsync() | Worker[{{WorkerId}}] {nameof(consumerSocket)}.Close()", workerId);
+            logger.LogError(ex, $"{nameof(CloseAsync)}() | Worker[{{WorkerId}}] {nameof(consumerSocket)}.Close()", workerId);
         }
     }
 
@@ -289,7 +289,7 @@ public class Channel : EnhancedEventEmitter, IChannel
                 RequestMessage = requestMessage,
                 Resolve = data =>
                 {
-                    if (!sents.TryRemove(requestMessage.Id!.Value, out _))
+                    if (!sents.TryRemove(requestMessage.Id.NotNull(), out _))
                     {
                         tcs.TrySetException(
                             new Exception($"Received response does not match any sent request [id:{requestMessage.Id}]")
@@ -301,7 +301,7 @@ public class Channel : EnhancedEventEmitter, IChannel
                 },
                 Reject = e =>
                 {
-                    if (!sents.TryRemove(requestMessage.Id!.Value, out _))
+                    if (!sents.TryRemove(requestMessage.Id.NotNull(), out _))
                     {
                         tcs.TrySetException(
                             new Exception($"Received response does not match any sent request [id:{requestMessage.Id}]")
@@ -313,14 +313,14 @@ public class Channel : EnhancedEventEmitter, IChannel
                 },
                 Close = () => tcs.TrySetException(new InvalidStateException("Channel closed"))
             };
-            if (!sents.TryAdd(requestMessage.Id!.Value, sent))
+            if (!sents.TryAdd(requestMessage.Id.NotNull(), sent))
             {
                 throw new Exception($"Error add sent request [id:{requestMessage.Id}]");
             }
 
             tcs.WithTimeout(
                 TimeSpan.FromSeconds(15 + 0.1 * sents.Count),
-                () => sents.TryRemove(requestMessage.Id!.Value, out _)
+                () => sents.TryRemove(requestMessage.Id.NotNull(), out _)
             );
 
             SendRequest(sent);
@@ -635,7 +635,7 @@ public class Channel : EnhancedEventEmitter, IChannel
             return;
         }
 
-        Array.Copy(data.Array!, data.Offset, recvBuffer, recvBufferCount, data.Count);
+        Array.Copy(data.Array.NotNull(), data.Offset, recvBuffer, recvBufferCount, data.Count);
         recvBufferCount += data.Count;
 
         try

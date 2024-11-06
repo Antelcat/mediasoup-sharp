@@ -47,19 +47,19 @@ public class DataProducerOptions<TDataProducerAppData>
 
 public abstract class DataProducerEvents
 {
-    public object? transportclose;
+    public object? TransportClose;
 
-    public (string, Exception)? listenererror;
+    public (string, Exception) ListenerError;
 
     // Private events.
-    internal object? _close;
+    internal object? close;
 }
 
 public abstract class DataProducerObserverEvents
 {
-    public object? close;
-    public object? pause;
-    public object? resume;
+    public object? Close;
+    public object? Pause;
+    public object? Resume;
 }
 
 public class DataProducerInternal : TransportInternal
@@ -67,7 +67,7 @@ public class DataProducerInternal : TransportInternal
     /// <summary>
     /// DataProducer id.
     /// </summary>
-    public required string DataProducerId { get; set; }
+    public required string DataProducerId { get; init; }
 }
 
 public class DataProducerData
@@ -82,12 +82,12 @@ public class DataProducerData
     /// <summary>
     /// DataChannel label.
     /// </summary>
-    public string Label { get; init; }
+    public required string Label { get; init; }
 
     /// <summary>
     /// DataChannel protocol.
     /// </summary>
-    public string Protocol { get; init; }
+    public required string Protocol { get; init; }
 }
 
 [AutoExtractInterface]
@@ -143,10 +143,10 @@ public class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataProdu
 
     /// <summary>
     /// <para>Events:</para>
-    /// <para>@emits <see cref="DataProducerEvents.transportclose"/></para>
-    /// <para>@emits <see cref="DataProducerEvents._close"/></para>
+    /// <para>@emits <see cref="DataProducerEvents.TransportClose"/></para>
+    /// <para>@emits <see cref="DataProducerEvents.close"/></para>
     /// <para>Observer events:</para>
-    /// <para>@emits <see cref="DataProducerObserverEvents.close"/></para>
+    /// <para>@emits <see cref="DataProducerObserverEvents.Close"/></para>
     /// </summary>
     public DataProducer(
         DataProducerInternal @internal,
@@ -189,7 +189,7 @@ public class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataProdu
 
             var closeDataProducerRequest = new FBS.Transport.CloseDataProducerRequestT
             {
-                DataProducerId = @internal.DataProducerId,
+                DataProducerId = @internal.DataProducerId
             };
 
             var closeDataProducerRequestOffset =
@@ -202,10 +202,10 @@ public class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataProdu
                 @internal.TransportId
             ).ContinueWithOnFaultedHandleLog(logger);
 
-            this.Emit(static x => x._close);
+            this.Emit(static x => x.close);
 
             // Emit observer event.
-            Observer.Emit(static x=>x.close);
+            Observer.Emit(static x=>x.Close);
         }
     }
 
@@ -228,10 +228,10 @@ public class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataProdu
             // Remove notification subscriptions.
             //_channel.OnNotification -= OnNotificationHandle;
 
-            this.Emit(static x=>x.transportclose);
+            this.Emit(static x=>x.TransportClose);
 
             // Emit observer event.
-            Observer.Emit(static x=>x.close);
+            Observer.Emit(static x=>x.Close);
         }
     }
 
@@ -240,7 +240,7 @@ public class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataProdu
     /// </summary>
     public async Task<FBS.DataProducer.DumpResponseT> DumpAsync()
     {
-        logger.LogDebug("DumpAsync() | DataProducer:{DataProducerId}", Id);
+        logger.LogDebug($"{nameof(DumpAsync)}() | DataProducer:{{DataProducerId}}", Id);
 
         await using (await closeLock.ReadLockAsync())
         {
@@ -258,7 +258,7 @@ public class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataProdu
                 @internal.DataProducerId);
 
             /* Decode Response. */
-            var data = response.Value.BodyAsDataProducer_DumpResponse().UnPack();
+            var data = response.NotNull().BodyAsDataProducer_DumpResponse().UnPack();
             return data;
         }
     }
@@ -268,7 +268,7 @@ public class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataProdu
     /// </summary>
     public async Task<FBS.DataProducer.GetStatsResponseT[]> GetStatsAsync()
     {
-        logger.LogDebug("GetStatsAsync() | DataProducer:{DataProducerId}", Id);
+        logger.LogDebug($"{nameof(GetStatsAsync)}() | DataProducer:{{DataProducerId}}", Id);
 
         await using (await closeLock.ReadLockAsync())
         {
@@ -286,7 +286,7 @@ public class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataProdu
                 @internal.DataProducerId);
 
             /* Decode Response. */
-            var data = response.Value.BodyAsDataProducer_GetStatsResponse().UnPack();
+            var data = response.NotNull().BodyAsDataProducer_GetStatsResponse().UnPack();
             return [data];
         }
     }
@@ -296,7 +296,7 @@ public class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataProdu
     /// </summary>
     public async Task PauseAsync()
     {
-        logger.LogDebug("PauseAsync() | DataProducer:{DataProducerId}", Id);
+        logger.LogDebug($"{nameof(PauseAsync)}() | DataProducer:{{DataProducerId}}", Id);
 
         await using (await closeLock.ReadLockAsync())
         {
@@ -320,7 +320,7 @@ public class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataProdu
             // Emit observer event.
             if (!wasPaused)
             {
-                Observer.Emit(static x=>x.pause);
+                Observer.Emit(static x=>x.Pause);
             }
         }
     }
@@ -330,7 +330,7 @@ public class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataProdu
     /// </summary>
     public async Task ResumeAsync()
     {
-        logger.LogDebug("ResumeAsync() | DataProducer:{DataProducerId}", Id);
+        logger.LogDebug($"{nameof(ResumeAsync)}() | DataProducer:{{DataProducerId}}", Id);
 
         await using (await closeLock.ReadLockAsync())
         {
@@ -354,7 +354,7 @@ public class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataProdu
             // Emit observer event.
             if (wasPaused)
             {
-                Observer.Emit(static x=>x.resume);
+                Observer.Emit(static x=>x.Resume);
             }
         }
     }
@@ -367,7 +367,7 @@ public class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataProdu
                                 List<ushort>? subchannels = null,
                                 ushort? requiredSubchannel = null)
     {
-        logger.LogDebug("SendAsync() | DataProducer:{DataProducerId}", Id);
+        logger.LogDebug($"{nameof(SendAsync)}() | DataProducer:{{DataProducerId}}", Id);
 
         /*
          * +-------------------------------+----------+
@@ -431,7 +431,7 @@ public class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataProdu
                 Ppid               = ppid,
                 Data               = data.ToList(),
                 Subchannels        = subchannels ?? [],
-                RequiredSubchannel = requiredSubchannel,
+                RequiredSubchannel = requiredSubchannel
             };
 
             var sendNotificationOffset = SendNotification.Pack(bufferBuilder, sendNotification);

@@ -521,7 +521,7 @@ public class Room : EventEmitter
         // 		producer.id, score);
         // });
 
-        producer.On(static x => x.videoorientationchange, videoOrientation =>
+        producer.On(static x => x.VideoOrientationChange, videoOrientation =>
         {
             logger.LogDebug(
                 "broadcaster producer 'videoorientationchange' event [producerId:{ProducerId}, videoOrientation:{VideoOrientation}]",
@@ -585,13 +585,13 @@ public class Room : EventEmitter
         broadcaster.Data.Consumers.Add(consumer.Id, consumer);
 
         // Set Consumer events.
-        consumer.On(static x => x.transportclose, () =>
+        consumer.On(static x => x.TransportClose, () =>
         {
             // Remove from its map.
             broadcaster.Data.Consumers.Remove(consumer.Id);
         });
 
-        consumer.On(static x => x.producerclose, () =>
+        consumer.On(static x => x.ProducerClose, () =>
         {
             // Remove from its map.
             broadcaster.Data.Consumers.Remove(consumer.Id);
@@ -634,13 +634,13 @@ public class Room : EventEmitter
         broadcaster.Data.DataConsumers.Add(dataConsumer.Id, dataConsumer);
 
         // Set Consumer events.
-        dataConsumer.On(static x => x.transportclose, () =>
+        dataConsumer.On(static x => x.TransportClose, () =>
         {
             // Remove from its map.
             broadcaster.Data.DataConsumers.Remove(dataConsumer.Id);
         });
 
-        dataConsumer.On(static x => x.dataproducerclose, () =>
+        dataConsumer.On(static x => x.DataProducerClose, () =>
         {
             // Remove from its map.
             broadcaster.Data.DataConsumers.Remove(dataConsumer.Id);
@@ -687,7 +687,7 @@ public class Room : EventEmitter
         broadcaster.Data.DataProducers.Add(dataProducer.Id, dataProducer);
 
         // Set Consumer events.
-        dataProducer.On(static x => x.transportclose, () =>
+        dataProducer.On(static x => x.TransportClose, () =>
         {
             // Remove from its map.
             broadcaster.Data.DataProducers.Remove(dataProducer.Id);
@@ -709,7 +709,7 @@ public class Room : EventEmitter
 
     private void HandleAudioLevelObserver()
     {
-        audioLevelObserver.On(static x => x.volumes, volumes =>
+        audioLevelObserver.On(static x => x.Volumes, volumes =>
         {
             var volume = volumes[0];
             logger.LogDebug("audioLevelObserver 'volumes' event [producerId:{ProducerId}, volume:{Volume}]",
@@ -728,7 +728,7 @@ public class Room : EventEmitter
             }
         });
 
-        audioLevelObserver.On(static x => x.silence, () =>
+        audioLevelObserver.On(static x => x.Silence, () =>
         {
             logger.LogDebug("audioLevelObserver 'silence' event");
 
@@ -743,7 +743,7 @@ public class Room : EventEmitter
 
     private void HandleActiveSpeakerObserver()
     {
-        activeSpeakerObserver.On(static x => x.dominantspeaker, dominantSpeaker =>
+        activeSpeakerObserver.On(static x => x.DominantSpeaker, dominantSpeaker =>
         {
             logger.LogDebug(
                 "activeSpeakerObserver 'dominantspeaker' event [producerId:{ProducerId}]",
@@ -901,7 +901,7 @@ public class Room : EventEmitter
 
                 var transport = await mediasoupRouter.CreateWebRtcTransportAsync(webRtcTransportOptions);
 
-                transport.On(static x => x.icestatechange, async iceState =>
+                transport.On(static x => x.IceStateChange, async iceState =>
                 {
                     if (iceState == IceState.DISCONNECTED /*|| iceState == IceState.CLOSED*/)
                     {
@@ -911,14 +911,14 @@ public class Room : EventEmitter
                     }
                 });
 
-                transport.On(static x => x.sctpstatechange,
+                transport.On(static x => x.SctpStateChange,
                     sctpState =>
                     {
                         logger.LogDebug($"WebRtcTransport 'sctpstatechange' event [{nameof(sctpState)}:{{SctpState}}]",
                             sctpState);
                     });
 
-                transport.On(static x => x.dtlsstatechange, async dtlsState =>
+                transport.On(static x => x.DtlsStateChange, async dtlsState =>
                 {
                     if (dtlsState is DtlsState.FAILED or DtlsState.CLOSED)
                     {
@@ -932,7 +932,7 @@ public class Room : EventEmitter
                 // await transport.enableTraceEvent([ "probation", "bwe" ]);
                 await transport.EnableTraceEventAsync([TraceEventType.BWE]);
 
-                transport.On(static x => x.trace, trace =>
+                transport.On(static x => x.Trace, trace =>
                 {
                     logger.LogDebug(
                         "transport 'trace' event [transportId:{TransportId}, trace.type:{Type}, trace:{Trace}]",
@@ -1048,7 +1048,7 @@ public class Room : EventEmitter
                 peer.Data().Producers.Add(producer.Id, producer);
 
                 // Set Producer events.
-                producer.On(static x => x.score, score =>
+                producer.On(static x => x.Score, score =>
                 {
                     // logger.debug(
                     // 	"producer 'score' event [{producerId}, score:%o]",
@@ -1057,7 +1057,7 @@ public class Room : EventEmitter
                         .Catch(() => { });
                 });
 
-                producer.On(static x => x.videoorientationchange, videoOrientation =>
+                producer.On(static x => x.VideoOrientationChange, videoOrientation =>
                 {
                     logger.LogDebug(
                         "producer 'videoorientationchange' event [producerId:{ProducerId}, videoOrientation:{VideoOrientation}]",
@@ -1069,7 +1069,7 @@ public class Room : EventEmitter
                 // await producer.enableTraceEvent([ "pli", "fir" ]);
                 // await producer.enableTraceEvent([ "keyframe" ]);
 
-                producer.On(static x => x.trace, trace =>
+                producer.On(static x => x.Trace, trace =>
                 {
                     logger.LogDebug(
                         "producer 'trace' event [producerId:{ProducerId}, trace.type:{Type}, trace:{Trace}]",
@@ -1599,13 +1599,13 @@ public class Room : EventEmitter
                     consumerPeer.Data().Consumers.Add(consumer.Id, consumer);
 
                     // Set Consumer events.
-                    consumer.On(static x => x.transportclose, () =>
+                    consumer.On(static x => x.TransportClose, () =>
                     {
                         // Remove from its map.
                         consumerPeer.Data().Consumers.Remove(consumer.Id);
                     });
 
-                    consumer.On(static x => x.producerclose, () =>
+                    consumer.On(static x => x.ProducerClose, () =>
                     {
                         // Remove from its map.
                         consumerPeer.Data().Consumers.Remove(consumer.Id);
@@ -1614,19 +1614,19 @@ public class Room : EventEmitter
                             .Catch(() => { });
                     });
 
-                    consumer.On(static x => x.producerpause, () =>
+                    consumer.On(static x => x.ProducerPause, () =>
                     {
                         consumerPeer.NotifyAsync("consumerPaused", new { consumerId = consumer.Id })
                             .Catch(() => { });
                     });
 
-                    consumer.On(static x => x.producerresume, () =>
+                    consumer.On(static x => x.ProducerResume, () =>
                     {
                         consumerPeer.NotifyAsync("consumerResumed", new { consumerId = consumer.Id })
                             .Catch(() => { });
                     });
 
-                    consumer.On(static x => x.score, score =>
+                    consumer.On(static x => x.Score, score =>
                     {
                         // logger.debug(
                         //	 'consumer "score" event [consumerId:%s, score:%o]',
@@ -1636,7 +1636,7 @@ public class Room : EventEmitter
                             .Catch(() => { });
                     });
 
-                    consumer.On(static x => x.layerschange, layers =>
+                    consumer.On(static x => x.LayersChange, layers =>
                     {
                         consumerPeer.NotifyAsync(
                                 "consumerLayersChanged", new
@@ -1653,7 +1653,7 @@ public class Room : EventEmitter
                     // await consumer.enableTraceEvent([ 'pli', 'fir' ]);
                     // await consumer.enableTraceEvent([ 'keyframe' ]);
 
-                    consumer.On(static x => x.trace, trace =>
+                    consumer.On(static x => x.Trace, trace =>
                     {
                         logger.LogDebug(
                             $"consumer 'trace' event [producerId:{{ProducerId}}, trace.type:{{Type}}, {nameof(trace)}:{{Trace}}]",
@@ -1751,13 +1751,13 @@ public class Room : EventEmitter
         dataConsumerPeer.Data().DataConsumers.Add(dataConsumer.Id, dataConsumer);
 
         // Set DataConsumer events.
-        dataConsumer.On(static x => x.transportclose, () =>
+        dataConsumer.On(static x => x.TransportClose, () =>
         {
             // Remove from its map.
             dataConsumerPeer.Data().DataConsumers.Remove(dataConsumer.Id);
         });
 
-        dataConsumer.On(static x => x.dataproducerclose, () =>
+        dataConsumer.On(static x => x.DataProducerClose, () =>
         {
             // Remove from its map.
             dataConsumerPeer.Data().DataConsumers.Remove(dataConsumer.Id);

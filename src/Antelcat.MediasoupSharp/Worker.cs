@@ -102,7 +102,7 @@ public enum WorkerLogTag
     /// <summary>
     /// Logs about messages (can be SCTP messages or direct messages).
     /// </summary>
-    Message,
+    Message
 }
 
 public record WorkerSettings<TWorkerAppData>
@@ -134,20 +134,20 @@ public record WorkerSettings<TWorkerAppData>
 
 public abstract class WorkerEvents
 {
-    public Exception?           died;
-    public object?              subprocessclose;
-    public (string, Exception)? listenererror;
+    public Exception?           Died;
+    public object?              SubprocessClose;
+    public (string, Exception)? ListenerError;
 
     // Private events.
-    internal object?    _success;
-    internal Exception? _failure;
+    internal object?    success;
+    internal Exception? failure;
 }
 
 public abstract class WorkerObserverEvents
 {
-    public object?       close;
-    public IWebRtcServer newwebrtcserver;
-    public IRouter       newrouter;
+    public object?       Close;
+    public required IWebRtcServer NewWebrtcServer;
+    public required IRouter       NewRouter;
 }
 
 [AutoExtractInterface(Interfaces =
@@ -246,13 +246,13 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
 
     /// <summary>
     /// <para>Events:</para>
-    /// <para>@emits <see cref="WorkerEvents.died"/> - (error: Error)</para>
-    /// <para>@emits <see cref="WorkerEvents._success"/></para>
-    /// <para>@emits <see cref="WorkerEvents._failure"/> - (error: Error)</para>
+    /// <para>@emits <see cref="WorkerEvents.Died"/> - (error: Error)</para>
+    /// <para>@emits <see cref="WorkerEvents.success"/></para>
+    /// <para>@emits <see cref="WorkerEvents.failure"/> - (error: Error)</para>
     /// <para>Observer events:</para>
-    /// <para>@emits <see cref="WorkerObserverEvents.close"/></para>
-    /// <para>@emits <see cref="WorkerObserverEvents.newwebrtcserver"/> - (webRtcServer: WebRtcServer)</para>
-    /// <para>@emits <see cref="WorkerObserverEvents.newrouter"/> - (router: Router)</para>
+    /// <para>@emits <see cref="WorkerObserverEvents.Close"/></para>
+    /// <para>@emits <see cref="WorkerObserverEvents.NewWebrtcServer"/> - (webRtcServer: WebRtcServer)</para>
+    /// <para>@emits <see cref="WorkerObserverEvents.NewRouter"/> - (router: Router)</para>
     /// </summary>
     public Worker(WorkerSettings<TWorkerAppData> workerSettings)
     {
@@ -375,13 +375,13 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
             {
                 spawnDone = true;
                 Logger.LogError(ex, "Worker() | Worker process failed [pid:{ProcessId}]", Pid);
-                this.Emit(static x => x._failure, ex);
+                this.Emit(static x => x.failure, ex);
             }
             else
             {
                 // 执行到这里的可能性？
                 Logger.LogError(ex, "Worker() | Worker process error [pid:{ProcessId}]", Pid);
-                this.Emit(static x => x.died, ex);
+                this.Emit(static x => x.Died, ex);
             }
 
             return;
@@ -401,7 +401,7 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
 
                 Logger.LogDebug("worker process running [pid:{Pid}]", Pid);
 
-                this.Emit(static x => x._success);
+                this.Emit(static x => x.success);
             }
         });
 
@@ -415,7 +415,7 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
             );
 
 
-            this.Emit(static x => x.subprocessclose);
+            this.Emit(static x => x.SubprocessClose);
         };
 
         channel.OnNotification += OnNotificationHandle;
@@ -447,7 +447,7 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
             var bufferBuilder = channel.BufferPool.Get();
 
             var response = await channel.RequestAsync(bufferBuilder, Method.WORKER_DUMP);
-            var data     = response.Value.BodyAsWorker_DumpResponse().UnPack();
+            var data     = response.NotNull().BodyAsWorker_DumpResponse().UnPack();
             return data;
         }
     }
@@ -470,7 +470,7 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
             var bufferBuilder = channel.BufferPool.Get();
 
             var response = await channel.RequestAsync(bufferBuilder, Method.WORKER_GET_RESOURCE_USAGE);
-            var data     = response.Value.BodyAsWorker_ResourceUsageResponse().UnPack();
+            var data     = response.NotNull().BodyAsWorker_ResourceUsageResponse().UnPack();
 
             return data;
         }
@@ -547,7 +547,7 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
             var webRtcServerId = Guid.NewGuid().ToString();
 
             // Build Request
-            var bufferBuilder = channel!.BufferPool.Get();
+            var bufferBuilder = channel.BufferPool.Get();
 
             var createWebRtcServerRequestT = new CreateWebRtcServerRequestT
             {
@@ -574,7 +574,7 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
                 WebRtcServers.Add(webRtcServer);
             }
 
-            webRtcServer.On(static x => x._close,
+            webRtcServer.On(static x => x.close,
                 () =>
                 {
                     lock (webRtcServersLock)
@@ -587,7 +587,7 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
             );
 
             // Emit observer event.
-            Observer.Emit(static x => x.newwebrtcserver, webRtcServer);
+            Observer.Emit(static x => x.NewWebrtcServer, webRtcServer);
 
             return webRtcServer;
         }
@@ -644,7 +644,7 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
                 routers.Add(router);
             }
 
-            router.On(static x => x._close,
+            router.On(static x => x.close,
                 () =>
                 {
                     lock (routersLock)
@@ -655,7 +655,7 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
             );
 
             // Emit observer event.
-            Observer.Emit(static x => x.newrouter, router);
+            Observer.Emit(static x => x.NewRouter, router);
 
             return router;
         }
@@ -745,7 +745,7 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
             }
 
             // Emit observer event.
-            Observer.Emit(static x => x.close);
+            Observer.Emit(static x => x.Close);
         }
     }
 
@@ -765,7 +765,7 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
         if (spawnDone || @event != Event.WORKER_RUNNING) return;
         spawnDone = true;
         Logger.LogDebug("Worker[{ProcessId}] process running", Pid);
-        this.Emit(static x => x._success);
+        this.Emit(static x => x.success);
         channel.OnNotification -= OnNotificationHandle;
     }
 
@@ -787,7 +787,7 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
             if (process.ExitCode == 42)
             {
                 Logger.LogError("OnExit() | Worker process failed due to wrong settings [pid:{ProcessId}]", Pid);
-                this.Emit(static x => x._failure,
+                this.Emit(static x => x.failure,
                     new Exception($"Worker process failed due to wrong settings [pid:{Pid}]"));
             }
             else
@@ -795,7 +795,7 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
                 Logger.LogError(
                     "OnExit() | Worker process failed unexpectedly [pid:{ProcessId}, code:{ExitCode}, signal:{TermSignal}]",
                     Pid, process.ExitCode, process.TermSignal);
-                this.Emit(static x => x._failure,
+                this.Emit(static x => x.failure,
                     new Exception(
                         $"Worker process failed unexpectedly [pid:{Pid}, code:{process.ExitCode}, signal:{process.TermSignal}]"
                     )
@@ -807,7 +807,7 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
             Logger.LogError(
                 "OnExit() | Worker process failed unexpectedly [pid:{ProcessId}, code:{ExitCode}, signal:{TermSignal}]",
                 Pid, process.ExitCode, process.TermSignal);
-            this.Emit(static x => x.died,
+            this.Emit(static x => x.Died,
                 new Exception(
                     $"Worker process died unexpectedly [pid:{Pid}, code:{process.ExitCode}, signal:{process.TermSignal}]"
                 )

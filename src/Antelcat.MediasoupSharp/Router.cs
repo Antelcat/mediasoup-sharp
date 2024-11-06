@@ -39,12 +39,12 @@ public class PipeToRouterOptions
     /// <summary>
     /// Target Router instance.
     /// </summary>
-    public IRouter Router { get; set; }
+    public required IRouter Router { get; set; }
 
     /// <summary>
-    /// Listenning Infomation.
+    /// Listening Information.
     /// </summary>
-    public ListenInfoT ListenInfo { get; set; }
+    public required ListenInfoT ListenInfo { get; set; }
 
     /// <summary>
     /// Create a SCTP association. Default true.
@@ -92,19 +92,19 @@ public class PipeToRouterResult
 
 public abstract class RouterEvents
 {
-    public object? workerclose;
+    public object? WorkerClose;
 
-    public (string, Exception)? listenererror;
+    public (string, Exception)? ListenerError;
 
     // Private events.
-    internal object? _close;
+    internal object? close;
 }
 
 public abstract class RouterObserverEvents
 {
-    public object?      close;
-    public ITransport   newtransport;
-    public IRtpObserver newrtpobserver;
+    public          object?      Close;
+    public required ITransport   NewTransport;
+    public required IRtpObserver NewRtpObserver;
 }
 
 public class RouterInternal
@@ -114,7 +114,7 @@ public class RouterInternal
 
 public class RouterData
 {
-    public RtpCapabilities RtpCapabilities { get; set; }
+    public required RtpCapabilities RtpCapabilities { get; set; }
 }
 
 [AutoExtractInterface]
@@ -202,12 +202,12 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
 
     /// <summary>
     /// <para>Events:</para>
-    /// <para>@emits <see cref="RouterEvents.workerclose"/></para>
-    /// <para>@emits <see cref="RouterEvents._close"/></para>
+    /// <para>@emits <see cref="RouterEvents.WorkerClose"/></para>
+    /// <para>@emits <see cref="RouterEvents.close"/></para>
     /// <para>Observer events:</para>
-    /// <para>@emits <see cref="RouterObserverEvents.close"/></para>
-    /// <para>@emits <see cref="RouterObserverEvents.newtransport"/> - (transport: Transport)</para>
-    /// <para>@emits <see cref="RouterObserverEvents.newrtpobserver"/> - (rtpObserver: RtpObserver)</para>
+    /// <para>@emits <see cref="RouterObserverEvents.Close"/></para>
+    /// <para>@emits <see cref="RouterObserverEvents.NewTransport"/> - (transport: Transport)</para>
+    /// <para>@emits <see cref="RouterObserverEvents.NewRtpObserver"/> - (rtpObserver: RtpObserver)</para>
     /// </summary>
     public Router(
         RouterInternal @internal,
@@ -243,7 +243,7 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
 
             var closeRouterRequest = new FBS.Worker.CloseRouterRequestT
             {
-                RouterId = @internal.RouterId,
+                RouterId = @internal.RouterId
             };
 
             var closeRouterRequestOffset = FBS.Worker.CloseRouterRequest.Pack(bufferBuilder, closeRouterRequest);
@@ -256,10 +256,10 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
 
             await CloseInternalAsync();
 
-            this.Emit(static x => x._close);
+            this.Emit(static x => x.close);
 
             // Emit observer event.
-            Observer.Emit(static x => x.close);
+            Observer.Emit(static x => x.Close);
         }
     }
 
@@ -281,10 +281,10 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
 
             await CloseInternalAsync();
 
-            this.Emit(static x => x.workerclose);
+            this.Emit(static x => x.WorkerClose);
 
             // Emit observer event.
-            Observer.Emit(static x => x.close);
+            Observer.Emit(static x => x.Close);
         }
     }
 
@@ -307,7 +307,7 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
 
             var response =
                 await channel.RequestAsync(bufferBuilder, Method.ROUTER_DUMP, null, null, @internal.RouterId);
-            var data = response!.Value.BodyAsRouter_DumpResponse().UnPack();
+            var data = response.NotNull().BodyAsRouter_DumpResponse().UnPack();
 
             return data;
         }
@@ -379,7 +379,7 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
             }
             else
             {
-                var fbsListenInfos = listenInfos!
+                var fbsListenInfos = listenInfos.NotNull()
                     .Select(static m => new ListenInfoT
                     {
                         Protocol         = m.Protocol,
@@ -389,13 +389,13 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
                         PortRange        = m.PortRange,
                         Flags            = m.Flags,
                         SendBufferSize   = m.SendBufferSize,
-                        RecvBufferSize   = m.RecvBufferSize,
+                        RecvBufferSize   = m.RecvBufferSize
                     }).ToList();
 
                 webRtcTransportListenIndividual =
                     new FBS.WebRtcTransport.ListenIndividualT
                     {
-                        ListenInfos = fbsListenInfos,
+                        ListenInfos = fbsListenInfos
                     };
             }
 
@@ -425,7 +425,7 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
                 EnableTcp         = enableTcp.Value,
                 PreferUdp         = preferUdp,
                 PreferTcp         = preferTcp,
-                IceConsentTimeout = iceConsentTimeout,
+                IceConsentTimeout = iceConsentTimeout
             };
 
             var transportId = Guid.NewGuid().ToString();
@@ -450,7 +450,7 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
                 @internal.RouterId);
 
             /* Decode Response. */
-            var data = response!.Value.BodyAsWebRtcTransport_DumpResponse().UnPack();
+            var data = response.NotNull().BodyAsWebRtcTransport_DumpResponse().UnPack();
 
             var transport = new WebRtcTransport<TWebRtcTransportAppData>(
                 new(data)
@@ -552,7 +552,7 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
                 @internal.RouterId);
 
             /* Decode Response. */
-            var data = response.Value.BodyAsPlainTransport_DumpResponse().UnPack();
+            var data = response.NotNull().BodyAsPlainTransport_DumpResponse().UnPack();
 
             var transport = new PlainTransport<TPlainTransportAppData>(
                 new(data)
@@ -629,7 +629,7 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
                 Base       = baseTransportOptions,
                 ListenInfo = options.ListenInfo,
                 EnableRtx  = options.EnableRtx,
-                EnableSrtp = options.EnableSrtp,
+                EnableSrtp = options.EnableSrtp
             };
 
             var transportId = Guid.NewGuid().ToString();
@@ -652,7 +652,7 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
                 @internal.RouterId);
 
             /* Decode Response. */
-            var data = response.Value.BodyAsPipeTransport_DumpResponse().UnPack();
+            var data = response.NotNull().BodyAsPipeTransport_DumpResponse().UnPack();
 
             var transport = new PipeTransport<TPipeTransportAppData>(
                 new(data)
@@ -708,12 +708,12 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
             var baseTransportOptions = new FBS.Transport.OptionsT
             {
                 Direct         = true,
-                MaxMessageSize = options.MaxMessageSize,
+                MaxMessageSize = options.MaxMessageSize
             };
 
             var directTransportOptions = new FBS.DirectTransport.DirectTransportOptionsT
             {
-                Base = baseTransportOptions,
+                Base = baseTransportOptions
             };
 
             // Build Request
@@ -735,7 +735,7 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
                 @internal.RouterId);
 
             /* Decode Response. */
-            var data = response!.Value.BodyAsDirectTransport_DumpResponse().UnPack();
+            var data = response.NotNull().BodyAsDirectTransport_DumpResponse().UnPack();
 
             var transport = new DirectTransport<TDirectTransportAppData>(
                 new(data)
@@ -778,42 +778,42 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
             transports[transport.Id] = transport;
         }
 
-        transport.On(static x => x._close, async _ =>
+        transport.On(static x => x.close, async _ =>
         {
             await using (await transportsLock.WriteLockAsync())
             {
                 transports.Remove(transport.Id);
             }
         });
-        transport.On(static x => x._listenserverclose, async _ =>
+        transport.On(static x => x.listenServerClose, async _ =>
         {
             await using (await transportsLock.WriteLockAsync())
             {
                 transports.Remove(transport.Id);
             }
         });
-        transport.On(static x => x._newproducer, async producer =>
+        transport.On(static x => x.newProducer, async producer =>
         {
             await using (await producersLock.WriteLockAsync())
             {
                 producers[producer.Id] = producer;
             }
         });
-        transport.On(static x => x._producerclose, async producer =>
+        transport.On(static x => x.producerClose, async producer =>
         {
             await using (await producersLock.WriteLockAsync())
             {
                 producers.Remove(producer.Id);
             }
         });
-        transport.On(static x => x._newdataproducer, async dataProducer =>
+        transport.On(static x => x.newDataProducer, async dataProducer =>
         {
             await using (await dataProducersLock.WriteLockAsync())
             {
                 dataProducers[dataProducer.Id] = dataProducer;
             }
         });
-        transport.On(static x => x._dataproducerclose, async dataProducer =>
+        transport.On(static x => x.dataProducerClose, async dataProducer =>
         {
             await using (await dataProducersLock.WriteLockAsync())
             {
@@ -822,7 +822,7 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
         });
 
         // Emit observer event.
-        Observer.Emit(static x => x.newtransport, transport);
+        Observer.Emit(static x => x.NewTransport, transport);
 
         if (webRtcServer != null && transport is IWebRtcTransport webRtcTransport)
         {
@@ -1136,7 +1136,7 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
                 RtpObserverId = rtpObserverId,
                 Options = new FBS.ActiveSpeakerObserver.ActiveSpeakerObserverOptionsT
                 {
-                    Interval = activeSpeakerObserverOptions.Interval,
+                    Interval = activeSpeakerObserverOptions.Interval
                 }
             };
 
@@ -1183,7 +1183,7 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
         AudioLevelObserverOptions<TAudioLevelObserverAppData> audioLevelObserverOptions)
         where TAudioLevelObserverAppData : new()
     {
-        logger.LogDebug("CreateAudioLevelObserverAsync()");
+        logger.LogDebug($"{nameof(CreateAudioLevelObserverAsync)}()");
 
         await using (await closeLock.ReadLockAsync())
         {
@@ -1204,7 +1204,7 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
                 {
                     MaxEntries = audioLevelObserverOptions.MaxEntries,
                     Threshold  = audioLevelObserverOptions.Threshold,
-                    Interval   = audioLevelObserverOptions.Interval,
+                    Interval   = audioLevelObserverOptions.Interval
                 }
             };
 
@@ -1338,7 +1338,7 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
     private Task ConfigureRtpObserverAsync(IRtpObserver rtpObserver)
     {
         rtpObservers[rtpObserver.Internal.RtpObserverId] = rtpObserver;
-        rtpObserver.On(static x => x._close, async _ =>
+        rtpObserver.On(static x => x.close, async _ =>
         {
             await using (await rtpObserversLock.WriteLockAsync())
             {
@@ -1347,7 +1347,7 @@ public sealed class Router<TRouterAppData> : EnhancedEventEmitter<RouterEvents>,
         });
 
         // Emit observer event.
-        Observer.Emit(static x => x.newrtpobserver, rtpObserver);
+        Observer.Emit(static x => x.NewRtpObserver, rtpObserver);
 
         return Task.CompletedTask;
     }

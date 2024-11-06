@@ -4,11 +4,7 @@ using Antelcat.NodeSharp.Events;
 
 namespace Antelcat.MediasoupSharp;
 
-public class EnhancedEventEmitter : EventEmitter
-{
-    public void On(string eventName, Func<object?, Task> method) =>
-        base.On(eventName, (Func<object[], Task>)(args => method(args.Length > 0 ? args[0] : null)));
-}
+public class EnhancedEventEmitter : EventEmitter;
 
 public class EnhancedEventEmitter<T>(EnhancedEventEmitter emitter) : IEnhancedEventEmitter<T>
 {

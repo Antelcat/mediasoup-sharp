@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 using Antelcat.MediasoupSharp.Internals.Extensions;
 using FBS.RtpParameters;
 
@@ -42,12 +43,12 @@ public class RtpCapabilities
                     [
                         new()
                         {
-                            Type = "nacc",
+                            Type = "nacc"
                         },
 
                         new()
                         {
-                            Type = "transport-cc",
+                            Type = "transport-cc"
                         }
                     ]
                 },
@@ -63,18 +64,18 @@ public class RtpCapabilities
                     {
                         { "channel_mapping", "0,1,2,3" },
                         { "num_streams", 2 },
-                        { "coupled_streams", 2 },
+                        { "coupled_streams", 2 }
                     },
                     RtcpFeedback =
                     [
                         new()
                         {
-                            Type = "nacc",
+                            Type = "nacc"
                         },
 
                         new()
                         {
-                            Type = "transport-cc",
+                            Type = "transport-cc"
                         }
                     ]
                 },
@@ -90,18 +91,18 @@ public class RtpCapabilities
                     {
                         { "channel_mapping", "0,4,1,2,3,5" },
                         { "num_streams", 4 },
-                        { "coupled_streams", 2 },
+                        { "coupled_streams", 2 }
                     },
                     RtcpFeedback =
                     [
                         new()
                         {
-                            Type = "nacc",
+                            Type = "nacc"
                         },
 
                         new()
                         {
-                            Type = "transport-cc",
+                            Type = "transport-cc"
                         }
                     ]
                 },
@@ -117,18 +118,18 @@ public class RtpCapabilities
                     {
                         { "channel_mapping", "0,6,1,2,3,4,5,7" },
                         { "num_streams", 5 },
-                        { "coupled_streams", 4 },
+                        { "coupled_streams", 4 }
                     },
                     RtcpFeedback =
                     [
                         new()
                         {
-                            Type = "nacc",
+                            Type = "nacc"
                         },
 
                         new()
                         {
-                            Type = "transport-cc",
+                            Type = "transport-cc"
                         }
                     ]
                 },
@@ -143,7 +144,7 @@ public class RtpCapabilities
                     [
                         new()
                         {
-                            Type = "transport-cc",
+                            Type = "transport-cc"
                         }
                     ]
                 },
@@ -158,7 +159,7 @@ public class RtpCapabilities
                     [
                         new()
                         {
-                            Type = "transport-cc",
+                            Type = "transport-cc"
                         }
                     ]
                 },
@@ -172,7 +173,7 @@ public class RtpCapabilities
                     [
                         new()
                         {
-                            Type = "transport-cc",
+                            Type = "transport-cc"
                         }
                     ]
                 },
@@ -186,7 +187,7 @@ public class RtpCapabilities
                     [
                         new()
                         {
-                            Type = "transport-cc",
+                            Type = "transport-cc"
                         }
                     ]
                 },
@@ -201,7 +202,7 @@ public class RtpCapabilities
                     [
                         new()
                         {
-                            Type = "transport-cc",
+                            Type = "transport-cc"
                         }
                     ]
                 },
@@ -215,7 +216,7 @@ public class RtpCapabilities
                     [
                         new()
                         {
-                            Type = "transport-cc",
+                            Type = "transport-cc"
                         }
                     ]
                 },
@@ -229,7 +230,7 @@ public class RtpCapabilities
                     [
                         new()
                         {
-                            Type = "transport-cc",
+                            Type = "transport-cc"
                         }
                     ]
                 },
@@ -243,7 +244,7 @@ public class RtpCapabilities
                     [
                         new()
                         {
-                            Type = "transport-cc",
+                            Type = "transport-cc"
                         }
                     ]
                 },
@@ -257,7 +258,7 @@ public class RtpCapabilities
                     [
                         new()
                         {
-                            Type = "transport-cc",
+                            Type = "transport-cc"
                         }
                     ]
                 },
@@ -271,7 +272,7 @@ public class RtpCapabilities
                     [
                         new()
                         {
-                            Type = "transport-cc",
+                            Type = "transport-cc"
                         }
                     ]
                 },
@@ -337,27 +338,27 @@ public class RtpCapabilities
                     [
                         new()
                         {
-                            Type = "nack",
+                            Type = "nack"
                         },
 
                         new()
                         {
-                            Type = "nack", Parameter = "pli",
+                            Type = "nack", Parameter = "pli"
                         },
 
                         new()
                         {
-                            Type = "ccm", Parameter = "fir",
+                            Type = "ccm", Parameter = "fir"
                         },
 
                         new()
                         {
-                            Type = "goog-remb",
+                            Type = "goog-remb"
                         },
 
                         new()
                         {
-                            Type = "transport-cc",
+                            Type = "transport-cc"
                         }
                     ]
                 },
@@ -371,27 +372,27 @@ public class RtpCapabilities
                     [
                         new()
                         {
-                            Type = "nack",
+                            Type = "nack"
                         },
 
                         new()
                         {
-                            Type = "nack", Parameter = "pli",
+                            Type = "nack", Parameter = "pli"
                         },
 
                         new()
                         {
-                            Type = "ccm", Parameter = "fir",
+                            Type = "ccm", Parameter = "fir"
                         },
 
                         new()
                         {
-                            Type = "goog-remb",
+                            Type = "goog-remb"
                         },
 
                         new()
                         {
-                            Type = "transport-cc",
+                            Type = "transport-cc"
                         }
                     ]
                 },
@@ -403,33 +404,33 @@ public class RtpCapabilities
                     ClockRate = 90000,
                     Parameters = new()
                     {
-                        { "level-asymmetry-allowed", 1 },
+                        { "level-asymmetry-allowed", 1 }
                     },
                     RtcpFeedback =
                     [
                         new()
                         {
-                            Type = "nack",
+                            Type = "nack"
                         },
 
                         new()
                         {
-                            Type = "nack", Parameter = "pli",
+                            Type = "nack", Parameter = "pli"
                         },
 
                         new()
                         {
-                            Type = "ccm", Parameter = "fir",
+                            Type = "ccm", Parameter = "fir"
                         },
 
                         new()
                         {
-                            Type = "goog-remb",
+                            Type = "goog-remb"
                         },
 
                         new()
                         {
-                            Type = "transport-cc",
+                            Type = "transport-cc"
                         }
                     ]
                 },
@@ -441,33 +442,33 @@ public class RtpCapabilities
                     ClockRate = 90000,
                     Parameters = new()
                     {
-                        { "level-asymmetry-allowed", 1 },
+                        { "level-asymmetry-allowed", 1 }
                     },
                     RtcpFeedback =
                     [
                         new()
                         {
-                            Type = "nack",
+                            Type = "nack"
                         },
 
                         new()
                         {
-                            Type = "nack", Parameter = "pli",
+                            Type = "nack", Parameter = "pli"
                         },
 
                         new()
                         {
-                            Type = "ccm", Parameter = "fir",
+                            Type = "ccm", Parameter = "fir"
                         },
 
                         new()
                         {
-                            Type = "goog-remb",
+                            Type = "goog-remb"
                         },
 
                         new()
                         {
-                            Type = "transport-cc",
+                            Type = "transport-cc"
                         }
                     ]
                 },
@@ -479,33 +480,33 @@ public class RtpCapabilities
                     ClockRate = 90000,
                     Parameters = new()
                     {
-                        { "level-asymmetry-allowed", 1 },
+                        { "level-asymmetry-allowed", 1 }
                     },
                     RtcpFeedback =
                     [
                         new()
                         {
-                            Type = "nack",
+                            Type = "nack"
                         },
 
                         new()
                         {
-                            Type = "nack", Parameter = "pli",
+                            Type = "nack", Parameter = "pli"
                         },
 
                         new()
                         {
-                            Type = "ccm", Parameter = "fir",
+                            Type = "ccm", Parameter = "fir"
                         },
 
                         new()
                         {
-                            Type = "goog-remb",
+                            Type = "goog-remb"
                         },
 
                         new()
                         {
-                            Type = "transport-cc",
+                            Type = "transport-cc"
                         }
                     ]
                 }
@@ -567,7 +568,7 @@ public class RtpCapabilities
                     Uri              = RtpHeaderExtensionUri.TransportWideCcDraft01,
                     PreferredId      = 5,
                     PreferredEncrypt = false,
-                    Direction        = RtpHeaderExtensionDirection.ReceiveOnly,
+                    Direction        = RtpHeaderExtensionDirection.ReceiveOnly
                 },
                 new()
                 {
@@ -640,7 +641,7 @@ public class RtpCapabilities
                     Uri              = RtpHeaderExtensionUri.PlayoutDelay,
                     PreferredId      = 14,
                     PreferredEncrypt = false,
-                    Direction        = RtpHeaderExtensionDirection.SendReceive,
+                    Direction        = RtpHeaderExtensionDirection.SendReceive
                 },
                 new()
                 {
@@ -648,7 +649,7 @@ public class RtpCapabilities
                     Uri              = RtpHeaderExtensionUri.PlayoutDelay,
                     PreferredId      = 14,
                     PreferredEncrypt = false,
-                    Direction        = RtpHeaderExtensionDirection.SendReceive,
+                    Direction        = RtpHeaderExtensionDirection.SendReceive
                 }
             ]
         };
@@ -832,7 +833,7 @@ public class RtpParameters
     /// <summary>
     /// Media and RTX codecs in use.
     /// </summary>
-    public List<RtpCodecParameters> Codecs { get; set; }
+    public required List<RtpCodecParameters> Codecs { get; set; }
 
     /// <summary>
     /// RTP header extensions in use.
@@ -916,6 +917,7 @@ public class RtpCodecParameters : RtpCodecShared, IEquatable<RtpCodecParameters>
         return false;
     }
 
+    [SuppressMessage("ReSharper", "NonReadonlyMemberInGetHashCode")]
     public override int GetHashCode()
     {
         var result = MimeType.GetHashCode() ^ PayloadType.GetHashCode() ^ ClockRate.GetHashCode();

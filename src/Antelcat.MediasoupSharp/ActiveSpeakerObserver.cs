@@ -29,12 +29,12 @@ public class ActiveSpeakerObserverDominantSpeaker
 
 public abstract class ActiveSpeakerObserverEvents : RtpObserverEvents
 {
-    public ActiveSpeakerObserverDominantSpeaker dominantspeaker;
+    public required ActiveSpeakerObserverDominantSpeaker DominantSpeaker;
 }
 
 public abstract class ActiveSpeakerObserverObserverEvents : RtpObserverObserverEvents
 {
-    public ActiveSpeakerObserverDominantSpeaker dominantspeaker;
+    public required ActiveSpeakerObserverDominantSpeaker DominantSpeaker;
 }
 
 public class RtpObserverObserverConstructorOptions<TActiveSpeakerObserverAppData> :
@@ -52,16 +52,9 @@ public class ActiveSpeakerObserver<TActiveSpeakerObserverAppData>
 
     /// <summary>
     /// <para>Events:</para>
-    /// <para>@emits <see cref="ActiveSpeakerObserverEvents.volumes"/> - (volumes: AudioLevelObserverVolume[])</para>
-    /// <para>@emits <see cref="ActiveSpeakerObserverEvents.silence"/></para>
+    /// <para>@emits <see cref="ActiveSpeakerObserverEvents.DominantSpeaker"/></para>
     /// <para>Observer events:</para>
-    /// <para>@emits close</para>
-    /// <para>@emits pause</para>
-    /// <para>@emits resume</para>
-    /// <para>@emits addproducer - (producer: Producer)</para>
-    /// <para>@emits removeproducer - (producer: Producer)</para>
-    /// <para>@emits volumes - (volumes: AudioLevelObserverVolume[])</para>
-    /// <para>@emits silence</para>
+    /// <para>@emits <see cref="ActiveSpeakerObserverObserverEvents.DominantSpeaker"/></para>
     /// </summary>
     public ActiveSpeakerObserver(RtpObserverObserverConstructorOptions<TActiveSpeakerObserverAppData> options)
         : base(options, new())
@@ -92,17 +85,17 @@ public class ActiveSpeakerObserver<TActiveSpeakerObserverAppData>
                         Producer = await GetProducerById(dominantSpeakerNotification.ProducerId)
                     };
 
-                    this.Emit(static x => x.dominantspeaker, dominantSpeaker);
+                    this.Emit(static x => x.DominantSpeaker, dominantSpeaker);
 
                     // Emit observer event.
-                    Observer.Emit(static x => x.dominantspeaker, dominantSpeaker);
+                    Observer.Emit(static x => x.DominantSpeaker, dominantSpeaker);
                 }
 
                 break;
             }
             default:
             {
-                logger.LogError("OnNotificationHandle() | Ignoring unknown event: {Event}", @event);
+                logger.LogError($"{nameof(OnNotificationHandle)}() | Ignoring unknown event: {{Event}}", @event);
                 break;
             }
         }

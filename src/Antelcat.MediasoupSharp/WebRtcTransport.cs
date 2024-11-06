@@ -17,8 +17,8 @@ using WebRtcTransportObserver = EnhancedEventEmitter<WebRtcTransportObserverEven
 
 [Serializable]
 [AutoDeconstruct]
-public partial record
-    WebRtcTransportOptions<TWebRtcTransportAppData> : WebRtcTransportOptionsBase<TWebRtcTransportAppData>
+public partial record WebRtcTransportOptions<TWebRtcTransportAppData> 
+    : WebRtcTransportOptionsBase<TWebRtcTransportAppData>
 {
     /// <summary>
     /// Instance of WebRtcServer. Mandatory unless listenIps is given.
@@ -73,7 +73,7 @@ public record WebRtcTransportOptionsBase<TWebRtcTransportAppData>
     /// Maximum allowed size for SCTP messages sent by DataProducers.
     /// Default 262144.
     /// </summary>
-    public uint MaxSctpMessageSize { get; set; } = 262144;
+    public uint MaxSctpMessageSize { get; init; } = 262144;
 
     /// <summary>
     /// Maximum SCTP send buffer used by DataConsumers.
@@ -97,7 +97,7 @@ public class WebRtcTransportListenServer
     /// <summary>
     /// Instance of WebRtcServer. Mandatory unless listenIps is given.
     /// </summary>
-    public IWebRtcServer WebRtcServer { get; set; }
+    public required IWebRtcServer WebRtcServer { get; set; }
 }
 
 public class WebRtcTransportListenIndividual
@@ -117,18 +117,18 @@ public class WebRtcTransportListenIndividual
 
 public abstract class WebRtcTransportEvents : TransportEvents
 {
-    public IceState  icestatechange;
-    public TupleT    iceselectedtuplechange;
-    public DtlsState dtlsstatechange;
-    public SctpState sctpstatechange;
+    public required IceState  IceStateChange;
+    public required TupleT    IceSelectedTupleChange;
+    public required DtlsState DtlsStateChange;
+    public required SctpState SctpStateChange;
 }
 
 public abstract class WebRtcTransportObserverEvents : TransportObserverEvents
 {
-    public IceState  icestatechange;
-    public TupleT    iceselectedtuplechange;
-    public DtlsState dtlsstatechange;
-    public SctpState sctpstatechange;
+    public required IceState  IceStateChange;
+    public required TupleT    IceSelectedTupleChange;
+    public required DtlsState DtlsStateChange;
+    public required SctpState SctpStateChange;
 }
 
 [AutoMetadataFrom(typeof(WebRtcTransportData), MemberTypes.Property,
@@ -143,17 +143,17 @@ public abstract class WebRtcTransportObserverEvents : TransportObserverEvents
     Trailing = "Base = source  };")]
 public partial class WebRtcTransportData(DumpT dump) : TransportBaseData(dump)
 {
-    public IceRole IceRole { get; set; }
+    public IceRole IceRole { get; init; }
 
-    public IceParametersT IceParameters { get; set; }
+    public required IceParametersT IceParameters { get; set; }
 
-    public List<IceCandidateT> IceCandidates { get; set; }
+    public required List<IceCandidateT> IceCandidates { get; init; }
 
     public IceState IceState { get; set; }
 
     public TupleT? IceSelectedTuple { get; set; }
 
-    public DtlsParametersT DtlsParameters { get; set; }
+    public required DtlsParametersT DtlsParameters { get; init; }
 
     public DtlsState DtlsState { get; set; }
 
@@ -182,22 +182,22 @@ public class WebRtcTransport<TWebRtcTransportAppData> :
 
     /// <summary>
     /// <para>Events:</para>
-    /// <para>@emits <see cref="WebRtcTransportEvents.icestatechange"/> - (iceState: IceState)</para>
-    /// <para>@emits <see cref="WebRtcTransportEvents.iceselectedtuplechange"/> - (iceSelectedTuple: TransportTuple)</para>
-    /// <para>@emits <see cref="WebRtcTransportEvents.dtlsstatechange"/> - (dtlsState: DtlsState)</para>
-    /// <para>@emits <see cref="WebRtcTransportEvents.sctpstatechange"/> - (sctpState: SctpState)</para>
-    /// <para>@emits <see cref="WebRtcTransportEvents.trace"/> - (trace: TransportTraceEventData)</para>
+    /// <para>@emits <see cref="WebRtcTransportEvents.IceStateChange"/> - (iceState: IceState)</para>
+    /// <para>@emits <see cref="WebRtcTransportEvents.IceSelectedTupleChange"/> - (iceSelectedTuple: TransportTuple)</para>
+    /// <para>@emits <see cref="WebRtcTransportEvents.DtlsStateChange"/> - (dtlsState: DtlsState)</para>
+    /// <para>@emits <see cref="WebRtcTransportEvents.SctpStateChange"/> - (sctpState: SctpState)</para>
+    /// <para>@emits <see cref="TransportEvents.Trace"/> - (trace: TransportTraceEventData)</para>
     /// <para>Observer events:</para>
-    /// <para>@emits <see cref="WebRtcTransportObserverEvents.close"/></para>
-    /// <para>@emits <see cref="WebRtcTransportObserverEvents.newproducer"/> - (producer: Producer)</para>
-    /// <para>@emits <see cref="WebRtcTransportObserverEvents.newconsumer"/> - (consumer: Consumer)</para>
-    /// <para>@emits <see cref="WebRtcTransportObserverEvents.newdataproducer"/> - (dataProducer: DataProducer)</para>
-    /// <para>@emits <see cref="WebRtcTransportObserverEvents.newdataconsumer"/> - (dataConsumer: DataConsumer)</para>
-    /// <para>@emits <see cref="WebRtcTransportObserverEvents.icestatechange"/> - (iceState: IceState)</para>
-    /// <para>@emits <see cref="WebRtcTransportObserverEvents.iceselectedtuplechange"/> - (iceSelectedTuple: TransportTuple)</para>
-    /// <para>@emits <see cref="WebRtcTransportObserverEvents.dtlsstatechange"/> - (dtlsState: DtlsState)</para>
-    /// <para>@emits <see cref="WebRtcTransportObserverEvents.sctpstatechange"/> - (sctpState: SctpState)</para>
-    /// <para>@emits <see cref="WebRtcTransportObserverEvents.trace"/> - (trace: TransportTraceEventData)</para>
+    /// <para>@emits <see cref="TransportObserverEvents.Close"/></para>
+    /// <para>@emits <see cref="TransportObserverEvents.NewProducer"/> - (producer: Producer)</para>
+    /// <para>@emits <see cref="TransportObserverEvents.NewConsumer"/> - (consumer: Consumer)</para>
+    /// <para>@emits <see cref="TransportObserverEvents.NewDataProducer"/> - (dataProducer: DataProducer)</para>
+    /// <para>@emits <see cref="TransportObserverEvents.NewDataConsumer"/> - (dataConsumer: DataConsumer)</para>
+    /// <para>@emits <see cref="WebRtcTransportObserverEvents.IceStateChange"/> - (iceState: IceState)</para>
+    /// <para>@emits <see cref="WebRtcTransportObserverEvents.IceSelectedTupleChange"/> - (iceSelectedTuple: TransportTuple)</para>
+    /// <para>@emits <see cref="WebRtcTransportObserverEvents.DtlsStateChange"/> - (dtlsState: DtlsState)</para>
+    /// <para>@emits <see cref="WebRtcTransportObserverEvents.SctpStateChange"/> - (sctpState: SctpState)</para>
+    /// <para>@emits <see cref="TransportObserverEvents.Trace"/> - (trace: TransportTraceEventData)</para>
     /// </summary>
     public WebRtcTransport(WebRtcTransportConstructorOptions<TWebRtcTransportAppData> options)
         : base(options, new WebRtcTransportObserver())
@@ -242,7 +242,7 @@ public class WebRtcTransport<TWebRtcTransportAppData> :
 
         var response =
             await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_DUMP, null, null, Internal.TransportId);
-        var data = response.Value.BodyAsWebRtcTransport_DumpResponse().UnPack();
+        var data = response.NotNull().BodyAsWebRtcTransport_DumpResponse().UnPack();
 
         return data;
     }
@@ -257,7 +257,7 @@ public class WebRtcTransport<TWebRtcTransportAppData> :
 
         var response =
             await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_GET_STATS, null, null, Internal.TransportId);
-        var data = response.Value.BodyAsWebRtcTransport_GetStatsResponse().UnPack();
+        var data = response.NotNull().BodyAsWebRtcTransport_GetStatsResponse().UnPack();
 
         return [data];
     }
@@ -285,7 +285,7 @@ public class WebRtcTransport<TWebRtcTransportAppData> :
             Internal.TransportId);
 
         /* Decode Response. */
-        var data = response.Value.BodyAsWebRtcTransport_ConnectResponse().UnPack();
+        var data = response.NotNull().BodyAsWebRtcTransport_ConnectResponse().UnPack();
 
         // Update data.
         Data.DtlsParameters.Role = data.DtlsLocalRole;
@@ -314,14 +314,14 @@ public class WebRtcTransport<TWebRtcTransportAppData> :
                 Internal.TransportId);
 
             /* Decode Response. */
-            var data = response.Value.BodyAsTransport_RestartIceResponse().UnPack();
+            var data = response.NotNull().BodyAsTransport_RestartIceResponse().UnPack();
 
             // Update data.
             Data.IceParameters = new IceParametersT
             {
                 UsernameFragment = data.UsernameFragment,
                 Password         = data.Password,
-                IceLite          = data.IceLite,
+                IceLite          = data.IceLite
             };
 
             return Data.IceParameters;
@@ -351,10 +351,10 @@ public class WebRtcTransport<TWebRtcTransportAppData> :
 
                 Data.IceState = iceStateChangeNotification.IceState;
 
-                this.Emit(static x => x.icestatechange, Data.IceState);
+                this.Emit(static x => x.IceStateChange, Data.IceState);
 
                 // Emit observer event.
-                Observer.Emit(static x => x.icestatechange, Data.IceState);
+                Observer.Emit(static x => x.IceStateChange, Data.IceState);
 
                 break;
             }
@@ -365,10 +365,10 @@ public class WebRtcTransport<TWebRtcTransportAppData> :
 
                 Data.IceSelectedTuple = iceSelectedTupleChangeNotification.Tuple;
 
-                this.Emit(static x => x.iceselectedtuplechange, Data.IceSelectedTuple);
+                this.Emit(static x => x.IceSelectedTupleChange, Data.IceSelectedTuple);
 
                 // Emit observer event.
-                Observer.Emit(static x => x.iceselectedtuplechange, Data.IceSelectedTuple);
+                Observer.Emit(static x => x.IceSelectedTupleChange, Data.IceSelectedTuple);
 
                 break;
             }
@@ -386,10 +386,10 @@ public class WebRtcTransport<TWebRtcTransportAppData> :
                     // Data.DtlsRemoteCert = dtlsStateChangeNotification.RemoteCert;
                 }
 
-                this.Emit(static x => x.dtlsstatechange, Data.DtlsState);
+                this.Emit(static x => x.DtlsStateChange, Data.DtlsState);
 
                 // Emit observer event.
-                Observer.Emit(static x => x.dtlsstatechange, Data.DtlsState);
+                Observer.Emit(static x => x.DtlsStateChange, Data.DtlsState);
 
                 break;
             }
@@ -399,10 +399,10 @@ public class WebRtcTransport<TWebRtcTransportAppData> :
 
                 Data.SctpState = sctpStateChangeNotification.SctpState;
 
-                this.Emit(static x => x.sctpstatechange, Data.SctpState);
+                this.Emit(static x => x.SctpStateChange, Data.SctpState);
 
                 // Emit observer event.
-                Observer.Emit(static x => x.sctpstatechange, Data.SctpState);
+                Observer.Emit(static x => x.SctpStateChange, Data.SctpState);
 
                 break;
             }
@@ -410,17 +410,17 @@ public class WebRtcTransport<TWebRtcTransportAppData> :
             {
                 var traceNotification = notification.BodyAsTransport_TraceNotification().UnPack();
 
-                this.Emit(static x => x.trace, traceNotification);
+                this.Emit(static x => x.Trace, traceNotification);
 
                 // Emit observer event.
-                Observer.Emit(static x => x.trace, traceNotification);
+                Observer.Emit(static x => x.Trace, traceNotification);
 
                 break;
             }
             default:
             {
                 logger.LogError(
-                    "OnNotificationHandle() | WebRtcTransport:{TransportId} Ignoring unknown event:{@event}", Id,
+                    "OnNotificationHandle() | WebRtcTransport:{TransportId} Ignoring unknown event:{Event}", Id,
                     @event);
                 break;
             }

@@ -8,13 +8,24 @@ namespace Antelcat.MediasoupSharp.Internals.Extensions;
 
 internal static class ObjectExtensions
 {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static T Sure<T>(this object obj) where T : class => obj as T ?? throw new InvalidCastException();
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T NotNull<T>(this T? obj) =>
+        obj ?? throw new NullReferenceException($"{typeof(T)} is null in {nameof(NotNull)}");
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T NotNull<T>(this T? obj) where T : struct =>
+        obj ?? throw new NullReferenceException($"{typeof(T)} is null in {nameof(NotNull)}");
     
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsStringType(this object o) =>
         o is JsonElement jsonElement
             ? jsonElement.ValueKind == JsonValueKind.String
             : o is string;
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsNumericType(this object o) =>
         o is JsonElement jsonElement
             ? jsonElement.ValueKind == JsonValueKind.Number

@@ -16,7 +16,7 @@ public static class ValueUnionExtensions
             Value.String         => value.AsString(),
             Value.Integer32Array => value.AsInteger32Array(),
             Value.NONE           => null,
-            _                    => throw new ArgumentException($"Unsupported type for conversion: {value.Type}"),
+            _                    => throw new ArgumentException($"Unsupported type for conversion: {value.Type}")
         };
     }
 
@@ -40,7 +40,7 @@ public static class ValueUnionExtensions
                             result.Type = Value.Integer32;
                             result.Value_ = new Integer32T
                             {
-                                Value = intValue,
+                                Value = intValue
                             };
                             return result;
                         }
@@ -50,7 +50,7 @@ public static class ValueUnionExtensions
                             result.Type = Value.Double;
                             result.Value_ = new DoubleT
                             {
-                                Value = intValue,
+                                Value = intValue
                             };
                             return result;
                         }
@@ -60,7 +60,7 @@ public static class ValueUnionExtensions
                             result.Type = Value.Double;
                             result.Value_ = new DoubleT
                             {
-                                Value = intValue,
+                                Value = intValue
                             };
                             return result;
                         }
@@ -71,7 +71,7 @@ public static class ValueUnionExtensions
                         result.Type = Value.String;
                         result.Value_ = new StringT
                         {
-                            Value = element.ToString(),
+                            Value = element.ToString()
                         };
                         return result;
                     }
@@ -95,7 +95,7 @@ public static class ValueUnionExtensions
                             {
                                 integer32Array[index++] = new Integer32T
                                 {
-                                    Value = intValue,
+                                    Value = intValue
                                 };
                             }
                             else
@@ -129,7 +129,7 @@ public static class ValueUnionExtensions
                 result.Type = Value.String;
                 result.Value_ = new StringT
                 {
-                    Value = stringValue,
+                    Value = stringValue
                 };
                 return result;
         }
@@ -139,7 +139,7 @@ public static class ValueUnionExtensions
             result.Type = Value.Integer32;
             result.Value_ = new Integer32T
             {
-                Value = Convert.ToInt32(value),
+                Value = Convert.ToInt32(value)
             };
             return result;
         }
@@ -150,14 +150,14 @@ public static class ValueUnionExtensions
                 result.Type = Value.Integer32Array;
                 result.Value_ = intEnumerableValue.Select(m => new Integer32T
                 {
-                    Value = m,
+                    Value = m
                 }).ToArray();
                 return result;
             case double or float:
                 result.Type = Value.Double;
                 result.Value_ = new DoubleT
                 {
-                    Value = Convert.ToDouble(value),
+                    Value = Convert.ToDouble(value)
                 };
                 result.Value_ = Convert.ToDouble(value);
                 return result;

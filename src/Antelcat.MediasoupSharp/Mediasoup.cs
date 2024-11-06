@@ -11,7 +11,7 @@ using Observer = EnhancedEventEmitter<ObserverEvents>;
 
 public abstract class ObserverEvents
 {
-    public IWorker newworker;
+    public required IWorker NewWorker;
 }
 
 public partial class Mediasoup
@@ -23,7 +23,7 @@ public partial class Mediasoup
         .Assembly
         .CustomAttributes
         .First(static x => x.AttributeType == typeof(AssemblyFileVersionAttribute))
-        .ConstructorArguments.First().Value!);
+        .ConstructorArguments.First().Value.NotNull());
 
     /// <summary>
     /// Observer instance.
@@ -44,9 +44,9 @@ public partial class Mediasoup
             for (var i = 0; i < numWorkers; i++)
             {
                 var worker = new Worker<TWorkerAppData>(settings);
-                worker.On(x=>x._success, async _ =>
+                worker.On(static x => x.success, async _ =>
                     {
-                        Observer.Emit(static x => x.newworker, worker);
+                        Observer.Emit(static x => x.NewWorker, worker);
                         await Task.Delay(1);
                         lock (sources)
                         {
@@ -54,12 +54,12 @@ public partial class Mediasoup
                             source.SetResult(worker);
                         }
                     })
-                    .On(x=>x._failure, ex =>
+                    .On(static x => x.failure, ex =>
                     {
                         lock (sources)
                         {
                             var source = sources[index++];
-                            source.SetException(ex!);
+                            source.SetException(ex.NotNull());
                         }
                     });
             }
@@ -90,19 +90,19 @@ public partial class Mediasoup
         if (listeners?.OnDebug != null)
         {
             debugLogEmitter = new EnhancedEventEmitter<LoggerEmitterEvents>();
-            debugLogEmitter.On(static x => x.debuglog, x => listeners.OnDebug(x.Item1, x.Item2));
+            debugLogEmitter.On(static x => x.DebugLog, x => listeners.OnDebug(x.Item1, x.Item2));
         }
 
         if (listeners?.OnWarn != null)
         {
             warnLogEmitter = new EnhancedEventEmitter<LoggerEmitterEvents>();
-            warnLogEmitter.On(static x => x.warnlog, x => listeners.OnWarn(x.Item1, x.Item2));
+            warnLogEmitter.On(static x => x.WarnLog, x => listeners.OnWarn(x.Item1, x.Item2));
         }
 
         if (listeners?.OnError != null)
         {
             errorLogEmitter = new EnhancedEventEmitter<LoggerEmitterEvents>();
-            errorLogEmitter.On(static x => x.errorlog, x => listeners.OnError(x.Item1, x.Item2, x.Item3));
+            errorLogEmitter.On(static x => x.ErrorLog, x => listeners.OnError(x.Item1, x.Item2, x.Item3));
         }
 
         MediasoupSharp.Logger.DebugLogEmitter = debugLogEmitter;

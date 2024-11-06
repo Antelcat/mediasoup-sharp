@@ -42,7 +42,7 @@ public class Bot<TWorkerAppData>(
             DataProducerId = dataProducerId
         });
 
-        dataConsumer.On(static x => x.message, async args =>
+        dataConsumer.On(static x => x.Message, async args =>
         {
             if (args.Ppid != 51)
             {

@@ -1,3 +1,5 @@
+using Antelcat.MediasoupSharp.Internals.Extensions;
+
 namespace Antelcat.MediasoupSharp.H264ProfileLevelId;
 
 /// <summary>
@@ -210,10 +212,10 @@ internal static class Utils
     /// returned if the profile-level-id key is missing. Nothing will be returned
     /// if the key is present but the string is invalid.
     /// </summary>
-    public static ProfileLevelId? ParseSdpProfileLevelId(IDictionary<string, object> parameters)
+    public static ProfileLevelId? ParseSdpProfileLevelId(IDictionary<string, object?> parameters)
     {
         return parameters.TryGetValue("profile-level-id", out var profileLevelId)
-            ? ParseProfileLevelId(profileLevelId.ToString()!)
+            ? ParseProfileLevelId(profileLevelId.NotNull().ToString())
             : ProfileLevelId.DefaultProfileLevelId;
     }
 
@@ -221,7 +223,7 @@ internal static class Utils
     /// Returns true if the parameters have the same H264 profile, i.e. the same
     /// H264 profile (Baseline, High, etc).
     /// </summary>
-    public static bool IsSameProfile(IDictionary<string, object> params1, IDictionary<string, object> params2)
+    public static bool IsSameProfile(IDictionary<string, object?> params1, IDictionary<string, object?> params2)
     {
         var profileLevelId1 = ParseSdpProfileLevelId(params1);
         var profileLevelId2 = ParseSdpProfileLevelId(params2);
@@ -251,7 +253,7 @@ internal static class Utils
     /// negotiating are the level part of profile-level-id and level-asymmetry-allowed.
     /// </para>
     /// </summary>
-    public static string? GenerateProfileLevelIdForAnswer(IDictionary<string, object> localSupportedParams, IDictionary<string, object> remoteOfferedParams)
+    public static string? GenerateProfileLevelIdForAnswer(IDictionary<string, object?> localSupportedParams, IDictionary<string, object?> remoteOfferedParams)
     {
         // If both local and remote params do not contain profile-level-id, they are
         // both using the default profile. In this case, don"t return anything.

@@ -20,13 +20,13 @@ internal class Logger(ILogger proxy) : EnhancedEventEmitter, ILogger
         switch (logLevel)
         {
             case LogLevel.Debug:
-                DebugLogEmitter?.Emit(static x => x.debuglog, ($"{eventId}", $"{state}"));
+                DebugLogEmitter?.Emit(static x => x.DebugLog, ($"{eventId}", $"{state}"));
                 break;
             case LogLevel.Warning:
-                WarnLogEmitter?.Emit(static x => x.warnlog, ($"{eventId}", $"{state}"));
+                WarnLogEmitter?.Emit(static x => x.WarnLog, ($"{eventId}", $"{state}"));
                 break;
             case LogLevel.Error:
-                ErrorLogEmitter?.Emit(static x => x.errorlog, ($"{eventId}", $"{state}", exception));
+                ErrorLogEmitter?.Emit(static x => x.ErrorLog, ($"{eventId}", $"{state}", exception));
                 break;
         }
     }
@@ -45,7 +45,7 @@ internal class Logger<TCategoryName>(ILogger<TCategoryName> proxy) : Logger(prox
 
 public abstract class LoggerEmitterEvents
 {
-    public (string, string)            debuglog;
-    public (string, string)            warnlog;
-    public (string, string, Exception) errorlog;
+    public (string, string)            DebugLog;
+    public (string, string)            WarnLog;
+    public (string, string, Exception) ErrorLog;
 }

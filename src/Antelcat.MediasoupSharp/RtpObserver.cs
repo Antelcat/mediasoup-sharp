@@ -10,34 +10,34 @@ using RtpObserverObserver = IEnhancedEventEmitter<RtpObserverObserverEvents>;
 
 public abstract class RtpObserverEvents
 {
-    public object? routerclose;
+    public object? RouterClose;
 
-    public (string, Exception) listenererror;
+    public required (string, Exception) ListenerError;
 
     // Private events.
-    public object? _close;
+    internal object? close;
 }
 
 public abstract class RtpObserverObserverEvents
 {
-    public object?           close;
-    public object?           pause;
-    public object?           resume;
-    public Task<IProducer?>? addproducer;
-    public Task<IProducer?>? removeproducer;
+    public          object?   Close;
+    public          object?   Pause;
+    public          object?   Resume;
+    public required IProducer AddProducer;
+    public required IProducer RemoveProducer;
 }
 
 public class RtpObserverConstructorOptions<TRtpObserverAppData>
 {
-    public RtpObserverObserverInternal    Internal        { get; set; }
-    public IChannel                       Channel         { get; set; }
-    public TRtpObserverAppData?           AppData         { get; set; }
-    public Func<string, Task<IProducer?>> GetProducerById { get; set; }
+    public required RtpObserverObserverInternal    Internal        { get; set; }
+    public required IChannel                       Channel         { get; set; }
+    public          TRtpObserverAppData?           AppData         { get; set; }
+    public required Func<string, Task<IProducer?>> GetProducerById { get; set; }
 }
 
 public class RtpObserverObserverInternal : RouterInternal
 {
-    public string RtpObserverId { get; set; }
+    public required string RtpObserverId { get; set; }
 }
 
 public class RtpObserverAddRemoveProducerOptions
@@ -45,7 +45,7 @@ public class RtpObserverAddRemoveProducerOptions
     /// <summary>
     /// The id of the Producer to be added or removed.
     /// </summary>
-    public string ProducerId { get; set; }
+    public required string ProducerId { get; set; }
 }
 
 public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
@@ -100,14 +100,14 @@ public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
 
     /// <summary>
     /// <para>Events:</para>
-    /// <para>@emits <see cref="RtpObserverEvents.routerclose"/></para>
-    /// <para>@emits <see cref="RtpObserverEvents._close"/></para>
+    /// <para>@emits <see cref="RtpObserverEvents.RouterClose"/></para>
+    /// <para>@emits <see cref="RtpObserverEvents.close"/></para>
     /// <para>Observer events:</para>
-    /// <para>@emits <see cref="RtpObserverObserverEvents.close"/></para>
-    /// <para>@emits <see cref="RtpObserverObserverEvents.pause"/></para>
-    /// <para>@emits <see cref="RtpObserverObserverEvents.resume"/></para>
-    /// <para>@emits <see cref="RtpObserverObserverEvents.addproducer"/> - (producer: Producer)</para>
-    /// <para>@emits <see cref="RtpObserverObserverEvents.removeproducer"/> - (producer: Producer)</para>
+    /// <para>@emits <see cref="RtpObserverObserverEvents.Close"/></para>
+    /// <para>@emits <see cref="RtpObserverObserverEvents.Pause"/></para>
+    /// <para>@emits <see cref="RtpObserverObserverEvents.Resume"/></para>
+    /// <para>@emits <see cref="RtpObserverObserverEvents.AddProducer"/> - (producer: Producer)</para>
+    /// <para>@emits <see cref="RtpObserverObserverEvents.RemoveProducer"/> - (producer: Producer)</para>
     /// </summary>
     protected RtpObserver(
         RtpObserverConstructorOptions<TRtpObserverAppData> options,
@@ -129,7 +129,7 @@ public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
     /// </summary>
     public async Task CloseAsync()
     {
-        logger.LogDebug("Close() | RtpObserverId:{RtpObserverId}", Internal.RtpObserverId);
+        logger.LogDebug($"{nameof(CloseAsync)}() | RtpObserverId:{{RtpObserverId}}", Internal.RtpObserverId);
 
         await using (await closeLock.WriteLockAsync())
         {
@@ -145,7 +145,7 @@ public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
 
             var closeRtpObserverRequest = new FBS.Router.CloseRtpObserverRequestT
             {
-                RtpObserverId = Internal.RtpObserverId,
+                RtpObserverId = Internal.RtpObserverId
             };
 
             var closeRtpObserverRequestOffset =
@@ -158,10 +158,10 @@ public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
                 Internal.RouterId
             ).ContinueWithOnFaultedHandleLog(logger);
 
-            this.Emit(static x => x._close);
+            this.Emit(static x => x.close);
 
             // Emit observer event.
-            Observer.Emit(static x=>x.close);
+            Observer.Emit(static x=>x.Close);
         }
     }
 
@@ -184,10 +184,10 @@ public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
             // Remove notification subscriptions.
             Channel.OnNotification -= OnNotificationHandle;
 
-            this.Emit(static x => x.routerclose);
+            this.Emit(static x => x.RouterClose);
 
             // Emit observer event.
-            Observer.Emit(static x=>x.close);
+            Observer.Emit(static x=>x.Close);
         }
     }
 
@@ -225,7 +225,7 @@ public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
                 // Emit observer event.
                 if (!wasPaused)
                 {
-                    Observer.Emit(static x=>x.pause);
+                    Observer.Emit(static x=>x.Pause);
                 }
             }
             catch (Exception ex)
@@ -273,7 +273,7 @@ public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
                 // Emit observer event.
                 if (wasPaused)
                 {
-                    Observer.Emit(static x=>x.resume);
+                    Observer.Emit(static x=>x.Resume);
                 }
             }
             catch (Exception ex)
@@ -302,7 +302,7 @@ public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
                 throw new InvalidStateException("RepObserver closed");
             }
 
-            var producer = GetProducerById(rtpObserverAddRemoveProducerOptions.ProducerId);
+            var producer = await GetProducerById(rtpObserverAddRemoveProducerOptions.ProducerId);
             if (producer == null)
             {
                 return;
@@ -326,7 +326,7 @@ public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
             ).ContinueWithOnFaultedHandleLog(logger);
 
             // Emit observer event.
-            Observer.Emit(static x => x.addproducer, producer);
+            Observer.Emit(static x => x.AddProducer, producer);
         }
     }
 
@@ -335,7 +335,7 @@ public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
     /// </summary>
     public async Task RemoveProducerAsync(RtpObserverAddRemoveProducerOptions rtpObserverAddRemoveProducerOptions)
     {
-        logger.LogDebug("RemoveProducerAsync() | RtpObserverId:{RtpObserverId}", Internal.RtpObserverId);
+        logger.LogDebug($"{nameof(RemoveProducerAsync)}() | RtpObserverId:{{RtpObserverId}}", Internal.RtpObserverId);
 
         await using (await closeLock.ReadLockAsync())
         {
@@ -344,7 +344,7 @@ public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
                 throw new InvalidStateException("RepObserver closed");
             }
 
-            var producer = GetProducerById(rtpObserverAddRemoveProducerOptions.ProducerId);
+            var producer = await GetProducerById(rtpObserverAddRemoveProducerOptions.ProducerId);
             if (producer == null)
             {
                 return;
@@ -369,7 +369,7 @@ public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
             ).ContinueWithOnFaultedHandleLog(logger);
 
             // Emit observer event.
-            Observer.Emit(static x=>x.removeproducer, producer);
+            Observer.Emit(static x => x.RemoveProducer, producer);
         }
     }
 

@@ -28,7 +28,7 @@ public class ProducerOptions<TProducerAppData>
     /// <summary>
     /// RTP parameters defining what the endpoint is sending.
     /// </summary>
-    public RtpParameters RtpParameters { get; set; }
+    public required RtpParameters RtpParameters { get; set; }
 
     /// <summary>
     /// Whether the producer must start in paused mode. Default false.
@@ -49,25 +49,25 @@ public class ProducerOptions<TProducerAppData>
 
 public abstract class ProducerEvents
 {
-    public object?                              transportclose;
-    public List<ScoreT>                         score;
-    public VideoOrientationChangeNotificationT? videoorientationchange;
-    public TraceNotificationT?                  trace;
+    public          object?                              TransportClose;
+    public required List<ScoreT>                         Score;
+    public required VideoOrientationChangeNotificationT? VideoOrientationChange;
+    public required TraceNotificationT?                  Trace;
 
-    public (string, Exception)? listenererror;
+    public (string, Exception)? ListenerError;
 
     // Private events.
-    internal object? _close;
+    internal object? close;
 }
 
 public abstract class ProducerObserverEvents
 {
-    public object?                              close;
-    public object?                              pause;
-    public object?                              resume;
-    public List<ScoreT>?                        score;
-    public VideoOrientationChangeNotificationT? videoorientationchange;
-    public TraceNotificationT?                  trace;
+    public object?                              Close;
+    public object?                              Pause;
+    public object?                              Resume;
+    public List<ScoreT>?                        Score;
+    public VideoOrientationChangeNotificationT? VideoOrientationChange;
+    public TraceNotificationT?                  Trace;
 }
 
 public class ProducerInternal : TransportInternal
@@ -75,7 +75,7 @@ public class ProducerInternal : TransportInternal
     /// <summary>
     /// Producer id.
     /// </summary>
-    public string ProducerId { get; set; }
+    public required string ProducerId { get; init; }
 }
 
 public class ProducerData
@@ -88,7 +88,7 @@ public class ProducerData
     /// <summary>
     /// RTP parameters.
     /// </summary>
-    public RtpParameters RtpParameters { get; init; }
+    public required RtpParameters RtpParameters { get; init; }
 
     /// <summary>
     /// Producer type.
@@ -98,7 +98,7 @@ public class ProducerData
     /// <summary>
     /// Consumable RTP parameters.
     /// </summary>
-    public RtpParameters ConsumableRtpParameters { get; init; }
+    public required RtpParameters ConsumableRtpParameters { get; init; }
 }
 
 [AutoExtractInterface]
@@ -183,18 +183,18 @@ public class Producer<TProducerAppData> : EnhancedEventEmitter<ProducerEvents>, 
 
     /// <summary>
     /// <para>Events:</para>
-    /// <para>@emits <see cref="ProducerEvents.transportclose"/></para></para>
-    /// <para>@emits <see cref="ProducerEvents.score"/> - (score: ProducerScore[])</para>
-    /// <para>@emits <see cref="ProducerEvents.videoorientationchange"/> - (videoOrientation: ProducerVideoOrientation)</para>
-    /// <para>@emits <see cref="ProducerEvents.trace"/> - (trace: ProducerTraceEventData)</para>
-    /// <para>@emits <see cref="ProducerEvents._close"/></para>
+    /// <para>@emits <see cref="ProducerEvents.TransportClose"/></para>
+    /// <para>@emits <see cref="ProducerEvents.Score"/> - (score: ProducerScore[])</para>
+    /// <para>@emits <see cref="ProducerEvents.VideoOrientationChange"/> - (videoOrientation: ProducerVideoOrientation)</para>
+    /// <para>@emits <see cref="ProducerEvents.Trace"/> - (trace: ProducerTraceEventData)</para>
+    /// <para>@emits <see cref="ProducerEvents.close"/></para>
     /// <para>Observer events:</para>
-    /// <para>@emits <see cref="ProducerObserverEvents.close"/></para>
-    /// <para>@emits <see cref="ProducerObserverEvents.pause"/></para>
-    /// <para>@emits <see cref="ProducerObserverEvents.resume"/></para>
-    /// <para>@emits <see cref="ProducerObserverEvents.score"/> - (score: ProducerScore[])</para>
-    /// <para>@emits <see cref="ProducerObserverEvents.videoorientationchange"/> - (videoOrientation: ProducerVideoOrientation)</para>
-    /// <para>@emits <see cref="ProducerObserverEvents.trace"/> - (trace: ProducerTraceEventData)</para>
+    /// <para>@emits <see cref="ProducerObserverEvents.Close"/></para>
+    /// <para>@emits <see cref="ProducerObserverEvents.Pause"/></para>
+    /// <para>@emits <see cref="ProducerObserverEvents.Resume"/></para>
+    /// <para>@emits <see cref="ProducerObserverEvents.Score"/> - (score: ProducerScore[])</para>
+    /// <para>@emits <see cref="ProducerObserverEvents.VideoOrientationChange"/> - (videoOrientation: ProducerVideoOrientation)</para>
+    /// <para>@emits <see cref="ProducerObserverEvents.Trace"/> - (trace: ProducerTraceEventData)</para>
     /// </summary>
     public Producer(
         ProducerInternal @internal,
@@ -268,10 +268,10 @@ public class Producer<TProducerAppData> : EnhancedEventEmitter<ProducerEvents>, 
             )
             .ContinueWithOnFaultedHandleLog(logger);
 
-        this.Emit(static x => x._close);
+        this.Emit(static x => x.close);
 
         // Emit observer event.
-        Observer.Emit(static x=>x.close);
+        Observer.Emit(static x=>x.Close);
     }
 
     /// <summary>
@@ -292,10 +292,10 @@ public class Producer<TProducerAppData> : EnhancedEventEmitter<ProducerEvents>, 
             // Remove notification subscriptions.
             channel.OnNotification -= OnNotificationHandle;
 
-            this.Emit(static x=>x.transportclose);
+            this.Emit(static x=>x.TransportClose);
 
             // Emit observer event.
-            Observer.Emit(static x=>x.close);
+            Observer.Emit(static x=>x.Close);
         }
     }
 
@@ -315,7 +315,7 @@ public class Producer<TProducerAppData> : EnhancedEventEmitter<ProducerEvents>, 
 
             var response =
                 await channel.RequestAsync(bufferBuilder, Method.PRODUCER_DUMP, null, null, @internal.ProducerId);
-            var data = response.Value.BodyAsProducer_DumpResponse().UnPack();
+            var data = response.NotNull().BodyAsProducer_DumpResponse().UnPack();
 
             return data;
         }
@@ -337,7 +337,7 @@ public class Producer<TProducerAppData> : EnhancedEventEmitter<ProducerEvents>, 
 
             var response = await channel.RequestAsync(bufferBuilder, Method.PRODUCER_GET_STATS, null, null,
                 @internal.ProducerId);
-            var stats = response.Value.BodyAsProducer_GetStatsResponse().UnPack().Stats;
+            var stats = response.NotNull().BodyAsProducer_GetStatsResponse().UnPack().Stats;
 
             return stats;
         }
@@ -372,7 +372,7 @@ public class Producer<TProducerAppData> : EnhancedEventEmitter<ProducerEvents>, 
                 // Emit observer event.
                 if (!wasPaused)
                 {
-                    Observer.Emit(static x=>x.pause);
+                    Observer.Emit(static x=>x.Pause);
                 }
             }
             catch (Exception ex)
@@ -415,7 +415,7 @@ public class Producer<TProducerAppData> : EnhancedEventEmitter<ProducerEvents>, 
                 // Emit observer event.
                 if (wasPaused)
                 {
-                    Observer.Emit(static x=>x.resume);
+                    Observer.Emit(static x=>x.Resume);
                 }
             }
             catch (Exception ex)
@@ -537,10 +537,10 @@ public class Producer<TProducerAppData> : EnhancedEventEmitter<ProducerEvents>, 
                 var score             = scoreNotification.UnPack().Scores;
                 Score = score;
 
-                this.Emit(static x => x.score, score);
+                this.Emit(static x => x.Score, score);
 
                 // Emit observer event.
-                Observer.Emit(static x=> x.score, score);
+                Observer.Emit(static x=> x.Score, score);
 
                 break;
             }
@@ -550,10 +550,10 @@ public class Producer<TProducerAppData> : EnhancedEventEmitter<ProducerEvents>, 
                     notification.BodyAsProducer_VideoOrientationChangeNotification();
                 var videoOrientation = videoOrientationChangeNotification.UnPack();
 
-                this.Emit(static x=>x.videoorientationchange, videoOrientation);
+                this.Emit(static x=>x.VideoOrientationChange, videoOrientation);
 
                 // Emit observer event.
-                Observer.Emit(static x=>x.videoorientationchange, videoOrientation);
+                Observer.Emit(static x=>x.VideoOrientationChange, videoOrientation);
 
                 break;
             }
@@ -562,10 +562,10 @@ public class Producer<TProducerAppData> : EnhancedEventEmitter<ProducerEvents>, 
                 var traceNotification = notification.BodyAsProducer_TraceNotification();
                 var trace             = traceNotification.UnPack();
 
-                this.Emit(static x => x.trace, trace);
+                this.Emit(static x => x.Trace, trace);
 
                 // Emit observer event.
-                Observer.Emit(static x => x.trace, trace);
+                Observer.Emit(static x => x.Trace, trace);
 
                 break;
             }

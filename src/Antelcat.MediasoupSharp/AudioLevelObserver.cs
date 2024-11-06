@@ -35,7 +35,7 @@ public class AudioLevelObserverVolume
     /// <summary>
     /// The audio Producer instance.
     /// </summary>
-    public IProducer Producer { get; set; }
+    public required IProducer Producer { get; set; }
 
     /// <summary>
     /// The average volume (in dBvo from -127 to 0) of the audio Producer in the
@@ -46,15 +46,15 @@ public class AudioLevelObserverVolume
 
 public abstract class AudioLevelObserverEvents : RtpObserverEvents
 {
-    public List<AudioLevelObserverVolume> volumes;
-    public object?                        silence;
+    public required List<AudioLevelObserverVolume> Volumes;
+    public          object?                        Silence;
 }
 
 
 public abstract class AudioLevelObserverObserverEvents : RtpObserverObserverEvents
 {
-    public List<AudioLevelObserverVolume> volumes;
-    public object?                        silence;
+    public required List<AudioLevelObserverVolume> Volumes;
+    public          object?                        Silence;
 }
 
 public class AudioLevelObserverConstructorOptions<TAudioLevelObserverAppData>
@@ -72,16 +72,11 @@ where TAudioLevelObserverAppData : new()
 
     /// <summary>
     /// <para>Events:</para>
-    /// <para>@emits <see cref="AudioLevelObserverEvents.volumes"/> - (volumes: AudioLevelObserverVolume[])</para>
-    /// <para>@emits <see cref="AudioLevelObserverEvents.silence"/></para>
+    /// <para>@emits <see cref="AudioLevelObserverEvents.Volumes"/></para>
+    /// <para>@emits <see cref="AudioLevelObserverEvents.Silence"/></para>
     /// <para>Observer events:</para>
-    /// <para>@emits <see cref="AudioLevelObserverObserverEvents.close"/></para>
-    /// <para>@emits <see cref="AudioLevelObserverObserverEvents.pause"/></para>
-    /// <para>@emits <see cref="AudioLevelObserverObserverEvents.resume"/></para>
-    /// <para>@emits <see cref="AudioLevelObserverObserverEvents.addproducer"/> - (producer: Producer)</para>
-    /// <para>@emits <see cref="AudioLevelObserverObserverEvents.removeproducer"/> - (producer: Producer)</para>
-    /// <para>@emits <see cref="AudioLevelObserverObserverEvents.volumes"/> - (volumes: AudioLevelObserverVolume[])</para>
-    /// <para>@emits <see cref="AudioLevelObserverObserverEvents.silence"/></para>
+    /// <para>@emits <see cref="AudioLevelObserverObserverEvents.Volumes"/></para>
+    /// <para>@emits <see cref="AudioLevelObserverObserverEvents.Silence"/></para>
     /// </summary>
     public AudioLevelObserver(AudioLevelObserverConstructorOptions<TAudioLevelObserverAppData> options) : base(options,
         new())
@@ -109,32 +104,32 @@ where TAudioLevelObserverAppData : new()
                     var producer = await GetProducerById(item.ProducerId);
                     if (producer != null)
                     {
-                        volumes.Add(new AudioLevelObserverVolume { Producer = producer, Volume = item.Volume_, });
+                        volumes.Add(new AudioLevelObserverVolume { Producer = producer, Volume = item.Volume_ });
                     }
                 }
 
                 if (volumes.Count > 0)
                 {
-                    this.Emit(static x=>x.volumes, volumes);
+                    this.Emit(static x=>x.Volumes, volumes);
 
                     // Emit observer event.
-                    Observer.Emit(static x => x.volumes, volumes);
+                    Observer.Emit(static x => x.Volumes, volumes);
                 }
 
                 break;
             }
             case Event.AUDIOLEVELOBSERVER_SILENCE:
             {
-                this.Emit(static x => x.silence);
+                this.Emit(static x => x.Silence);
 
                 // Emit observer event.
-                Observer.Emit(static x => x.silence);
+                Observer.Emit(static x => x.Silence);
 
                 break;
             }
             default:
             {
-                logger.LogError("OnNotificationHandle() | Ignoring unknown event: {Event}", @event);
+                logger.LogError($"{nameof(OnNotificationHandle)}() | Ignoring unknown event: {{Event}}", @event);
                 break;
             }
         }

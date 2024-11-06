@@ -26,7 +26,7 @@ public static class RtpParametersExtensions
                             Name  = p.Key,
                             Value = p.Value.ConvertToValueUnion()
                         }).ToList(),
-                    RtcpFeedback = c.RtcpFeedback,
+                    RtcpFeedback = c.RtcpFeedback
                 }).ToList(),
 
             // RTP header extensions
@@ -41,7 +41,7 @@ public static class RtpParametersExtensions
                         {
                             Name  = p.Key,
                             Value = p.Value.ConvertToValueUnion()
-                        }).ToList(),
+                        }).ToList()
                 }).ToList()
         };
 
@@ -65,7 +65,7 @@ public static class RtpParametersExtensions
                     ClockRate    = c.ClockRate,
                     Channels     = c.Channels,
                     Parameters   = c.Parameters.ToDictionary(k => k.Name, v => v.Value.Value_),
-                    RtcpFeedback = c.RtcpFeedback,
+                    RtcpFeedback = c.RtcpFeedback
                 }).ToList(),
 
             // RTP header extensions
@@ -75,7 +75,7 @@ public static class RtpParametersExtensions
                     Uri        = h.Uri,
                     Id         = h.Id,
                     Encrypt    = h.Encrypt,
-                    Parameters = h.Parameters.ToDictionary(k => k.Name, v => v.Value.Value_),
+                    Parameters = h.Parameters.ToDictionary(k => k.Name, v => v.Value.Value_)
                 }).ToList()
         };
 

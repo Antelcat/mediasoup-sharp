@@ -16,7 +16,7 @@ internal interface IEnumStringConverter
             var options = new JsonSerializerOptions
             {
                 PropertyNamingPolicy        = JsonNamingPolicy.CamelCase,
-                PropertyNameCaseInsensitive = true,
+                PropertyNameCaseInsensitive = true
             };
             foreach (var converter in JsonConverters)
             {
@@ -27,7 +27,7 @@ internal interface IEnumStringConverter
         }
     }
 
-    public static IReadOnlyCollection<JsonConverter> JsonConverters { get; set; } = [..Converters()];
+    public static IReadOnlyCollection<JsonConverter> JsonConverters { get; } = [..Converters()];
     
     private static IEnumerable<JsonConverter> Converters()
     {

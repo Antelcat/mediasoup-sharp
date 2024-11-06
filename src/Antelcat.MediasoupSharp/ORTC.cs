@@ -520,8 +520,8 @@ public static partial class Ortc
             ValidateRtpCodecCapability(mediaCodec);
 
             var matchedSupportedCodec =
-                clonedSupportedRtpCapabilities.Codecs!.FirstOrDefault(supportedCodec =>
-                    MatchCodecs(mediaCodec, supportedCodec, false))
+                clonedSupportedRtpCapabilities.Codecs.NotNull().FirstOrDefault(supportedCodec =>
+                    MatchCodecs(mediaCodec, supportedCodec))
                 ?? throw new Exception($"media codec not supported[mimeType:{mediaCodec.MimeType}]");
 
             // Clone the supported codec.
@@ -563,7 +563,7 @@ public static partial class Ortc
             }
 
             // Merge the media codec parameters.
-            codec.Parameters = codec.Parameters!.Merge(mediaCodec.Parameters!);
+            codec.Parameters = codec.Parameters.NotNull().Merge(mediaCodec.Parameters.NotNull());
 
             // Append to the codec list.
             caps.Codecs.Add(codec);
@@ -591,7 +591,7 @@ public static partial class Ortc
                     {
                         { "apt", codec.PreferredPayloadType }
                     },
-                    RtcpFeedback = [],
+                    RtcpFeedback = []
                 };
 
                 // Append to the codec list.
@@ -629,7 +629,7 @@ public static partial class Ortc
             }
 
             // Search for the same media codec in capabilities.
-            var matchedCapCodec = caps.Codecs!
+            var matchedCapCodec = caps.Codecs.NotNull()
                 .FirstOrDefault(capCodec => MatchCodecs(codec, capCodec, true, true));
             codecToCapCodec[codec] = matchedCapCodec ?? throw new NotSupportedException(
                 $"Unsupported codec[mimeType:{codec.MimeType}, payloadType:{codec.PayloadType}, Channels:{codec.Channels}]");
@@ -646,16 +646,16 @@ public static partial class Ortc
             // Search for the associated media codec.
             var associatedMediaCodec =
                 parameters.Codecs.FirstOrDefault(mediaCodec =>
-                    MatchCodecsWithPayloadTypeAndApt(mediaCodec.PayloadType, codec.Parameters!))
+                    MatchCodecsWithPayloadTypeAndApt(mediaCodec.PayloadType, codec.Parameters))
                 ?? throw new Exception($"missing media codec found for RTX PT {codec.PayloadType}");
 
             var capMediaCodec = codecToCapCodec[associatedMediaCodec];
 
             // Ensure that the capabilities media codec has a RTX codec.
-            var associatedCapRtxCodec = caps.Codecs!
+            var associatedCapRtxCodec = caps.Codecs.NotNull()
                 .FirstOrDefault(capCodec =>
                     IsRtxMimeType(capCodec.MimeType) &&
-                    MatchCodecsWithPayloadTypeAndApt(capMediaCodec.PreferredPayloadType, capCodec.Parameters!));
+                    MatchCodecsWithPayloadTypeAndApt(capMediaCodec.PreferredPayloadType, capCodec.Parameters));
             codecToCapCodec[codec] = associatedCapRtxCodec ??
                                      throw new Exception(
                                          $"no RTX codec for capability codec PT {capMediaCodec.PreferredPayloadType}");
@@ -667,7 +667,7 @@ public static partial class Ortc
             rtpMapping.Codecs.Add(new CodecMappingT
             {
                 PayloadType       = item.Key.PayloadType,
-                MappedPayloadType = item.Value.PreferredPayloadType!.Value,
+                MappedPayloadType = item.Value.PreferredPayloadType!.Value
             });
         }
 
@@ -681,7 +681,7 @@ public static partial class Ortc
                 MappedSsrc      = mappedSsrc++,
                 Rid             = encoding.Rid,
                 Ssrc            = encoding.Ssrc,
-                ScalabilityMode = encoding.ScalabilityMode,
+                ScalabilityMode = encoding.ScalabilityMode
             };
 
             rtpMapping.Encodings.Add(mappedEncoding);
@@ -702,7 +702,7 @@ public static partial class Ortc
             Codecs           = [],
             HeaderExtensions = [],
             Encodings        = [],
-            Rtcp             = new RtcpParametersT(),
+            Rtcp             = new RtcpParametersT()
         };
 
         foreach (var codec in parameters.Codecs)
@@ -727,7 +727,7 @@ public static partial class Ortc
                 ClockRate    = matchedCapCodec.ClockRate,
                 Channels     = matchedCapCodec.Channels,
                 Parameters   = codec.Parameters, // Keep the Producer codec parameters.
-                RtcpFeedback = matchedCapCodec.RtcpFeedback
+                RtcpFeedback = matchedCapCodec.RtcpFeedback.NotNull()
             };
 
             consumableParams.Codecs.Add(consumableCodec);
@@ -735,7 +735,7 @@ public static partial class Ortc
             var consumableCapRtxCodec = caps.Codecs!
                 .FirstOrDefault(capRtxCodec =>
                     IsRtxMimeType(capRtxCodec.MimeType) &&
-                    MatchCodecsWithPayloadTypeAndApt(consumableCodec.PayloadType, capRtxCodec.Parameters!));
+                    MatchCodecsWithPayloadTypeAndApt(consumableCodec.PayloadType, capRtxCodec.Parameters));
 
             if (consumableCapRtxCodec != null)
             {
@@ -746,7 +746,7 @@ public static partial class Ortc
                     ClockRate    = consumableCapRtxCodec.ClockRate,
                     Channels     = consumableCapRtxCodec.Channels,
                     Parameters   = consumableCapRtxCodec.Parameters, // Keep the Producer codec parameters.
-                    RtcpFeedback = consumableCapRtxCodec.RtcpFeedback
+                    RtcpFeedback = consumableCapRtxCodec.RtcpFeedback.NotNull()
                 };
 
                 consumableParams.Codecs.Add(consumableRtxCodec);
@@ -767,7 +767,7 @@ public static partial class Ortc
                 Uri        = capExt.Uri,
                 Id         = capExt.PreferredId,
                 Encrypt    = capExt.PreferredEncrypt,
-                Parameters = [],
+                Parameters = []
             };
 
             consumableParams.HeaderExtensions.Add(consumableExt);
@@ -794,8 +794,8 @@ public static partial class Ortc
 
         consumableParams.Rtcp = new RtcpParametersT
         {
-            Cname       = parameters.Rtcp!.Cname,
-            ReducedSize = true,
+            Cname       = parameters.Rtcp.Cname,
+            ReducedSize = true
         };
 
         return consumableParams;
@@ -866,7 +866,7 @@ public static partial class Ortc
                 continue;
             }
 
-            codec.RtcpFeedback = matchedCapCodec.RtcpFeedback;
+            codec.RtcpFeedback = matchedCapCodec.RtcpFeedback.NotNull();
 
             consumerParams.Codecs.Add(codec);
         }
@@ -985,7 +985,7 @@ public static partial class Ortc
             var baseSsrc            = GenerateRandomNumber();
             var baseRtxSsrc         = GenerateRandomNumber();
 
-            for (var i = 0; i < consumableEncodings!.Count; ++i)
+            for (var i = 0; i < consumableEncodings.Count; ++i)
             {
                 var encoding = consumableEncodings[i];
                 encoding.Ssrc = baseSsrc + (uint)i;
@@ -1051,14 +1051,7 @@ public static partial class Ortc
             var encoding = consumableEncodings[i];
             encoding.Ssrc = (uint)(baseSsrc + i);
 
-            if (enableRtx)
-            {
-                encoding.Rtx = new RtxT { Ssrc = (uint)(baseRtxSsrc + i) };
-            }
-            else
-            {
-                encoding.Rtx = null;
-            }
+            encoding.Rtx = enableRtx ? new RtxT { Ssrc = (uint)(baseRtxSsrc + i) } : null;
 
             consumerParams.Encodings.Add(encoding);
         }
@@ -1071,8 +1064,8 @@ public static partial class Ortc
         return RtxMimeTypeRegex.IsMatch(mimeType);
     }
 
-    private static bool CheckDirectoryValueEquals(Dictionary<string, object>? a, 
-                                                  Dictionary<string, object>? b, 
+    private static bool CheckDirectoryValueEquals(Dictionary<string, object?>? a, 
+                                                  Dictionary<string, object?>? b, 
                                                   string key)
     {
         if (a != null && b != null)
@@ -1152,12 +1145,12 @@ public static partial class Ortc
                 // If strict matching check profile-level-id.
                 if (strict)
                 {
-                    if (!CheckDirectoryValueEquals(aCodec.Parameters!, aCodec.Parameters!, "packetization-mode"))
+                    if (!CheckDirectoryValueEquals(aCodec.Parameters, aCodec.Parameters, "packetization-mode"))
                     {
                         return false;
                     }
 
-                    if (!H264ProfileLevelId.Utils.IsSameProfile(aCodec.Parameters!, bCodec.Parameters!))
+                    if (!H264ProfileLevelId.Utils.IsSameProfile(aCodec.Parameters.NotNull(), bCodec.Parameters.NotNull()))
                     {
                         return false;
                     }
@@ -1167,8 +1160,9 @@ public static partial class Ortc
                     try
                     {
                         selectedProfileLevelId =
-                            H264ProfileLevelId.Utils.GenerateProfileLevelIdForAnswer(aCodec.Parameters!,
-                                bCodec.Parameters!);
+                            H264ProfileLevelId.Utils.GenerateProfileLevelIdForAnswer(
+                                aCodec.Parameters.NotNull(),
+                                bCodec.Parameters.NotNull());
                     }
                     catch (Exception ex)
                     {
@@ -1180,11 +1174,11 @@ public static partial class Ortc
                     {
                         if (!selectedProfileLevelId.IsNullOrWhiteSpace())
                         {
-                            aCodec.Parameters!["profile-level-id"] = selectedProfileLevelId!;
+                            aCodec.Parameters.NotNull()["profile-level-id"] = selectedProfileLevelId!;
                         }
                         else
                         {
-                            aCodec.Parameters!.Remove("profile-level-id");
+                            aCodec.Parameters.NotNull().Remove("profile-level-id");
                         }
                     }
                 }
@@ -1195,7 +1189,7 @@ public static partial class Ortc
             {
                 if (strict)
                 {
-                    if (!CheckDirectoryValueEquals(aCodec.Parameters!, aCodec.Parameters!, "profile-id"))
+                    if (!CheckDirectoryValueEquals(aCodec.Parameters.NotNull(), aCodec.Parameters, "profile-id"))
                     {
                         return false;
                     }
@@ -1203,15 +1197,12 @@ public static partial class Ortc
 
                 break;
             }
-
-            default:
-                break;
         }
 
         return true;
     }
 
-    private static bool MatchCodecsWithPayloadTypeAndApt(int? payloadType, IDictionary<string, object> parameters)
+    private static bool MatchCodecsWithPayloadTypeAndApt(int? payloadType, Dictionary<string, object?>? parameters)
     {
         if (payloadType == null && parameters == null)
         {
@@ -1228,8 +1219,7 @@ public static partial class Ortc
             return false;
         }
 
-        var aptJsonElement = apt as JsonElement?;
-        var aptInteger     = aptJsonElement != null ? aptJsonElement.Value.GetInt32() : Convert.ToInt32(apt);
+        var aptInteger = apt is JsonElement aptJsonElement ? aptJsonElement.GetInt32() : Convert.ToInt32(apt);
 
         return payloadType == aptInteger;
     }

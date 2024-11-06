@@ -16,40 +16,40 @@ using TransportObserver = IEnhancedEventEmitter<TransportObserverEvents>;
 
 public abstract class TransportEvents
 {
-    public object?             routerclose;
-    public object?             listenserverclose;
-    public TraceNotificationT? trace;
+    public object?             RouterClose;
+    public object?             ListenServerClose;
+    public TraceNotificationT? Trace;
 
-    public (string, Exception)? listenererror;
+    public (string, Exception)? ListenerError;
 
     // Private events.
-    internal object?       _close;
-    internal IProducer     _newproducer;
-    internal IProducer     _producerclose;
-    internal IDataProducer _newdataproducer;
-    internal IDataProducer _dataproducerclose;
-    internal object?       _listenserverclose;
+    internal object?       close;
+    internal IProducer     newProducer;
+    internal IProducer     producerClose;
+    internal IDataProducer newDataProducer;
+    internal IDataProducer dataProducerClose;
+    internal object?       listenServerClose;
 }
 
 public abstract class TransportObserverEvents
 {
-    public object?            close;
-    public IProducer          newproducer;
-    public IConsumer          newconsumer;
-    public IDataProducer      newdataproducer;
-    public IDataConsumer      newdataconsumer;
-    public TraceNotificationT trace;
+    public          object?            Close;
+    public required IProducer          NewProducer;
+    public required IConsumer          NewConsumer;
+    public required IDataProducer      NewDataProducer;
+    public required IDataConsumer      NewDataConsumer;
+    public required TraceNotificationT Trace;
 }
 
 public class TransportConstructorOptions<TTransportAppData>(TransportBaseData data)
 {
-    public         TransportInternal                  Internal                 { get; set; }
-    public virtual TransportBaseData                  Data                     { get; } = data;
-    public         IChannel                           Channel                  { get; set; }
-    public         TTransportAppData?                 AppData                  { get; set; }
-    public         Func<RtpCapabilities>              GetRouterRtpCapabilities { get; set; }
-    public         Func<string, Task<IProducer?>>     GetProducerById          { get; set; }
-    public         Func<string, Task<IDataProducer?>> GetDataProducerById      { get; set; }
+    public required TransportInternal                  Internal                 { get; set; }
+    public virtual  TransportBaseData                  Data                     { get; } = data;
+    public required IChannel                           Channel                  { get; set; }
+    public          TTransportAppData?                 AppData                  { get; set; }
+    public required Func<RtpCapabilities>              GetRouterRtpCapabilities { get; set; }
+    public required Func<string, Task<IProducer?>>     GetProducerById          { get; set; }
+    public required Func<string, Task<IDataProducer?>> GetDataProducerById      { get; set; }
 }
 
 public class TransportInternal : RouterInternal
@@ -224,21 +224,21 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
 
     /// <summary>
     /// <para>Events:</para>
-    /// <para>@emits <see cref="TransportEvents.routerclose"/></para>
-    /// <para>@emits <see cref="TransportEvents.listenserverclose"/></para>
-    /// <para>@emits <see cref="TransportEvents.trace"/> - (trace: TransportTraceEventData)</para>
-    /// <para>@emits <see cref="TransportEvents._close"/>@</para>
-    /// <para>@emits <see cref="TransportEvents._newproducer"/>@ - (producer: Producer)</para>
-    /// <para>@emits <see cref="TransportEvents._producerclose"/>@ - (producer: Producer)</para>
-    /// <para>@emits <see cref="TransportEvents._newdataproducer"/>@ - (dataProducer: DataProducer)</para>
-    /// <para>@emits <see cref="TransportEvents._dataproducerclose"/>@ - (dataProducer: DataProducer)</para>
-    /// <para>@emits <see cref="TransportEvents._listenserverclose"/>@</para>
+    /// <para>@emits <see cref="TransportEvents.RouterClose"/></para>
+    /// <para>@emits <see cref="TransportEvents.ListenServerClose"/></para>
+    /// <para>@emits <see cref="TransportEvents.Trace"/> - (trace: TransportTraceEventData)</para>
+    /// <para>@emits <see cref="TransportEvents.close"/>@</para>
+    /// <para>@emits <see cref="TransportEvents.newProducer"/>@ - (producer: Producer)</para>
+    /// <para>@emits <see cref="TransportEvents.producerClose"/>@ - (producer: Producer)</para>
+    /// <para>@emits <see cref="TransportEvents.newDataProducer"/>@ - (dataProducer: DataProducer)</para>
+    /// <para>@emits <see cref="TransportEvents.dataProducerClose"/>@ - (dataProducer: DataProducer)</para>
+    /// <para>@emits <see cref="TransportEvents.listenServerClose"/>@</para>
     /// <para>Observer events:</para>
     /// <para>@emits close</para>
-    /// <para>@emits <see cref="TransportObserverEvents.newproducer"/> - (producer: Producer)</para>
-    /// <para>@emits <see cref="TransportObserverEvents.newconsumer"/> - (producer: Producer)</para>
-    /// <para>@emits <see cref="TransportObserverEvents.newdataproducer"/> - (dataProducer: DataProducer)</para>
-    /// <para>@emits <see cref="TransportObserverEvents.newdataconsumer"/> - (dataProducer: DataProducer)</para>
+    /// <para>@emits <see cref="TransportObserverEvents.NewProducer"/> - (producer: Producer)</para>
+    /// <para>@emits <see cref="TransportObserverEvents.NewConsumer"/> - (producer: Producer)</para>
+    /// <para>@emits <see cref="TransportObserverEvents.NewDataProducer"/> - (dataProducer: DataProducer)</para>
+    /// <para>@emits <see cref="TransportObserverEvents.NewDataConsumer"/> - (dataProducer: DataProducer)</para>
     /// </summary>
     protected Transport(TransportConstructorOptions<TTransportAppData> options, TObserver observer)
     {
@@ -296,10 +296,10 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
 
             await CloseIternalAsync(true);
 
-            this.Emit(static x => x._close);
+            this.Emit(static x => x.close);
 
             // Emit observer event.
-            Observer.Emit(static x => x.close);
+            Observer.Emit(static x => x.Close);
         }
     }
 
@@ -328,10 +328,10 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
 
             await CloseIternalAsync(false);
 
-            this.Emit(static x => x.routerclose);
+            this.Emit(static x => x.RouterClose);
 
             // Emit observer event.
-            Observer.Emit(static x => x.close);
+            Observer.Emit(static x => x.Close);
         }
     }
 
@@ -348,7 +348,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 await producer.TransportClosedAsync();
 
                 // Must tell the Router.
-                this.Emit(static x => x._producerclose, producer);
+                this.Emit(static x => x.producerClose, producer);
             }
 
             Producers.Clear();
@@ -394,7 +394,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 if (tellRouter)
                 {
                     // Must tell the Router.
-                    this.Emit(static x => x._dataproducerclose, dataProducer);
+                    this.Emit(static x => x.dataProducerClose, dataProducer);
                 }
                 // NOTE: No need to tell the Router since it already knows (it has
                 // been closed in fact).
@@ -457,11 +457,11 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
             // Need to emit this event to let the parent Router know since
             // transport.listenServerClosed() is called by the listen server.
             // NOTE: Currently there is just WebRtcServer for WebRtcTransports.
-            this.Emit(static x => x._listenserverclose);
-            this.Emit(static x => x.listenserverclose);
+            this.Emit(static x => x.listenServerClose);
+            this.Emit(static x => x.ListenServerClose);
 
             // Emit observer event.
-            Observer.Emit(static x => x.close);
+            Observer.Emit(static x => x.Close);
         }
     }
 
@@ -636,7 +636,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
     {
         logger.LogDebug("ProduceAsync() | TransportId:{TransportId}", Id);
 
-        if (!producerOptions.Id.IsNullOrWhiteSpace() && Producers.ContainsKey(producerOptions.Id!))
+        if (!producerOptions.Id.IsNullOrWhiteSpace() && Producers.ContainsKey(producerOptions.Id))
         {
             throw new Exception($"a Producer with same id \"{producerOptions.Id}\" already exists");
         }
@@ -708,7 +708,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 RtpParameters        = producerOptions.RtpParameters.SerializeRtpParameters(),
                 RtpMapping           = rtpMapping,
                 KeyFrameRequestDelay = producerOptions.KeyFrameRequestDelay,
-                Paused               = producerOptions.Paused,
+                Paused               = producerOptions.Paused
             };
 
             var produceRequestOffset = ProduceRequest.Pack(bufferBuilder, produceRequest);
@@ -718,7 +718,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 produceRequestOffset.Value,
                 Internal.TransportId);
 
-            var data = response!.Value.BodyAsTransport_ProduceResponse().UnPack();
+            var data = response.NotNull().BodyAsTransport_ProduceResponse().UnPack();
 
             var producerData = new ProducerData
             {
@@ -741,14 +741,14 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 producerOptions.Paused
             );
 
-            producer.On(x => x._close,
+            producer.On(x => x.close,
                 async _ =>
                 {
                     await ProducersLock.WaitAsync();
                     try
                     {
                         Producers.Remove(producer.Id);
-                        this.Emit(static x => x._producerclose, producer);
+                        this.Emit(static x => x.producerClose, producer);
                     }
                     catch (Exception ex)
                     {
@@ -775,10 +775,10 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 ProducersLock.Set();
             }
 
-            this.Emit(static x => x._newproducer, producer);
+            this.Emit(static x => x.newProducer, producer);
 
             // Emit observer event.
-            Observer.Emit(static x => x.newproducer, producer);
+            Observer.Emit(static x => x.NewProducer, producer);
 
             return producer;
         }
@@ -804,7 +804,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
         }
 
         // Don't use `consumerOptions.Mid?.Length == 0`
-        if (consumerOptions.Mid != null && consumerOptions.Mid!.Length == 0)
+        if (consumerOptions.Mid is { Length: 0 })
         {
             throw new ArgumentException($"{nameof(consumerOptions.Mid)} can't be null or white space.");
         }
@@ -868,7 +868,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 ConsumableRtpEncodings = producer.Data.ConsumableRtpParameters.Encodings,
                 Paused                 = consumerOptions.Paused,
                 PreferredLayers        = consumerOptions.PreferredLayers,
-                IgnoreDtx              = consumerOptions.IgnoreDtx,
+                IgnoreDtx              = consumerOptions.IgnoreDtx
             };
 
             var consumeRequestOffset = ConsumeRequest.Pack(bufferBuilder, consumeRequest);
@@ -878,14 +878,14 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 consumeRequestOffset.Value,
                 Internal.TransportId);
 
-            var data = response.Value.BodyAsTransport_ConsumeResponse().UnPack();
+            var data = response.NotNull().BodyAsTransport_ConsumeResponse().UnPack();
 
             var consumerData = new ConsumerData
             {
                 ProducerId    = consumerOptions.ProducerId,
                 Kind          = producer.Data.Kind,
                 RtpParameters = rtpParameters,
-                Type          = producer.Data.Type,
+                Type          = producer.Data.Type
             };
 
             var consumer = new Consumer<TConsumeAppData>(
@@ -904,7 +904,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 data.PreferredLayers
             );
 
-            consumer.On(static x => x._close,
+            consumer.On(static x => x.close,
                 async _ =>
                 {
                     await ConsumersLock.WaitAsync();
@@ -922,7 +922,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                     }
                 }
             );
-            consumer.On(static x => x._producerclose,
+            consumer.On(static x => x.producerClose,
                 async _ =>
                 {
                     await ConsumersLock.WaitAsync();
@@ -956,7 +956,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
             }
 
             // Emit observer event.
-            Observer.Emit(static x => x.newconsumer, consumer);
+            Observer.Emit(static x => x.NewConsumer, consumer);
 
             return consumer;
         }
@@ -971,7 +971,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
     {
         logger.LogDebug("ProduceDataAsync() | TransportId:{TransportId}", Id);
 
-        if (!dataProducerOptions.Id.IsNullOrWhiteSpace() && DataProducers.ContainsKey(dataProducerOptions.Id!))
+        if (!dataProducerOptions.Id.IsNullOrWhiteSpace() && DataProducers.ContainsKey(dataProducerOptions.Id))
         {
             throw new Exception($"A DataProducer with same id {dataProducerOptions.Id} already exists");
         }
@@ -1000,7 +1000,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 type = FBS.DataProducer.Type.SCTP;
 
                 // This may throw.
-                Ortc.ValidateSctpStreamParameters(dataProducerOptions.SctpStreamParameters!);
+                Ortc.ValidateSctpStreamParameters(dataProducerOptions.SctpStreamParameters.NotNull());
             }
             // If this is a DirectTransport, sctpStreamParameters must not be given.
             else
@@ -1027,7 +1027,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 SctpStreamParameters = dataProducerOptions.SctpStreamParameters,
                 Protocol             = dataProducerOptions.Protocol,
                 Label                = dataProducerOptions.Label,
-                Paused               = dataProducerOptions.Paused,
+                Paused               = dataProducerOptions.Paused
             };
 
             var dataProduceRequestOffset = ProduceDataRequest.Pack(bufferBuilder, dataProduceRequest);
@@ -1037,14 +1037,14 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 dataProduceRequestOffset.Value,
                 Internal.TransportId);
 
-            var data = response!.Value.BodyAsDataProducer_DumpResponse().UnPack();
+            var data = response.NotNull().BodyAsDataProducer_DumpResponse().UnPack();
 
             var dataProducerData = new DataProducerData
             {
                 Type                 = data.Type,
                 SctpStreamParameters = data.SctpStreamParameters,
-                Label                = data.Label!,
-                Protocol             = data.Protocol!,
+                Label                = data.Label.NotNull(),
+                Protocol             = data.Protocol.NotNull()
             };
 
             var dataProducer = new DataProducer<TDataProducerAppData>(
@@ -1060,7 +1060,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 dataProducerOptions.AppData
             );
 
-            dataProducer.On(static x => x._close,
+            dataProducer.On(static x => x.close,
                 async _ =>
                 {
                     await DataProducersLock.WaitAsync();
@@ -1077,7 +1077,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                         DataProducersLock.Set();
                     }
 
-                    this.Emit(static x => x._dataproducerclose, dataProducer);
+                    this.Emit(static x => x.dataProducerClose, dataProducer);
                 }
             );
 
@@ -1095,10 +1095,10 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 DataProducersLock.Set();
             }
 
-            this.Emit(static x => x._newdataproducer, dataProducer);
+            this.Emit(static x => x.newDataProducer, dataProducer);
 
             // Emit observer event.
-            Observer.Emit(static x => x.newdataproducer, dataProducer);
+            Observer.Emit(static x => x.NewDataProducer, dataProducer);
 
             return dataProducer;
         }
@@ -1202,7 +1202,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 Label                = dataProducer.Data.Label,
                 Protocol             = dataProducer.Data.Protocol,
                 Paused               = dataConsumerOptions.Paused,
-                Subchannels          = dataConsumerOptions.Subchannels,
+                Subchannels          = dataConsumerOptions.Subchannels
             };
 
             var consumeDataRequestOffset = ConsumeDataRequest.Pack(bufferBuilder, consumeDataRequest);
@@ -1212,7 +1212,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 consumeDataRequestOffset.Value,
                 Internal.TransportId);
 
-            var data = response.Value.BodyAsDataConsumer_DumpResponse().UnPack();
+            var data = response.NotNull().BodyAsDataConsumer_DumpResponse().UnPack();
 
             var dataConsumerData = new DataConsumerData
             {
@@ -1221,7 +1221,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 SctpStreamParameters       = data.SctpStreamParameters,
                 Label                      = data.Label,
                 Protocol                   = data.Protocol,
-                BufferedAmountLowThreshold = data.BufferedAmountLowThreshold,
+                BufferedAmountLowThreshold = data.BufferedAmountLowThreshold
             };
 
             var dataConsumer = new DataConsumer<TDataConsumerAppData>(
@@ -1239,7 +1239,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 dataConsumerOptions.AppData
             );
 
-            dataConsumer.On(static x => x._close,
+            dataConsumer.On(static x => x.close,
                 async _ =>
                 {
                     await DataConsumersLock.WaitAsync();
@@ -1265,7 +1265,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 }
             );
 
-            dataConsumer.On(static x => x._dataproducerclose,
+            dataConsumer.On(static x => x.dataProducerClose,
                 async _ =>
                 {
                     await DataConsumersLock.WaitAsync();
@@ -1306,7 +1306,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
             }
 
             // Emit observer event.
-            Observer.Emit(static x => x.newdataconsumer, dataConsumer);
+            Observer.Emit(static x => x.NewDataConsumer, dataConsumer);
 
             return dataConsumer;
         }

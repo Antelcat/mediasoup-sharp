@@ -16,7 +16,7 @@ public class DataConsumerOptions<TDataConsumerAppData>
     /// <summary>
     /// The id of the DataProducer to consume.
     /// </summary>
-    public string DataProducerId { get; set; }
+    public required string DataProducerId { get; set; }
 
     /// <summary>
     /// Just if consuming over SCTP.
@@ -63,25 +63,25 @@ public class DataConsumerOptions<TDataConsumerAppData>
 
 public abstract class DataConsumerEvents
 {
-    public object?              transportclose;
-    public object?              dataproducerclose;
-    public object?              dataproducerpause;
-    public object?              dataproducerresume;
-    public MessageNotificationT message;
-    public object?              sctpsendbufferfull;
-    public uint                 bufferedamountlow;
-    public (string, Exception)  listenererror;
+    public          object?              TransportClose;
+    public          object?              DataProducerClose;
+    public          object?              DataProducerPause;
+    public          object?              DataProducerResume;
+    public required MessageNotificationT Message;
+    public          object?              SctpSendBufferFull;
+    public          uint                 BufferedAmountLow;
+    public          (string, Exception)  ListenerError;
 
     // Private events.
-    internal object? _close;
-    internal object? _dataproducerclose;
+    internal object? close;
+    internal object? dataProducerClose;
 }
 
 public abstract class DataConsumerObserverEvents
 {
-    public object? close;
-    public object? pause;
-    public object? resume;
+    public object? Close;
+    public object? Pause;
+    public object? Resume;
 }
 
 public class DataConsumerInternal : TransportInternal
@@ -97,7 +97,7 @@ public class DataConsumerData
     /// <summary>
     /// Associated DataProducer id.
     /// </summary>
-    public string DataProducerId { get; init; }
+    public required string DataProducerId { get; init; }
 
     public FBS.DataProducer.Type Type { get; set; }
 
@@ -109,20 +109,20 @@ public class DataConsumerData
     /// <summary>
     /// DataChannel label.
     /// </summary>
-    public string Label { get; init; }
+    public required string Label { get; init; }
 
     /// <summary>
     /// DataChannel protocol.
     /// </summary>
-    public string Protocol { get; init; }
+    public required string Protocol { get; init; }
 
     public uint BufferedAmountLowThreshold { get; set; }
 }
 
 
 [AutoExtractInterface]
-public class DataConsumer<TDataConsumerAppData> 
-    : EnhancedEventEmitter<DataConsumerEvents> , IDataConsumer
+public class DataConsumer<TDataConsumerAppData>
+    : EnhancedEventEmitter<DataConsumerEvents>, IDataConsumer
     where TDataConsumerAppData : new()
 {
     /// <summary>
@@ -184,17 +184,17 @@ public class DataConsumer<TDataConsumerAppData>
 
     /// <summary>
     /// <para>Events:</para>
-    /// <para>@emits <see cref="DataConsumerEvents.transportclose"/></para>
-    /// <para>@emits <see cref="DataConsumerEvents.dataproducerclose"/></para>
-    /// <para>@emits <see cref="DataConsumerEvents.message"/> - (message: Buffer, ppid: number)</para>
-    /// <para>@emits <see cref="DataConsumerEvents.sctpsendbufferfull"/></para>
-    /// <para>@emits <see cref="DataConsumerEvents.bufferedamountlow"/> - (bufferedAmount: number)</para>
-    /// <para>@emits <see cref="DataConsumerEvents._close"/>@</para>
-    /// <para>@emits <see cref="DataConsumerEvents._dataproducerclose"/>@</para>
+    /// <para>@emits <see cref="DataConsumerEvents.TransportClose"/></para>
+    /// <para>@emits <see cref="DataConsumerEvents.DataProducerClose"/></para>
+    /// <para>@emits <see cref="DataConsumerEvents.Message"/> - (message: Buffer, ppid: number)</para>
+    /// <para>@emits <see cref="DataConsumerEvents.SctpSendBufferFull"/></para>
+    /// <para>@emits <see cref="DataConsumerEvents.BufferedAmountLow"/> - (bufferedAmount: number)</para>
+    /// <para>@emits <see cref="DataConsumerEvents.close"/></para>
+    /// <para>@emits <see cref="DataConsumerEvents.dataProducerClose"/></para>
     /// <para>Observer events:</para>
-    /// <para>@emits <see cref="DataConsumerObserverEvents.close"/></para>
-    /// <para>@emits <see cref="DataConsumerObserverEvents.pause"/></para>
-    /// <para>@emits <see cref="DataConsumerObserverEvents.resume"/></para>
+    /// <para>@emits <see cref="DataConsumerObserverEvents.Close"/></para>
+    /// <para>@emits <see cref="DataConsumerObserverEvents.Pause"/></para>
+    /// <para>@emits <see cref="DataConsumerObserverEvents.Resume"/></para>
     /// </summary>
     public DataConsumer(
         DataConsumerInternal @internal,
@@ -224,9 +224,9 @@ public class DataConsumer<TDataConsumerAppData>
     {
         logger.LogDebug("CloseAsync() | DataConsumer:{DataConsumerId}", Id);
 
-        await using(await closeLock.WriteLockAsync())
+        await using (await closeLock.WriteLockAsync())
         {
-            if(closed)
+            if (closed)
             {
                 return;
             }
@@ -241,10 +241,11 @@ public class DataConsumer<TDataConsumerAppData>
 
             var closeDataConsumerRequest = new FBS.Transport.CloseDataConsumerRequestT
             {
-                DataConsumerId = @internal.DataConsumerId,
+                DataConsumerId = @internal.DataConsumerId
             };
 
-            var closeDataConsumerRequestOffset = FBS.Transport.CloseDataConsumerRequest.Pack(bufferBuilder, closeDataConsumerRequest);
+            var closeDataConsumerRequestOffset =
+                FBS.Transport.CloseDataConsumerRequest.Pack(bufferBuilder, closeDataConsumerRequest);
 
             // Fire and forget
             channel.RequestAsync(
@@ -255,10 +256,10 @@ public class DataConsumer<TDataConsumerAppData>
                 @internal.TransportId
             ).ContinueWithOnFaultedHandleLog(logger);
 
-            this.Emit(static x => x._close);
+            this.Emit(static x => x.close);
 
             // Emit observer event.
-            Observer.Emit(static x=>x.close);
+            Observer.Emit(static x => x.Close);
         }
     }
 
@@ -269,9 +270,9 @@ public class DataConsumer<TDataConsumerAppData>
     {
         logger.LogDebug("TransportClosedAsync() | DataConsumer:{DataConsumerId}", Id);
 
-        await using(await closeLock.WriteLockAsync())
+        await using (await closeLock.WriteLockAsync())
         {
-            if(closed)
+            if (closed)
             {
                 return;
             }
@@ -281,10 +282,10 @@ public class DataConsumer<TDataConsumerAppData>
             // Remove notification subscriptions.
             channel.OnNotification -= OnNotificationHandle;
 
-            this.Emit(static x=>x.transportclose);
+            this.Emit(static x => x.TransportClose);
 
             // Emit observer event.
-            Observer.Emit(static x=>x.close);
+            Observer.Emit(static x => x.Close);
         }
     }
 
@@ -295,9 +296,9 @@ public class DataConsumer<TDataConsumerAppData>
     {
         logger.LogDebug("DumpAsync() | DataConsumer:{DataConsumerId}", Id);
 
-        await using(await closeLock.ReadLockAsync())
+        await using (await closeLock.ReadLockAsync())
         {
-            if(closed)
+            if (closed)
             {
                 throw new InvalidStateException("DataConsumer closed");
             }
@@ -311,7 +312,7 @@ public class DataConsumer<TDataConsumerAppData>
                 @internal.DataConsumerId);
 
             /* Decode Response. */
-            var data = response.Value.BodyAsDataConsumer_DumpResponse().UnPack();
+            var data = response.NotNull().BodyAsDataConsumer_DumpResponse().UnPack();
             return data;
         }
     }
@@ -323,9 +324,9 @@ public class DataConsumer<TDataConsumerAppData>
     {
         logger.LogDebug("GetStatsAsync() | DataConsumer:{DataConsumerId}", Id);
 
-        await using(await closeLock.ReadLockAsync())
+        await using (await closeLock.ReadLockAsync())
         {
-            if(closed)
+            if (closed)
             {
                 throw new InvalidStateException("DataConsumer closed");
             }
@@ -339,7 +340,7 @@ public class DataConsumer<TDataConsumerAppData>
                 @internal.DataConsumerId);
 
             // Decode Response
-            var data = response.Value.BodyAsDataConsumer_GetStatsResponse().UnPack();
+            var data = response.NotNull().BodyAsDataConsumer_GetStatsResponse().UnPack();
 
             return [data];
         }
@@ -350,11 +351,11 @@ public class DataConsumer<TDataConsumerAppData>
     /// </summary>
     public async Task PauseAsync()
     {
-        logger.LogDebug("PauseAsync() | DataConsumer:{DataConsumerId}", Id);
+        logger.LogDebug($"{nameof(PauseAsync)}() | DataConsumer:{{DataConsumerId}}", Id);
 
-        await using(await closeLock.ReadLockAsync())
+        await using (await closeLock.ReadLockAsync())
         {
-            if(closed)
+            if (closed)
             {
                 throw new InvalidStateException("DataConsumer closed");
             }
@@ -373,9 +374,9 @@ public class DataConsumer<TDataConsumerAppData>
             paused = true;
 
             // Emit observer event.
-            if(!wasPaused && !dataProducerPaused)
+            if (!wasPaused && !dataProducerPaused)
             {
-                Observer.Emit(static x=>x.pause);
+                Observer.Emit(static x => x.Pause);
             }
         }
     }
@@ -385,11 +386,11 @@ public class DataConsumer<TDataConsumerAppData>
     /// </summary>
     public async Task ResumeAsync()
     {
-        logger.LogDebug("ResumeAsync() | DataConsumer:{DataConsumerId}", Id);
+        logger.LogDebug($"{nameof(ResumeAsync)}() | DataConsumer:{{DataConsumerId}}", Id);
 
-        await using(await closeLock.ReadLockAsync())
+        await using (await closeLock.ReadLockAsync())
         {
-            if(closed)
+            if (closed)
             {
                 throw new InvalidStateException("DataConsumer closed");
             }
@@ -407,9 +408,9 @@ public class DataConsumer<TDataConsumerAppData>
             paused = false;
 
             // Emit observer event.
-            if(wasPaused && !dataProducerPaused)
+            if (wasPaused && !dataProducerPaused)
             {
-                Observer.Emit(static x=>x.resume);
+                Observer.Emit(static x => x.Resume);
             }
         }
     }
@@ -419,11 +420,11 @@ public class DataConsumer<TDataConsumerAppData>
     /// </summary>
     public async Task SetBufferedAmountLowThresholdAsync(uint threshold)
     {
-        logger.LogDebug("SetBufferedAmountLowThreshold() | Threshold:{threshold}", threshold);
+        logger.LogDebug($"{nameof(SetBufferedAmountLowThresholdAsync)}() | Threshold:{{Threshold}}", threshold);
 
-        await using(await closeLock.ReadLockAsync())
+        await using (await closeLock.ReadLockAsync())
         {
-            if(closed)
+            if (closed)
             {
                 throw new InvalidStateException("DataConsumer closed");
             }
@@ -436,7 +437,8 @@ public class DataConsumer<TDataConsumerAppData>
                 Threshold = threshold
             };
 
-            var setBufferedAmountLowThresholdRequestOffset = SetBufferedAmountLowThresholdRequest.Pack(bufferBuilder, setBufferedAmountLowThresholdRequest);
+            var setBufferedAmountLowThresholdRequestOffset =
+                SetBufferedAmountLowThresholdRequest.Pack(bufferBuilder, setBufferedAmountLowThresholdRequest);
 
             // Fire and forget
             channel.RequestAsync(
@@ -454,7 +456,7 @@ public class DataConsumer<TDataConsumerAppData>
     /// </summary>
     public async Task SendAsync(string message, uint? ppid)
     {
-        logger.LogDebug("SendAsync() | DataConsumer:{DataConsumerId}", Id);
+        logger.LogDebug($"{nameof(SendAsync)}() | DataConsumer:{{DataConsumerId}}", Id);
 
         /*
          * +-------------------------------+----------+
@@ -475,7 +477,7 @@ public class DataConsumer<TDataConsumerAppData>
         ppid ??= !message.IsNullOrEmpty() ? 51u : 56u;
 
         // Ensure we honor PPIDs.
-        if(ppid == 56)
+        if (ppid == 56)
         {
             message = " ";
         }
@@ -488,12 +490,12 @@ public class DataConsumer<TDataConsumerAppData>
     /// </summary>
     public async Task SendAsync(byte[] message, uint? ppid)
     {
-        logger.LogDebug("SendAsync() | DataConsumer:{DataConsumerId}", Id);
+        logger.LogDebug($"{nameof(SendAsync)}() | DataConsumer:{{DataConsumerId}}", Id);
 
         ppid ??= !message.IsNullOrEmpty() ? 53u : 57u;
 
         // Ensure we honor PPIDs.
-        if(ppid == 57)
+        if (ppid == 57)
         {
             message = new byte[1];
         }
@@ -503,9 +505,9 @@ public class DataConsumer<TDataConsumerAppData>
 
     private async Task SendInternalAsync(byte[] data, uint ppid)
     {
-        await using(await closeLock.ReadLockAsync())
+        await using (await closeLock.ReadLockAsync())
         {
-            if(closed)
+            if (closed)
             {
                 throw new InvalidStateException("DataConsumer closed");
             }
@@ -535,11 +537,11 @@ public class DataConsumer<TDataConsumerAppData>
     /// </summary>
     public async Task<uint> GetBufferedAmountAsync()
     {
-        logger.LogDebug("GetBufferedAmountAsync()");
+        logger.LogDebug($"{nameof(GetBufferedAmountAsync)}()");
 
-        await using(await closeLock.ReadLockAsync())
+        await using (await closeLock.ReadLockAsync())
         {
-            if(closed)
+            if (closed)
             {
                 throw new InvalidStateException("DataConsumer closed");
             }
@@ -553,7 +555,7 @@ public class DataConsumer<TDataConsumerAppData>
                 @internal.DataConsumerId);
 
             /* Decode Response. */
-            var data = response.Value.BodyAsDataConsumer_GetBufferedAmountResponse().UnPack();
+            var data = response.NotNull().BodyAsDataConsumer_GetBufferedAmountResponse().UnPack();
             return data.BufferedAmount;
         }
     }
@@ -565,9 +567,9 @@ public class DataConsumer<TDataConsumerAppData>
     {
         logger.LogDebug("SetSubchannelsAsync()");
 
-        await using(await closeLock.ReadLockAsync())
+        await using (await closeLock.ReadLockAsync())
         {
-            if(closed)
+            if (closed)
             {
                 throw new InvalidStateException("DataConsumer closed");
             }
@@ -588,7 +590,7 @@ public class DataConsumer<TDataConsumerAppData>
                 @internal.DataConsumerId);
 
             /* Decode Response. */
-            var data = response.Value.BodyAsDataConsumer_SetSubchannelsResponse().UnPack();
+            var data = response.NotNull().BodyAsDataConsumer_SetSubchannelsResponse().UnPack();
             // Update subchannels.
             this.subchannels = data.Subchannels;
         }
@@ -601,9 +603,9 @@ public class DataConsumer<TDataConsumerAppData>
     {
         logger.LogDebug("AddSubchannelAsync()");
 
-        await using(await closeLock.ReadLockAsync())
+        await using (await closeLock.ReadLockAsync())
         {
-            if(closed)
+            if (closed)
             {
                 throw new InvalidStateException("DataConsumer closed");
             }
@@ -624,7 +626,7 @@ public class DataConsumer<TDataConsumerAppData>
                 @internal.DataConsumerId);
 
             /* Decode Response. */
-            var data = response.Value.BodyAsDataConsumer_AddSubchannelResponse().UnPack();
+            var data = response.NotNull().BodyAsDataConsumer_AddSubchannelResponse().UnPack();
             // Update subchannels.
             subchannels = data.Subchannels;
         }
@@ -635,11 +637,11 @@ public class DataConsumer<TDataConsumerAppData>
     /// </summary>
     public async Task RemoveSubchannelAsync(ushort subchannel)
     {
-        logger.LogDebug("RemoveSubchannelAsync()");
+        logger.LogDebug($"{nameof(RemoveSubchannelAsync)}()");
 
-        await using(await closeLock.ReadLockAsync())
+        await using (await closeLock.ReadLockAsync())
         {
-            if(closed)
+            if (closed)
             {
                 throw new InvalidStateException("DataConsumer closed");
             }
@@ -660,7 +662,7 @@ public class DataConsumer<TDataConsumerAppData>
                 @internal.DataConsumerId);
 
             /* Decode Response. */
-            var data = response.Value.BodyAsDataConsumer_AddSubchannelResponse().UnPack();
+            var data = response.NotNull().BodyAsDataConsumer_AddSubchannelResponse().UnPack();
             // Update subchannels.
             subchannels = data.Subchannels;
         }
@@ -677,18 +679,18 @@ public class DataConsumer<TDataConsumerAppData>
     private async void OnNotificationHandle(string handlerId, Event @event, Notification notification)
 #pragma warning restore VSTHRD100 // Avoid async void methods
     {
-        if(handlerId != Id)
+        if (handlerId != Id)
         {
             return;
         }
 
-        switch(@event)
+        switch (@event)
         {
             case Event.DATACONSUMER_DATAPRODUCER_CLOSE:
             {
-                await using(await closeLock.WriteLockAsync())
+                await using (await closeLock.WriteLockAsync())
                 {
-                    if(closed)
+                    if (closed)
                     {
                         break;
                     }
@@ -698,30 +700,30 @@ public class DataConsumer<TDataConsumerAppData>
                     // Remove notification subscriptions.
                     channel.OnNotification -= OnNotificationHandle;
 
-                    this.Emit(static x => x._dataproducerclose);
-                    this.Emit(static x => x.dataproducerclose);
+                    this.Emit(static x => x.dataProducerClose);
+                    this.Emit(static x => x.DataProducerClose);
 
                     // Emit observer event.
-                    Observer.Emit(static x=>x.close);
+                    Observer.Emit(static x => x.Close);
                 }
 
                 break;
             }
             case Event.DATACONSUMER_DATAPRODUCER_PAUSE:
             {
-                if(dataProducerPaused)
+                if (dataProducerPaused)
                 {
                     break;
                 }
 
                 dataProducerPaused = true;
 
-                this.Emit(static x=>x.dataproducerpause);
+                this.Emit(static x => x.DataProducerPause);
 
                 // Emit observer event.
-                if(!paused)
+                if (!paused)
                 {
-                    Observer.Emit(static x=>x.pause);
+                    Observer.Emit(static x => x.Pause);
                 }
 
                 break;
@@ -729,47 +731,50 @@ public class DataConsumer<TDataConsumerAppData>
 
             case Event.DATACONSUMER_DATAPRODUCER_RESUME:
             {
-                if(!dataProducerPaused)
+                if (!dataProducerPaused)
                 {
                     break;
                 }
 
                 dataProducerPaused = false;
 
-                this.Emit(static x=>x.dataproducerresume);
+                this.Emit(static x => x.DataProducerResume);
 
                 // Emit observer event.
-                if(!paused)
+                if (!paused)
                 {
-                    Observer.Emit(static x=>x.resume);
+                    Observer.Emit(static x => x.Resume);
                 }
 
                 break;
             }
             case Event.DATACONSUMER_SCTP_SENDBUFFER_FULL:
             {
-                this.Emit(static x=>x.sctpsendbufferfull);
+                this.Emit(static x => x.SctpSendBufferFull);
 
                 break;
             }
             case Event.DATACONSUMER_BUFFERED_AMOUNT_LOW:
             {
-                var bufferedAmountLowNotification = notification.BodyAsDataConsumer_BufferedAmountLowNotification().UnPack();
+                var bufferedAmountLowNotification =
+                    notification.BodyAsDataConsumer_BufferedAmountLowNotification().UnPack();
 
-                this.Emit(static x=>x.bufferedamountlow, bufferedAmountLowNotification.BufferedAmount);
+                this.Emit(static x => x.BufferedAmountLow, bufferedAmountLowNotification.BufferedAmount);
 
                 break;
             }
             case Event.DATACONSUMER_MESSAGE:
             {
                 var messageNotification = notification.BodyAsDataConsumer_MessageNotification().UnPack();
-                this.Emit(static x => x.message, messageNotification);
+                this.Emit(static x => x.Message, messageNotification);
 
                 break;
             }
             default:
             {
-                logger.LogError("OnNotificationHandle() | Ignoring unknown event \"{Event}\" in channel listener", @event);
+                logger.LogError(
+                    $"{nameof(OnNotificationHandle)}() | Ignoring unknown event \"{{Event}}\" in channel listener",
+                    @event);
                 break;
             }
         }

@@ -19,12 +19,12 @@ public class ConsumerOptions<TConsumerAppData>
     /// <summary>
     /// The id of the Producer to consume.
     /// </summary>
-    public string ProducerId { get; set; }
+    public required string ProducerId { get; set; }
     
     /// <summary>
     /// RTP capabilities of the consuming endpoint.
     /// </summary>
-    public RtpCapabilities RtpCapabilities { get; set; }
+    public required RtpCapabilities RtpCapabilities { get; set; }
 
     /// <summary>
     /// <para>Whether the Consumer must start in paused mode. Default false.</para>
@@ -86,31 +86,31 @@ public class ConsumerOptions<TConsumerAppData>
 
 public abstract class ConsumerEvents
 {
-    public object?            transportclose;
-    public object?            producerclose;
-    public object?            producerpause;
-    public object?            producerresume;
-    public ConsumerScore      score;
-    public ConsumerLayers?    layerschange;
-    public TraceNotificationT trace;
-    public byte[]             rtp;
+    public          object?            TransportClose;
+    public          object?            ProducerClose;
+    public          object?            ProducerPause;
+    public          object?            ProducerResume;
+    public required ConsumerScore      Score;
+    public          ConsumerLayers?    LayersChange;
+    public required TraceNotificationT Trace;
+    public required byte[]             Rtp;
 
-    public (string, Exception) listenererror;
+    public required (string, Exception) ListenerError;
 
     // Private events.
-    internal object? _close;
-    internal object? _producerclose;
+    internal object? close;
+    internal object? producerClose;
 }
 
 
 public abstract class ConsumerObserverEvents
 {
-    public object?             close;
-    public object?             pause;
-    public object?             resume;
-    public ConsumerScore       score;
-    public ConsumerLayers?     layerschange;
-    public TraceNotificationT? trace;
+    public          object?             Close;
+    public          object?             Pause;
+    public          object?             Resume;
+    public required ConsumerScore       Score;
+    public          ConsumerLayers?     LayersChange;
+    public          TraceNotificationT? Trace;
 }
 
 
@@ -119,7 +119,7 @@ public class ConsumerData
     /// <summary>
     /// Associated Producer id.
     /// </summary>
-    public string ProducerId { get; set; }
+    public required string ProducerId { get; init; }
 
     /// <summary>
     /// Media kind.
@@ -129,7 +129,7 @@ public class ConsumerData
     /// <summary>
     /// RTP parameters.
     /// </summary>
-    public RtpParameters RtpParameters { get; set; }
+    public required RtpParameters RtpParameters { get; set; }
 
     /// <summary>
     /// Consumer type.
@@ -225,7 +225,7 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
     public ConsumerLayers? PreferredLayers { get; private set; }
 
     /// <summary>
-    /// Curent layers.
+    /// Current layers.
     /// </summary>
     public ConsumerLayers? CurrentLayers { get; private set; }
 
@@ -236,23 +236,23 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
 
     /// <summary>
     /// <para>Events:</para>
-    /// <para>@emits <see cref="ConsumerEvents.transportclose"/></para>
-    /// <para>@emits <see cref="ConsumerEvents.producerclose"/></para>
-    /// <para>@emits <see cref="ConsumerEvents.producerpause"/></para>
-    /// <para>@emits <see cref="ConsumerEvents.producerresume"/></para>
-    /// <para>@emits <see cref="ConsumerEvents.score"/> - (score: ConsumerScore)</para>
-    /// <para>@emits <see cref="ConsumerEvents.layerschange"/> - (layers: ConsumerLayers | undefined)</para>
-    /// <para>@emits <see cref="ConsumerEvents.trace"/> - (trace: ConsumerTraceEventData)</para>
-    /// <para>@emits <see cref="ConsumerEvents.rtp"/> - (packet: Buffer)</para>
-    /// <para>@emits <see cref="ConsumerEvents._close"/>@</para>
-    /// <para>@emits <see cref="ConsumerEvents._producerclose"/>@</para>
+    /// <para>@emits <see cref="ConsumerEvents.TransportClose"/></para>
+    /// <para>@emits <see cref="ConsumerEvents.ProducerClose"/></para>
+    /// <para>@emits <see cref="ConsumerEvents.ProducerPause"/></para>
+    /// <para>@emits <see cref="ConsumerEvents.ProducerResume"/></para>
+    /// <para>@emits <see cref="ConsumerEvents.Score"/> - (score: ConsumerScore)</para>
+    /// <para>@emits <see cref="ConsumerEvents.LayersChange"/> - (layers: ConsumerLayers | undefined)</para>
+    /// <para>@emits <see cref="ConsumerEvents.Trace"/> - (trace: ConsumerTraceEventData)</para>
+    /// <para>@emits <see cref="ConsumerEvents.Rtp"/> - (packet: Buffer)</para>
+    /// <para>@emits <see cref="ConsumerEvents.close"/>@</para>
+    /// <para>@emits <see cref="ConsumerEvents.producerClose"/>@</para>
     /// <para>Observer events:</para>
-    /// <para>@emits <see cref="ConsumerObserverEvents.close"/></para>
-    /// <para>@emits <see cref="ConsumerObserverEvents.pause"/></para>
-    /// <para>@emits <see cref="ConsumerObserverEvents.resume"/></para>
-    /// <para>@emits <see cref="ConsumerObserverEvents.score"/> - (score: ConsumerScore)</para>
-    /// <para>@emits <see cref="ConsumerObserverEvents.layerschange"/> - (layers: ConsumerLayers | undefined)</para>
-    /// <para>@emits <see cref="ConsumerObserverEvents.trace"/> - (trace: ConsumerTraceEventData)</para>
+    /// <para>@emits <see cref="ConsumerObserverEvents.Close"/></para>
+    /// <para>@emits <see cref="ConsumerObserverEvents.Pause"/></para>
+    /// <para>@emits <see cref="ConsumerObserverEvents.Resume"/></para>
+    /// <para>@emits <see cref="ConsumerObserverEvents.Score"/> - (score: ConsumerScore)</para>
+    /// <para>@emits <see cref="ConsumerObserverEvents.LayersChange"/> - (layers: ConsumerLayers | undefined)</para>
+    /// <para>@emits <see cref="ConsumerObserverEvents.Trace"/> - (trace: ConsumerTraceEventData)</para>
     /// </summary>
     public Consumer(
         ConsumerInternal @internal,
@@ -283,7 +283,7 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
     /// </summary>
     public async Task CloseAsync()
     {
-        logger.LogDebug("CloseAsync() | Consumer:{ConsumerId}", Id);
+        logger.LogDebug($"{nameof(CloseAsync)}() | Consumer:{{ConsumerId}}", Id);
 
         await using(await closeLock.WriteLockAsync())
         {
@@ -315,10 +315,10 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
                 )
                 .ContinueWithOnFaultedHandleLog(logger);
 
-            this.Emit(static x=>x._close);
+            this.Emit(static x=>x.close);
 
             // Emit observer event.
-            Observer.Emit(static x => x.close);
+            Observer.Emit(static x => x.Close);
         }
     }
 
@@ -327,7 +327,7 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
     /// </summary>
     public async Task TransportClosedAsync()
     {
-        logger.LogDebug("TransportClosed() | Consumer:{ConsumerId}", Id);
+        logger.LogDebug($"{nameof(TransportClosedAsync)}() | Consumer:{{ConsumerId}}", Id);
 
         await using(await closeLock.WriteLockAsync())
         {
@@ -341,10 +341,10 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
             // Remove notification subscriptions.
             channel.OnNotification -= OnNotificationHandle;
 
-            this.Emit(static x => x.transportclose);
+            this.Emit(static x => x.TransportClose);
 
             // Emit observer event.
-            Observer.Emit(static x=>x.close);
+            Observer.Emit(static x=>x.Close);
         }
     }
 
@@ -353,7 +353,7 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
     /// </summary>
     public async Task<FBS.Consumer.DumpResponseT> DumpAsync()
     {
-        logger.LogDebug("DumpAsync() | Consumer:{ConsumerId}", Id);
+        logger.LogDebug($"{nameof(DumpAsync)}() | Consumer:{{ConsumerId}}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -364,7 +364,7 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
 
             var bufferBuilder = channel.BufferPool.Get();
             var response = await channel.RequestAsync(bufferBuilder, Method.CONSUMER_DUMP, null, null, @internal.ConsumerId);
-            var data = response.Value.BodyAsConsumer_DumpResponse().UnPack();
+            var data = response.NotNull().BodyAsConsumer_DumpResponse().UnPack();
             return data;
         }
     }
@@ -374,7 +374,7 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
     /// </summary>
     public async Task<List<FBS.RtpStream.StatsT>> GetStatsAsync()
     {
-        logger.LogDebug("GetStatsAsync() | Consumer:{ConsumerId}", Id);
+        logger.LogDebug($"{nameof(GetStatsAsync)}() | Consumer:{{ConsumerId}}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -385,7 +385,7 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
 
             var bufferBuilder = channel.BufferPool.Get();
             var response = await channel.RequestAsync(bufferBuilder, Method.CONSUMER_GET_STATS, null, null, @internal.ConsumerId);
-            var stats = response?.BodyAsConsumer_GetStatsResponse().UnPack().Stats;
+            var stats = response.NotNull().BodyAsConsumer_GetStatsResponse().UnPack().Stats;
             return stats;
         }
     }
@@ -395,7 +395,7 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
     /// </summary>
     public async Task PauseAsync()
     {
-        logger.LogDebug("PauseAsync() | Consumer:{ConsumerId}", Id);
+        logger.LogDebug($"{nameof(PauseAsync)}() | Consumer:{{ConsumerId}}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -420,7 +420,7 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
                 // Emit observer event.
                 if(!wasPaused)
                 {
-                    Observer.Emit(static x=>x.pause);
+                    Observer.Emit(static x=>x.Pause);
                 }
             }
             catch(Exception ex)
@@ -439,7 +439,7 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
     /// </summary>
     public async Task ResumeAsync()
     {
-        logger.LogDebug("ResumeAsync() | Consumer:{ConsumerId}", Id);
+        logger.LogDebug($"{nameof(ResumeAsync)}() | Consumer:{{ConsumerId}}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -464,7 +464,7 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
                 // Emit observer event.
                 if(wasPaused && !ProducerPaused)
                 {
-                    Observer.Emit(static x=>x.resume);
+                    Observer.Emit(static x=>x.Resume);
                 }
             }
             catch(Exception ex)
@@ -483,7 +483,7 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
     /// </summary>
     public async Task SetPreferredLayersAsync(FBS.Consumer.SetPreferredLayersRequestT setPreferredLayersRequest)
     {
-        logger.LogDebug("SetPreferredLayersAsync() | Consumer:{ConsumerId}", Id);
+        logger.LogDebug($"{nameof(SetPreferredLayersAsync)}() | Consumer:{{ConsumerId}}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -514,7 +514,7 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
     /// </summary>
     public async Task SetPriorityAsync(FBS.Consumer.SetPriorityRequestT setPriorityRequest)
     {
-        logger.LogDebug("SetPriorityAsync() | Consumer:{ConsumerId}", Id);
+        logger.LogDebug($"{nameof(SetPriorityAsync)}() | Consumer:{{ConsumerId}}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -534,7 +534,7 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
                 setPriorityRequestOffset.Value,
                 @internal.ConsumerId);
 
-            var priorityResponse = response.Value.BodyAsConsumer_SetPriorityResponse().UnPack().Priority;
+            var priorityResponse = response.NotNull().BodyAsConsumer_SetPriorityResponse().UnPack().Priority;
 
             Priority = priorityResponse;
         }
@@ -545,11 +545,11 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
     /// </summary>
     public Task UnsetPriorityAsync()
     {
-        logger.LogDebug("UnsetPriorityAsync() | Consumer:{ConsumerId}", Id);
+        logger.LogDebug($"{nameof(UnsetPriorityAsync)}() | Consumer:{{ConsumerId}}", Id);
 
         return SetPriorityAsync(new SetPriorityRequestT
         {
-            Priority = 1,
+            Priority = 1
         });
     }
 
@@ -558,7 +558,7 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
     /// </summary>
     public async Task RequestKeyFrameAsync()
     {
-        logger.LogDebug("RequestKeyFrameAsync() | Consumer:{ConsumerId}", Id);
+        logger.LogDebug($"{nameof(RequestKeyFrameAsync)}() | Consumer:{{ConsumerId}}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -582,7 +582,7 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
     /// </summary>
     public async Task EnableTraceEventAsync(List<FBS.Consumer.TraceEventType> types)
     {
-        logger.LogDebug("EnableTraceEventAsync() | Consumer:{ConsumerId}", Id);
+        logger.LogDebug($"{nameof(EnableTraceEventAsync)}() | Consumer:{{ConsumerId}}", Id);
 
         await using(await closeLock.ReadLockAsync())
         {
@@ -644,11 +644,11 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
                     // Remove notification subscriptions.
                     channel.OnNotification -= OnNotificationHandle;
 
-                    this.Emit(static x => x.producerclose);
-                    this.Emit(static x=>x.producerclose);
+                    this.Emit(static x => x.ProducerClose);
+                    this.Emit(static x=>x.ProducerClose);
 
                     // Emit observer event.
-                    Observer.Emit(static x=>x.close);
+                    Observer.Emit(static x=>x.Close);
                 }
 
                 break;
@@ -664,12 +664,12 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
 
                 ProducerPaused = true;
 
-                this.Emit(static x => x.producerpause);
+                this.Emit(static x => x.ProducerPause);
 
                 // Emit observer event.
                 if(!wasPaused)
                 {
-                    Observer.Emit(static x=>x.pause);
+                    Observer.Emit(static x=>x.Pause);
                 }
 
                 break;
@@ -685,12 +685,12 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
 
                 ProducerPaused = false;
 
-                this.Emit(static x=>x.producerresume);
+                this.Emit(static x=>x.ProducerResume);
 
                 // Emit observer event.
                 if(wasPaused && !paused)
                 {
-                    Observer.Emit(static x=>x.resume);
+                    Observer.Emit(static x=>x.Resume);
                 }
 
                 break;
@@ -698,13 +698,13 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
             case Event.CONSUMER_SCORE:
             {
                 var scoreNotification = notification.BodyAsConsumer_ScoreNotification();
-                var score             = scoreNotification.Score!.Value.UnPack();
+                var score             = scoreNotification.Score.NotNull().UnPack();
                 Score = score;
 
-                this.Emit(static x=>x.score, Score);
+                this.Emit(static x=>x.Score, Score);
 
                 // Emit observer event.
-                Observer.Emit(static x => x.score, Score);
+                Observer.Emit(static x => x.Score, Score);
 
                 break;
             }
@@ -714,10 +714,10 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
                 var currentLayers            = layersChangeNotification.Layers?.UnPack();
                 CurrentLayers = currentLayers;
 
-                this.Emit(static x => x.layerschange, CurrentLayers);
+                this.Emit(static x => x.LayersChange, CurrentLayers);
 
                 // Emit observer event.
-                Observer.Emit(static x => x.layerschange, CurrentLayers);
+                Observer.Emit(static x => x.LayersChange, CurrentLayers);
 
                 break;
             }
@@ -726,10 +726,10 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
                 var traceNotification = notification.BodyAsConsumer_TraceNotification();
                 var trace             = traceNotification.UnPack();
 
-                this.Emit(static x => x.trace, trace);
+                this.Emit(static x => x.Trace, trace);
 
                 // Emit observer event.
-                Observer.Emit(static x => x.trace, trace);
+                Observer.Emit(static x => x.Trace, trace);
 
                 break;
             }

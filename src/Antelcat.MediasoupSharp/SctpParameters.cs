@@ -7,7 +7,7 @@ namespace Antelcat.MediasoupSharp;
 
 public class SctpCapabilities
 {
-    public NumSctpStreamsT NumStreams { get; set; }
+    public required NumSctpStreamsT NumStreams { get; set; }
 }
 
 [AutoMetadataFrom(typeof(SctpStreamParameters), MemberTypes.Property,
