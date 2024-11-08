@@ -408,17 +408,17 @@ public class Room : EventEmitter
         {
             case "webrtc":
             {
-                var options = MediasoupOptionsContext<TWorkerAppData>.Default.WebRtcTransportOptions;
+                var ops = options.WebRtcTransportOptions.NotNull();
                 var webRtcTransportOptions = new WebRtcTransportOptions<TWorkerAppData>
                 {
-                    ListenInfos                     = options.ListenInfos,
-                    MaxSctpMessageSize              = options.MaxSctpMessageSize,
-                    InitialAvailableOutgoingBitrate = options.InitialAvailableOutgoingBitrate,
+                    ListenInfos                     = ops.ListenInfos,
+                    MaxSctpMessageSize              = ops.MaxSctpMessageSize,
+                    InitialAvailableOutgoingBitrate = ops.InitialAvailableOutgoingBitrate,
 
                     WebRtcServer      = webRtcServer,
                     IceConsentTimeout = 20,
                     EnableSctp        = sctpCapabilities is not null,
-                    NumSctpStreams    = sctpCapabilities?.NumStreams,
+                    NumSctpStreams    = sctpCapabilities?.NumStreams
                 };
 
                 var transport = await mediasoupRouter.CreateWebRtcTransportAsync(webRtcTransportOptions);
@@ -529,7 +529,7 @@ public class Room : EventEmitter
         producer.On(static x => x.VideoOrientationChange, videoOrientation =>
         {
             logger.LogDebug(
-                "broadcaster producer 'videoorientationchange' event [producerId:{ProducerId}, videoOrientation:{VideoOrientation}]",
+                "broadcaster producer 'VideoOrientationChange' event [producerId:{ProducerId}, videoOrientation:{VideoOrientation}]",
                 producer.Id, videoOrientation);
         });
 
@@ -877,12 +877,12 @@ public class Room : EventEmitter
                     ) = handler.Request
                     .WithData<CreateWebRtcTransportRequest>().NotNull().Data.NotNull();
 
-                var options = MediasoupOptionsContext<TWorkerAppData>.Default.WebRtcTransportOptions;
+                var ops = options.WebRtcTransportOptions.NotNull();
                 var webRtcTransportOptions = new WebRtcTransportOptions<TWorkerAppData>
                 {
-                    ListenInfos                     = options.ListenInfos,
-                    MaxSctpMessageSize              = options.MaxSctpMessageSize,
-                    InitialAvailableOutgoingBitrate = options.InitialAvailableOutgoingBitrate,
+                    ListenInfos                     = ops.ListenInfos,
+                    MaxSctpMessageSize              = ops.MaxSctpMessageSize,
+                    InitialAvailableOutgoingBitrate = ops.InitialAvailableOutgoingBitrate,
 
                     WebRtcServer      = webRtcServer,
                     IceConsentTimeout = 20,
@@ -912,7 +912,7 @@ public class Room : EventEmitter
                 {
                     if (iceState == IceState.DISCONNECTED /*|| iceState == IceState.CLOSED*/)
                     {
-                        logger.LogWarning($"WebRtcTransport 'icestatechange' event [{nameof(iceState)}:{{State}}]",
+                        logger.LogWarning($"WebRtcTransport 'IceStateChange' event [{nameof(iceState)}:{{State}}]",
                             iceState);
                         await peer.CloseAsync();
                     }
@@ -921,7 +921,7 @@ public class Room : EventEmitter
                 transport.On(static x => x.SctpStateChange,
                     sctpState =>
                     {
-                        logger.LogDebug($"WebRtcTransport 'sctpstatechange' event [{nameof(sctpState)}:{{SctpState}}]",
+                        logger.LogDebug($"WebRtcTransport 'SctpStateChange' event [{nameof(sctpState)}:{{SctpState}}]",
                             sctpState);
                     });
 
@@ -930,7 +930,7 @@ public class Room : EventEmitter
                     if (dtlsState is DtlsState.FAILED or DtlsState.CLOSED)
                     {
                         logger.LogWarning(
-                            $"WebRtcTransport 'dtlsstatechange' event [{nameof(dtlsState)}:{{DtlsState}}]", dtlsState);
+                            $"WebRtcTransport 'DtlsStateChange' event [{nameof(dtlsState)}:{{DtlsState}}]", dtlsState);
                         await peer.CloseAsync();
                     }
                 });
@@ -972,7 +972,7 @@ public class Room : EventEmitter
                 });
 
 
-                var maxIncomingBitrate = this.options.WebRtcTransportOptions.NotNull().MaxIncomingBitrate;
+                var maxIncomingBitrate = options.WebRtcTransportOptions.NotNull().MaxIncomingBitrate;
 
                 // If set, apply max incoming bitrate limit.
                 if (maxIncomingBitrate is not null)
@@ -1067,7 +1067,7 @@ public class Room : EventEmitter
                 producer.On(static x => x.VideoOrientationChange, videoOrientation =>
                 {
                     logger.LogDebug(
-                        "producer 'videoorientationchange' event [producerId:{ProducerId}, videoOrientation:{VideoOrientation}]",
+                        "producer 'VideoOrientationChange' event [producerId:{ProducerId}, videoOrientation:{VideoOrientation}]",
                         producer.Id, videoOrientation);
                 });
 
@@ -1588,11 +1588,11 @@ public class Room : EventEmitter
                         consumer = await transport.ConsumeAsync<TWorkerAppData>(new()
                         {
                             ProducerId      = producer.Id,
-                            RtpCapabilities = consumerPeer.Data().RtpCapabilities,
+                            RtpCapabilities = consumerPeer.Data().RtpCapabilities.NotNull(),
                             // Enable NACK for OPUS.
                             EnableRtx = true,
                             Paused    = true,
-                            IgnoreDtx = true,
+                            IgnoreDtx = true
                         });
                     }
                     catch (Exception ex)

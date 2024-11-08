@@ -49,10 +49,10 @@ public class ProducerOptions<TProducerAppData>
 
 public abstract class ProducerEvents
 {
-    public          object?                              TransportClose;
-    public required List<ScoreT>                         Score;
-    public required VideoOrientationChangeNotificationT? VideoOrientationChange;
-    public required TraceNotificationT?                  Trace;
+    public          object?                             TransportClose;
+    public required List<ScoreT>                        Score;
+    public required VideoOrientationChangeNotificationT VideoOrientationChange;
+    public required TraceNotificationT                  Trace;
 
     public (string, Exception)? ListenerError;
 

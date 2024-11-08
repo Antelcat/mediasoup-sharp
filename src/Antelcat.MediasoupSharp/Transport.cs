@@ -16,9 +16,9 @@ using TransportObserver = IEnhancedEventEmitter<TransportObserverEvents>;
 
 public abstract class TransportEvents
 {
-    public object?             RouterClose;
-    public object?             ListenServerClose;
-    public TraceNotificationT? Trace;
+    public          object?            RouterClose;
+    public          object?            ListenServerClose;
+    public required TraceNotificationT Trace;
 
     public (string, Exception)? ListenerError;
 
