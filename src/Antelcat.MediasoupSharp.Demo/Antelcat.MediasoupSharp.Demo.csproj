@@ -6,6 +6,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <RootNamespace>Antelcat.MediasoupSharp.Demo</RootNamespace>
         <Version>3.14.16</Version>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     </PropertyGroup>
 
     <ItemGroup>
@@ -25,5 +26,14 @@
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <LinkBase>wwwroot</LinkBase>
         </Content>
+        <Content Include="..\.dockerignore">
+          <Link>.dockerignore</Link>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="Dockerfile">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 </Project>
