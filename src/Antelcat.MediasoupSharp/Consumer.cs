@@ -512,7 +512,7 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
     /// <summary>
     /// Set priority.
     /// </summary>
-    public async Task SetPriorityAsync(FBS.Consumer.SetPriorityRequestT setPriorityRequest)
+    public async Task SetPriorityAsync(byte priority)
     {
         logger.LogDebug($"{nameof(SetPriorityAsync)}() | Consumer:{{ConsumerId}}", Id);
 
@@ -525,7 +525,10 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
 
             var bufferBuilder = channel.BufferPool.Get();
 
-            var setPriorityRequestOffset = SetPriorityRequest.Pack(bufferBuilder, setPriorityRequest);
+            var setPriorityRequestOffset = SetPriorityRequest.Pack(bufferBuilder, new SetPriorityRequestT()
+            {
+                Priority = priority
+            });
 
             var response = await channel.RequestAsync(
                 bufferBuilder,
@@ -547,10 +550,7 @@ public class Consumer<TConsumerAppData> : EnhancedEventEmitter<ConsumerEvents> ,
     {
         logger.LogDebug($"{nameof(UnsetPriorityAsync)}() | Consumer:{{ConsumerId}}", Id);
 
-        return SetPriorityAsync(new SetPriorityRequestT
-        {
-            Priority = 1
-        });
+        return SetPriorityAsync(1);
     }
 
     /// <summary>

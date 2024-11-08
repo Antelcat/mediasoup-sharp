@@ -56,7 +56,7 @@ public record SetConsumerPreferredLayersRequest(
 [Serializable]
 public record SetConsumerPriorityRequest(
     string ConsumerId,
-    SetPriorityRequestT Priority) : ConsumerRequest(ConsumerId);
+    byte Priority) : ConsumerRequest(ConsumerId);
 
 [Serializable]
 public record ProduceDataRequest(
@@ -64,7 +64,7 @@ public record ProduceDataRequest(
     SctpStreamParametersT SctpStreamParameters,
     string Label,
     string Protocol,
-    Dictionary<string, object> AppData
+    TWorkerAppData AppData
     );
 
 [Serializable]

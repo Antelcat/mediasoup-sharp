@@ -164,7 +164,7 @@ public class Channel : EnhancedEventEmitter, IChannel
 
     public async Task CloseAsync()
     {
-        logger.LogDebug("CloseAsync() | Worker[{WorkId}]", workerId);
+        logger.LogDebug($"{nameof(CloseAsync)}() | Worker[{{WorkId}}]", workerId);
 
         await using (await closeLock.WriteLockAsync())
         {
@@ -226,7 +226,7 @@ public class Channel : EnhancedEventEmitter, IChannel
     public async Task NotifyAsync(FlatBufferBuilder bufferBuilder, FBS.Notification.Event @event,
                                   FBS.Notification.Body? bodyType, int? bodyOffset, string? handlerId)
     {
-        logger.LogDebug("NotifyAsync() | Worker[{WorkId}] Event:{Event}", workerId, @event);
+        logger.LogDebug($"{nameof(NotifyAsync)}() | Worker[{{WorkId}}] Event:{{Event}}", workerId, @event);
 
         await using (await closeLock.ReadLockAsync())
         {
@@ -255,14 +255,14 @@ public class Channel : EnhancedEventEmitter, IChannel
                     {
                         if (ex != null)
                         {
-                            logger.LogError(ex, "_producerSocket.Write() | Worker[{WorkerId}] Error", workerId);
+                            logger.LogError(ex, $"{nameof(producerSocket)}.Write() | Worker[{{WorkerId}}] Error", workerId);
                         }
                     }
                 );
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "_producerSocket.Write() | Worker[{WorkerId}] Error", workerId);
+                logger.LogError(ex, $"{nameof(producerSocket)}.Write() | Worker[{{WorkerId}}] Error", workerId);
             }
         });
     }
@@ -271,7 +271,7 @@ public class Channel : EnhancedEventEmitter, IChannel
                                                            FBS.Request.Body? bodyType = null, int? bodyOffset = null,
                                                            string? handlerId = null)
     {
-        logger.LogDebug("RequestAsync() | Worker[{WorkId}] Method:{Method}", workerId, method);
+        logger.LogDebug($"{nameof(RequestAsync)}() | Worker[{{WorkId}}] Method:{{Method}}", workerId, method);
 
         await using (await closeLock.ReadLockAsync())
         {
@@ -341,14 +341,14 @@ public class Channel : EnhancedEventEmitter, IChannel
                     ex =>
                     {
                         if (ex == null) return;
-                        logger.LogError(ex, "_producerSocket.Write() | Worker[{WorkerId}] Error", workerId);
+                        logger.LogError(ex, $"{nameof(producerSocket)}.Write() | Worker[{{WorkerId}}] Error", workerId);
                         sent.Reject(ex);
                     }
                 );
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "producerSocket.Write() | Worker[{WorkerId}] Error", workerId);
+                logger.LogError(ex, $"{nameof(producerSocket)}.Write() | Worker[{{WorkerId}}] Error", workerId);
                 sent.Reject(ex);
             }
         });
@@ -628,7 +628,7 @@ public class Channel : EnhancedEventEmitter, IChannel
         if (recvBufferCount + data.Count > RecvBufferMaxLen)
         {
             logger.LogError(
-                "ConsumerSocketOnData() | Worker[{WorkerId}] Receiving buffer is full, discarding all data into it",
+                $"{nameof(ConsumerSocketOnData)}() | Worker[{{WorkerId}}] Receiving buffer is full, discarding all data into it",
                 workerId
             );
             recvBufferCount = 0;
@@ -675,30 +675,30 @@ public class Channel : EnhancedEventEmitter, IChannel
         catch (Exception ex)
         {
             logger.LogError(ex,
-                "ConsumerSocketOnData() | Worker[{WorkerId}] Invalid data received from the worker process", workerId);
+                $"{nameof(ConsumerSocketOnData)}() | Worker[{{WorkerId}}] Invalid data received from the worker process", workerId);
         }
     }
 
     private void ConsumerSocketOnClosed()
     {
-        logger.LogDebug("ConsumerSocketOnClosed() | Worker[{WorkerId}] Consumer Channel ended by the worker process",
+        logger.LogDebug($"{nameof(ConsumerSocketOnClosed)}() | Worker[{{WorkerId}}] Consumer Channel ended by the worker process",
             workerId);
     }
 
     private void ConsumerSocketOnError(Exception? exception)
     {
-        logger.LogDebug(exception, "ConsumerSocketOnError() | Worker[{WorkerId}] Consumer Channel error", workerId);
+        logger.LogDebug(exception, $"{nameof(ConsumerSocketOnError)}() | Worker[{{WorkerId}}] Consumer Channel error", workerId);
     }
 
     private void ProducerSocketOnClosed()
     {
-        logger.LogDebug("ProducerSocketOnClosed() | Worker[{WorkerId}] Producer Channel ended by the worker process",
+        logger.LogDebug($"{nameof(ProducerSocketOnClosed)}() | Worker[{{WorkerId}}] Producer Channel ended by the worker process",
             workerId);
     }
 
     private void ProducerSocketOnError(Exception? exception)
     {
-        logger.LogDebug(exception, "ProducerSocketOnError() | Worker[{WorkerId}] Producer Channel error", workerId);
+        logger.LogDebug(exception, $"{nameof(ProducerSocketOnError)}() | Worker[{{WorkerId}}] Producer Channel error", workerId);
     }
 
     #endregion Event handles

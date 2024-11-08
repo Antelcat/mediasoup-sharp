@@ -6,6 +6,7 @@ using Antelcat.MediasoupSharp.Demo.Extensions;
 using Antelcat.MediasoupSharp.Internals.Extensions;
 using Antelcat.NodeSharp.Events;
 using FBS.Common;
+using FBS.Consumer;
 using FBS.RtpParameters;
 using FBS.SctpParameters;
 using FBS.Transport;
