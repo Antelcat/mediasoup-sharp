@@ -4,7 +4,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Antelcat.AspNetCore.ProtooSharp;
 using Antelcat.MediasoupSharp;
-using Antelcat.MediasoupSharp.AspNetCore;
 using Antelcat.MediasoupSharp.Demo;
 using Antelcat.MediasoupSharp.Demo.Extensions;
 using Antelcat.MediasoupSharp.Demo.Lib;
@@ -85,11 +84,13 @@ async Task RunMediasoupWorkersAsync()
     foreach (var task in Mediasoup.CreateWorkers(options.WorkerSettings.NotNull(), options.NumWorkers.NotNull()))
     {
         var worker = await task;
-        worker.On(x => x.Died, async () =>
+        worker.On(x => x.Died, async _ =>
         {
             logger.LogError("mediasoup Worker died, exiting in 2 seconds... [pid:{Pid}]", worker.Pid);
 
-            await Task.Delay(2000).ContinueWith(async _ => await app.StopAsync(), TaskScheduler.Default);
+            await Task.Delay(2000);
+
+            Environment.Exit(1);
         });
 
         mediasoupWorkers.Add(worker);

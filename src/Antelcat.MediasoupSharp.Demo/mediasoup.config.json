@@ -76,13 +76,13 @@
                 "protocol": "udp",
                 "ip": "0.0.0.0",
                 "announcedAddress": null,
-                "port": 44444
+                "port": 40044
             },
             {
                 "protocol": "tcp",
                 "ip": "0.0.0.0",
                 "announcedAddress": null,
-                "port": 44444
+                "port": 40044
             }
         ]
     },
@@ -94,7 +94,7 @@
                 "announcedAddress": null,
                 "portRange": {
                     "min": 40000,
-                    "max": 49999
+                    "max": 40099
                 }
             },
             {
@@ -103,7 +103,7 @@
                 "announcedAddress": null,
                 "portRange": {
                     "min": 40000,
-                    "max": 49999
+                    "max": 40099
                 }
             }
         ],
@@ -119,7 +119,7 @@
             "announcedAddress": null,
             "portRange": {
                 "min": 40000,
-                "max": 49999
+                "max": 40099
             }
         },
         "maxSctpMessageSize": 262144

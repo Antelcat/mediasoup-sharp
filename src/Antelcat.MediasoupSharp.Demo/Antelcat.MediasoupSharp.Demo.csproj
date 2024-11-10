@@ -17,7 +17,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Antelcat.MediasoupSharp.AspNetCore\Antelcat.MediasoupSharp.AspNetCore.csproj"/>
-        <ProjectReference Include="..\Antelcat.MediasoupSharp.runtime\Antelcat.MediasoupSharp.runtime.linux-x64.csproj" />
         <ProjectReference Include="..\Antelcat.MediasoupSharp.runtime\Antelcat.MediasoupSharp.runtime.win-x64.csproj"/>
     </ItemGroup>
 
@@ -33,6 +32,9 @@
 
     <ItemGroup>
       <None Update="Dockerfile">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="app.pfx">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
     </ItemGroup>

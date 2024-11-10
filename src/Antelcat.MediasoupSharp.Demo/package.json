@@ -1,0 +1,6 @@
+{
+  "name": "mediasoup-demo",
+  "dependencies": {
+    "mediasoup": "github:versatica/mediasoup#v3"
+  }
+}
