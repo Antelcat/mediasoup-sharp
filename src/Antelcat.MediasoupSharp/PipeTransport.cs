@@ -42,7 +42,7 @@ public partial class PipeTransportData(DumpT dump) : TransportBaseData(dump)
     Interfaces = [typeof(ITransport), typeof(IEnhancedEventEmitter<PipeTransportObserver>)],
     Exclude = [nameof(ConsumeAsync)])]
 public class PipeTransportImpl<TPipeTransportAppData>
-    : Transport<
+    : TransportImpl<
             TPipeTransportAppData, 
             PipeTransportEvents, 
             PipeTransportObserver

@@ -50,7 +50,7 @@ public class WebRtcTransportConstructorOptions<TWebRtcTransportAppData>(WebRtcTr
     NamingTemplate = nameof(IWebRtcTransport),
     Interfaces = [typeof(ITransport), typeof(IEnhancedEventEmitter<WebRtcTransportEvents>)])]
 public class WebRtcTransportImpl<TWebRtcTransportAppData> :
-    Transport<
+    TransportImpl<
         TWebRtcTransportAppData,
         WebRtcTransportEvents,
         WebRtcTransportObserver

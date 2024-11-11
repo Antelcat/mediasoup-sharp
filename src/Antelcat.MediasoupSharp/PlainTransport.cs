@@ -46,7 +46,7 @@ public partial class PlainTransportData(DumpT dump) : TransportBaseData(dump)
     NamingTemplate = nameof(IPlainTransport),
     Interfaces = [typeof(ITransport), typeof(IEnhancedEventEmitter<PlainTransportEvents>)])]
 public class PlainTransportImpl<TPlainTransportAppData>
-    : Transport<
+    : TransportImpl<
             TPlainTransportAppData, 
             PlainTransportEvents, 
             PlainTransportObserver

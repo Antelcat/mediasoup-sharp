@@ -8,8 +8,8 @@ using Microsoft.VisualStudio.Threading;
 namespace Antelcat.MediasoupSharp;
 
 [AutoExtractInterface(
-    NamingTemplate = nameof(IRtpObserver),
-    Interfaces = [typeof(IEnhancedEventEmitter<RtpObserverEvents>)])
+    NamingTemplate = nameof(IRtpObserver)
+    )
 ]
 public abstract class RtpObserverImpl<TRtpObserverAppData, TEvents, TObserver>
     : EnhancedEventEmitter<TEvents>, 

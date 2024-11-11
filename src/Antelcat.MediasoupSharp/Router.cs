@@ -677,47 +677,48 @@ public class RouterImpl<TRouterAppData>
 
     private async Task ConfigureTransportAsync(ITransport transport, IWebRtcServer? webRtcServer = null)
     {
+        var trans = (transport as IEnhancedEventEmitter<TransportEvents>).NotNull();
         await using (await transportsLock.WriteLockAsync())
         {
             transports[transport.Id] = transport;
         }
 
-        transport.On(static x => x.close, async _ =>
+        trans.On(static x => x.close, async _ =>
         {
             await using (await transportsLock.WriteLockAsync())
             {
                 transports.Remove(transport.Id);
             }
         });
-        transport.On(static x => x.listenServerClose, async _ =>
+        trans.On(static x => x.listenServerClose, async _ =>
         {
             await using (await transportsLock.WriteLockAsync())
             {
                 transports.Remove(transport.Id);
             }
         });
-        transport.On(static x => x.newProducer, async producer =>
+        trans.On(static x => x.newProducer, async producer =>
         {
             await using (await producersLock.WriteLockAsync())
             {
                 producers[producer.Id] = producer;
             }
         });
-        transport.On(static x => x.producerClose, async producer =>
+        trans.On(static x => x.producerClose, async producer =>
         {
             await using (await producersLock.WriteLockAsync())
             {
                 producers.Remove(producer.Id);
             }
         });
-        transport.On(static x => x.newDataProducer, async dataProducer =>
+        trans.On(static x => x.newDataProducer, async dataProducer =>
         {
             await using (await dataProducersLock.WriteLockAsync())
             {
                 dataProducers[dataProducer.Id] = dataProducer;
             }
         });
-        transport.On(static x => x.dataProducerClose, async dataProducer =>
+        trans.On(static x => x.dataProducerClose, async dataProducer =>
         {
             await using (await dataProducersLock.WriteLockAsync())
             {
@@ -1242,7 +1243,7 @@ public class RouterImpl<TRouterAppData>
     private Task ConfigureRtpObserverAsync(IRtpObserver rtpObserver)
     {
         rtpObservers[rtpObserver.Internal.RtpObserverId] = rtpObserver;
-        rtpObserver.On(static x => x.close, async _ =>
+        (rtpObserver as IEnhancedEventEmitter<RtpObserverEvents>)?.On(static x => x.close, async _ =>
         {
             await using (await rtpObserversLock.WriteLockAsync())
             {

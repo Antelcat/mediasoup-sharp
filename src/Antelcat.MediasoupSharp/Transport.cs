@@ -59,8 +59,8 @@ public partial class TransportBaseData
     public SctpState? SctpState { get; set; }
 }
 
-[AutoExtractInterface(Interfaces = [typeof(IEnhancedEventEmitter<TransportEvents>)])]
-public abstract class Transport<TTransportAppData, TEvents, TObserver> 
+[AutoExtractInterface(NamingTemplate = nameof(ITransport))]
+public abstract class TransportImpl<TTransportAppData, TEvents, TObserver> 
     : EnhancedEventEmitter<TEvents>, 
         ITransport<
             TTransportAppData, 
@@ -216,7 +216,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver>
     /// <para>@emits <see cref="TransportObserverEvents.NewDataProducer"/> - (dataProducer: DataProducer)</para>
     /// <para>@emits <see cref="TransportObserverEvents.NewDataConsumer"/> - (dataProducer: DataProducer)</para>
     /// </summary>
-    protected Transport(TransportConstructorOptions<TTransportAppData> options, TObserver observer)
+    protected TransportImpl(TransportConstructorOptions<TTransportAppData> options, TObserver observer)
     {
         Internal                 = options.Internal;
         Data                     = options.Data;

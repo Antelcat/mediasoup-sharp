@@ -37,7 +37,6 @@ public interface ITransport<TTransportAppData, out TEvents, out TObserver>
     where TEvents : TransportEvents
     where TObserver : TransportObserver
 {
-
     TTransportAppData AppData  { get; set; }
     public TObserver  Observer { get; }
 }

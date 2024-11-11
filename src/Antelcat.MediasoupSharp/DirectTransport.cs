@@ -15,7 +15,7 @@ public class DirectTransportConstructorOptions<TDirectTransportAppData>(Transpor
     Interfaces = [typeof(ITransport)],
     Exclude = [nameof(ProduceAsync)])]
 public class DirectTransportImpl<TDirectTransportAppData>
-    : Transport<
+    : TransportImpl<
             TDirectTransportAppData, 
             DirectTransportEvents, 
             DirectTransportObserver
