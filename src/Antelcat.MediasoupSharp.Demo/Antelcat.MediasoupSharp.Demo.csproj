@@ -31,10 +31,10 @@
     </ItemGroup>
 
     <ItemGroup>
-      <None Update="Dockerfile">
+      <None Update="app.pfx">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="app.pfx">
+      <None Update="Dockerfile">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
     </ItemGroup>
