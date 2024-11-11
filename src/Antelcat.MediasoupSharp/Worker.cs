@@ -12,151 +12,11 @@ using Body = FBS.Request.Body;
 
 namespace Antelcat.MediasoupSharp;
 
-using WorkerObserver = EnhancedEventEmitter<WorkerObserverEvents>;
-
-public enum WorkerLogLevel
-{
-    /// <summary>
-    /// Log all severities.
-    /// </summary>
-    Debug,
-
-    /// <summary>
-    /// Log “warn” and “error” severities.
-    /// </summary>
-    Warn,
-
-    /// <summary>
-    /// Log “error” severity.
-    /// </summary>
-    Error,
-
-    /// <summary>
-    /// Do not log anything.
-    /// </summary>
-    None
-}
-
-public enum WorkerLogTag
-{
-    /// <summary>
-    /// Logs about software/library versions, configuration and process information.
-    /// </summary>
-    Info,
-
-    /// <summary>
-    /// Logs about ICE.
-    /// </summary>
-    Ice,
-
-    /// <summary>
-    /// Logs about DTLS.
-    /// </summary>
-    Dtls,
-
-    /// <summary>
-    /// Logs about RTP.
-    /// </summary>
-    Rtp,
-
-    /// <summary>
-    /// Logs about SRTP encryption/decryption.
-    /// </summary>
-    Srtp,
-
-    /// <summary>
-    /// Logs about RTCP.
-    /// </summary>
-    Rtcp,
-
-    /// <summary>
-    /// Logs about RTP retransmission, including NACK/PLI/FIR.
-    /// </summary>
-    Rtx,
-
-    /// <summary>
-    /// Logs about transport bandwidth estimation.
-    /// </summary>
-    Bwe,
-
-    /// <summary>
-    /// Logs related to the scores of Producers and Consumers.
-    /// </summary>
-    Score,
-
-    /// <summary>
-    /// Logs about video simulcast.
-    /// </summary>
-    Simulcast,
-
-    /// <summary>
-    /// Logs about video SVC.
-    /// </summary>
-    Svc,
-
-    /// <summary>
-    /// Logs about SCTP (DataChannel).
-    /// </summary>
-    Sctp,
-
-    /// <summary>
-    /// Logs about messages (can be SCTP messages or direct messages).
-    /// </summary>
-    Message
-}
-
-public record WorkerSettings<TWorkerAppData>
-{
-    public string?         WorkerFile          { get; set; }
-    public string?         DtlsCertificateFile { get; set; }
-    public string?         DtlsPrivateKeyFile  { get; set; }
-    public WorkerLogLevel? LogLevel            { get; set; } = WorkerLogLevel.Warn;
-    public WorkerLogTag[]  LogTags             { get; set; } = [];
-
-    /// <summary>
-    /// Minimum RTC port for ICE, DTLS, RTP, etc. Default 10000.
-    /// </summary>
-    [Obsolete("Use |PortRange| in TransportListenInfo object instead.")]
-    public int? RtcMinPort { get; set; }
-
-    /// <summary>
-    /// Maximum RTC port for ICE, DTLS, RTP, etc. Default 59999.
-    /// </summary>
-    [Obsolete("Use |PortRange| in TransportListenInfo object instead.")]
-    public int? RtcMaxPort { get; set; }
-
-    public string? LibwebrtcFieldTrials { get; set; }
-
-    public bool? DisableLiburing { get; set; }
-
-    public TWorkerAppData? AppData { get; set; }
-}
-
-public abstract class WorkerEvents
-{
-    public Exception?           Died;
-    public object?              SubprocessClose;
-    public (string, Exception)? ListenerError;
-
-    // Private events.
-    internal object?    success;
-    internal Exception? failure;
-}
-
-public abstract class WorkerObserverEvents
-{
-    public object?       Close;
-    public required IWebRtcServer NewWebrtcServer;
-    public required IRouter       NewRouter;
-}
-
-[AutoExtractInterface(Interfaces =
-    [
-        typeof(IEnhancedEventEmitter<WorkerEvents>),
-        typeof(IDisposable)
-    ],
+[AutoExtractInterface(
+    NamingTemplate = nameof(IWorker),
+    Interfaces = [typeof(IDisposable)],
     Exclude = [nameof(Dispose)])]
-public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorker
+public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorker<TWorkerAppData>
     where TWorkerAppData : new()
 {
     #region Constants
@@ -194,7 +54,7 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
     /// <summary>
     /// Logger.
     /// </summary>
-    protected readonly ILogger Logger = new Logger<Worker<TWorkerAppData>>();
+    protected readonly ILogger Logger = new Logger<WorkerImpl<TWorkerAppData>>();
 
     /// <summary>
     /// Channel instance.
@@ -233,11 +93,10 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
 
     #endregion Protected Fields
 
-
     /// <summary>
     /// Custom app data.
     /// </summary>
-    public TWorkerAppData AppData { get; }
+    public TWorkerAppData AppData { get; set; }
 
     /// <summary>
     /// Observer instance.
@@ -254,7 +113,7 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
     /// <para>@emits <see cref="WorkerObserverEvents.NewWebrtcServer"/> - (webRtcServer: WebRtcServer)</para>
     /// <para>@emits <see cref="WorkerObserverEvents.NewRouter"/> - (router: Router)</para>
     /// </summary>
-    public Worker(WorkerSettings<TWorkerAppData> workerSettings)
+    public WorkerImpl(WorkerSettings<TWorkerAppData> workerSettings)
     {
         AppData = workerSettings.AppData ?? new();
 
@@ -518,7 +377,7 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
     /// Create a WebRtcServer.
     /// </summary>
     /// <returns>WebRtcServer</returns>
-    public async Task<WebRtcServer<TWebRtcServerAppData>> CreateWebRtcServerAsync<TWebRtcServerAppData>(
+    public async Task<WebRtcServerImpl<TWebRtcServerAppData>> CreateWebRtcServerAsync<TWebRtcServerAppData>(
         WebRtcServerOptions<TWebRtcServerAppData> webRtcServerOptions)
         where TWebRtcServerAppData : new()
     {
@@ -563,7 +422,7 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
                 createWebRtcServerRequestOffset.Value
             );
 
-            var webRtcServer = new WebRtcServer<TWebRtcServerAppData>(
+            var webRtcServer = new WebRtcServerImpl<TWebRtcServerAppData>(
                 new WebRtcServerInternal { WebRtcServerId = webRtcServerId },
                 channel,
                 webRtcServerOptions.AppData
@@ -597,7 +456,7 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
     /// Create a Router.
     /// </summary>
     /// <returns>Router</returns>
-    public async Task<Router<TRouterAppData>> CreateRouterAsync<TRouterAppData>(
+    public async Task<RouterImpl<TRouterAppData>> CreateRouterAsync<TRouterAppData>(
         RouterOptions<TRouterAppData> routerOptions)
         where TRouterAppData : new()
     {
@@ -629,7 +488,7 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
                 Body.Worker_CreateRouterRequest,
                 createRouterRequestOffset.Value);
 
-            var router = new Router<TRouterAppData>(
+            var router = new RouterImpl<TRouterAppData>(
                 new RouterInternal
                 {
                     RouterId = routerId
@@ -678,7 +537,7 @@ public class Worker<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IWorke
         disposedValue = true;
     }
 
-    ~Worker() => Dispose(false);
+    ~WorkerImpl() => Dispose(false);
 
     // 添加此代码以正确实现可处置模式。
     public void Dispose()

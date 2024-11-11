@@ -13,7 +13,7 @@ using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Primitives;
 using Room = Antelcat.MediasoupSharp.Demo.Lib.Room;
 
-List<Worker<TWorkerAppData>>     mediasoupWorkers       = [];
+List<WorkerImpl<TWorkerAppData>>     mediasoupWorkers       = [];
 Dictionary<string, Room>         rooms                  = [];
 var                              nextMediasoupWorkerIdx = 0;
 WebSocketServer                  protooWebSocketServer;
@@ -331,7 +331,7 @@ void RunProtooWebSocketServer()
 }
 
 //Get next mediasoup Worker.
-Worker<TWorkerAppData> GetMediasoupWorker()
+WorkerImpl<TWorkerAppData> GetMediasoupWorker()
 {
     var worker = mediasoupWorkers[nextMediasoupWorkerIdx];
 

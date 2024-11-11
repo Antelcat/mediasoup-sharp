@@ -4,51 +4,19 @@ using Microsoft.Extensions.Logging;
 
 namespace Antelcat.MediasoupSharp;
 
-using ActiveSpeakerObserverObserver = EnhancedEventEmitter<ActiveSpeakerObserverObserverEvents>;
-
-public class ActiveSpeakerObserverOptions<TActiveSpeakerObserverAppData>
-{
-    /// <summary>
-    /// Interval in ms for checking audio volumes. Default 300.
-    /// </summary>
-    public ushort Interval { get; set; } = 300;
-
-    /// <summary>
-    /// Custom application data.
-    /// </summary>
-    public TActiveSpeakerObserverAppData? AppData { get; set; }
-}
-
-public class ActiveSpeakerObserverDominantSpeaker
-{
-    /// <summary>
-    /// The producer instance.
-    /// </summary>
-    public IProducer? Producer { get; init; }
-}
-
-public abstract class ActiveSpeakerObserverEvents : RtpObserverEvents
-{
-    public required ActiveSpeakerObserverDominantSpeaker DominantSpeaker;
-}
-
-public abstract class ActiveSpeakerObserverObserverEvents : RtpObserverObserverEvents
-{
-    public required ActiveSpeakerObserverDominantSpeaker DominantSpeaker;
-}
-
-public class RtpObserverObserverConstructorOptions<TActiveSpeakerObserverAppData> :
-    RtpObserverConstructorOptions<TActiveSpeakerObserverAppData>;
-
-[AutoExtractInterface]
-public class ActiveSpeakerObserver<TActiveSpeakerObserverAppData>
-    : RtpObserver<TActiveSpeakerObserverAppData, ActiveSpeakerObserverEvents, ActiveSpeakerObserverObserver>, IActiveSpeakerObserver
-    where TActiveSpeakerObserverAppData :  new()
+[AutoExtractInterface(NamingTemplate = nameof(IActiveSpeakerObserver))]
+public class ActiveSpeakerObserverImpl<TActiveSpeakerObserverAppData>
+    : RtpObserverImpl<
+            TActiveSpeakerObserverAppData,
+            ActiveSpeakerObserverEvents,
+            ActiveSpeakerObserverObserver
+        >, IActiveSpeakerObserver<TActiveSpeakerObserverAppData>
+    where TActiveSpeakerObserverAppData : new()
 {
     /// <summary>
     /// Logger.
     /// </summary>
-    private readonly ILogger logger = new Logger<ActiveSpeakerObserver<TActiveSpeakerObserverAppData>>();
+    private readonly ILogger logger = new Logger<IAudioLevelObserver>();
 
     /// <summary>
     /// <para>Events:</para>
@@ -56,7 +24,7 @@ public class ActiveSpeakerObserver<TActiveSpeakerObserverAppData>
     /// <para>Observer events:</para>
     /// <para>@emits <see cref="ActiveSpeakerObserverObserverEvents.DominantSpeaker"/></para>
     /// </summary>
-    public ActiveSpeakerObserver(RtpObserverObserverConstructorOptions<TActiveSpeakerObserverAppData> options)
+    public ActiveSpeakerObserverImpl(RtpObserverObserverConstructorOptions<TActiveSpeakerObserverAppData> options)
         : base(options, new())
     {
     }

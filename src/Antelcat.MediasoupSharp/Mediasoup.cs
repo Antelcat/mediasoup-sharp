@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Antelcat.MediasoupSharp;
 
-using Observer = EnhancedEventEmitter<ObserverEvents>;
+using Observer = IEnhancedEventEmitter<ObserverEvents>;
 
 public abstract class ObserverEvents
 {
@@ -28,12 +28,12 @@ public partial class Mediasoup
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public static Observer Observer { get; } = new();
+    public static Observer Observer { get; } = new EnhancedEventEmitter<ObserverEvents>();
 
-    public static Task<Worker<TWorkerAppData>>[] CreateWorkers<TWorkerAppData>(
+    public static Task<WorkerImpl<TWorkerAppData>>[] CreateWorkers<TWorkerAppData>(
         WorkerSettings<TWorkerAppData> settings, int numWorkers) where TWorkerAppData : new()
     {
-        var sources = new TaskCompletionSource<Worker<TWorkerAppData>>[numWorkers];
+        var sources = new TaskCompletionSource<WorkerImpl<TWorkerAppData>>[numWorkers];
 
         var index = 0;
         
@@ -43,7 +43,7 @@ public partial class Mediasoup
         {
             for (var i = 0; i < numWorkers; i++)
             {
-                var worker = new Worker<TWorkerAppData>(settings);
+                var worker = new WorkerImpl<TWorkerAppData>(settings);
                 worker.On(static x => x.success, async _ =>
                     {
                         Observer.Emit(static x => x.NewWorker, worker);

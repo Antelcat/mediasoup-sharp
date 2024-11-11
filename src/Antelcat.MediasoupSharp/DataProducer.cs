@@ -10,57 +10,6 @@ using Microsoft.VisualStudio.Threading;
 
 namespace Antelcat.MediasoupSharp;
 
-using DataProducerObserver = EnhancedEventEmitter<DataProducerObserverEvents>;
-
-public class DataProducerOptions<TDataProducerAppData>
-{
-    /// <summary>
-    /// DataProducer id (just for Router.pipeToRouter() method).
-    /// </summary>
-    public string? Id { get; set; }
-
-    /// <summary>
-    /// SCTP parameters defining how the endpoint is sending the data.
-    /// </summary>
-    public SctpStreamParameters? SctpStreamParameters { get; set; }
-
-    /// <summary>
-    /// A label which can be used to distinguish this DataChannel from others.
-    /// </summary>
-    public string? Label { get; set; }
-
-    /// <summary>
-    /// Name of the sub-protocol used by this DataChannel.
-    /// </summary>
-    public string? Protocol { get; set; }
-
-    /// <summary>
-    /// Whether the data producer must start in paused mode. Default false.
-    /// </summary>
-    public bool Paused { get; set; }
-
-    /// <summary>
-    /// Custom application data.
-    /// </summary>
-    public TDataProducerAppData? AppData { get; set; }
-}
-
-public abstract class DataProducerEvents
-{
-    public object? TransportClose;
-
-    public (string, Exception) ListenerError;
-
-    // Private events.
-    internal object? close;
-}
-
-public abstract class DataProducerObserverEvents
-{
-    public object? Close;
-    public object? Pause;
-    public object? Resume;
-}
 
 public class DataProducerInternal : TransportInternal
 {
@@ -90,14 +39,16 @@ public class DataProducerData
     public required string Protocol { get; init; }
 }
 
-[AutoExtractInterface]
-public class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataProducerEvents>, IDataProducer
+[AutoExtractInterface(NamingTemplate = nameof(IDataProducer))]
+public class DataProducerImpl<TDataProducerAppData> 
+    : EnhancedEventEmitter<DataProducerEvents>, 
+        IDataProducer<TDataProducerAppData>
     where TDataProducerAppData : new()
 {
     /// <summary>
     /// Logger.
     /// </summary>
-    private readonly ILogger logger = new Logger<DataProducer<TDataProducerAppData>>();
+    private readonly ILogger logger = new Logger<IDataProducer>();
 
     /// <summary>
     /// Close flag.
@@ -134,7 +85,7 @@ public class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataProdu
     /// <summary>
     /// App custom data.
     /// </summary>
-    public TDataProducerAppData AppData { get; }
+    public TDataProducerAppData AppData { get; set; }
 
     /// <summary>
     /// Observer instance.
@@ -148,7 +99,7 @@ public class DataProducer<TDataProducerAppData> : EnhancedEventEmitter<DataProdu
     /// <para>Observer events:</para>
     /// <para>@emits <see cref="DataProducerObserverEvents.Close"/></para>
     /// </summary>
-    public DataProducer(
+    public DataProducerImpl(
         DataProducerInternal @internal,
         DataProducerData data,
         IChannel channel,

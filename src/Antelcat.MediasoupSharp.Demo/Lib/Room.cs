@@ -40,9 +40,9 @@ public class Room : EventEmitter
     private readonly Dictionary<string, Broadcaster> broadcasters = [];
 
     private readonly IWebRtcServer                         webRtcServer;
-    private readonly Router<TWorkerAppData>                mediasoupRouter;
+    private readonly RouterImpl<TWorkerAppData>                mediasoupRouter;
     private readonly AudioLevelObserver<TWorkerAppData>    audioLevelObserver;
-    private readonly ActiveSpeakerObserver<TWorkerAppData> activeSpeakerObserver;
+    private readonly ActiveSpeakerObserverImpl<TWorkerAppData> activeSpeakerObserver;
     private readonly Bot<TWorkerAppData>                   bot;
     private readonly int                                   consumerReplicas;
     private          bool                                  networkThrottled;
@@ -50,7 +50,7 @@ public class Room : EventEmitter
     public static async Task<Room> CreateAsync(
         ILoggerFactory loggerFactory,
         MediasoupOptions<TWorkerAppData> options,
-        Worker<TWorkerAppData> mediasoupWorkerProcess,
+        WorkerImpl<TWorkerAppData> mediasoupWorkerProcess,
         string roomId,
         int consumerReplicas)
     {
@@ -84,7 +84,7 @@ public class Room : EventEmitter
             roomId,
             protooRoom,
             options,
-            webRtcServer: mediasoupWorkerProcess.AppData[nameof(webRtcServer)] as WebRtcServer<TWorkerAppData> 
+            webRtcServer: mediasoupWorkerProcess.AppData[nameof(webRtcServer)] as WebRtcServerImpl<TWorkerAppData> 
                           ?? throw new ArgumentNullException(),
             mediasoupRouter,
             audioLevelObserver,
@@ -98,10 +98,10 @@ public class Room : EventEmitter
                 string roomId,
                 Antelcat.AspNetCore.ProtooSharp.Room protooRoom,
                 MediasoupOptions<TWorkerAppData> options,
-                WebRtcServer<TWorkerAppData> webRtcServer,
-                Router<TWorkerAppData> mediasoupRouter,
+                WebRtcServerImpl<TWorkerAppData> webRtcServer,
+                RouterImpl<TWorkerAppData> mediasoupRouter,
                 AudioLevelObserver<TWorkerAppData> audioLevelObserver,
-                ActiveSpeakerObserver<TWorkerAppData> activeSpeakerObserver,
+                ActiveSpeakerObserverImpl<TWorkerAppData> activeSpeakerObserver,
                 int consumerReplicas,
                 Bot<TWorkerAppData> bot)
     {
@@ -1540,7 +1540,7 @@ public class Room : EventEmitter
             .Peers
             .Where(x => x.Data().Joined && (excludePeer is null || x != excludePeer));
 
-    private async Task CreateConsumerAsync(Peer consumerPeer, string producerPeerId, Producer<TWorkerAppData> producer)
+    private async Task CreateConsumerAsync(Peer consumerPeer, string producerPeerId, ProducerImpl<TWorkerAppData> producer)
     {
         // Optimization:
         // - Create the server-side Consumer in paused mode.
@@ -1581,7 +1581,7 @@ public class Room : EventEmitter
             tasks.Add(Task.Run(async () =>
                 {
                     // Create the Consumer in paused mode.
-                    Consumer<TWorkerAppData>? consumer;
+                    ConsumerImpl<TWorkerAppData>? consumer;
 
                     try
                     {
@@ -1718,7 +1718,7 @@ public class Room : EventEmitter
     private async Task CreateDataConsumerAsync(
         Peer dataConsumerPeer,
         string? dataProducerPeerId, // This is null for the bot DataProducer.
-        DataProducer<TWorkerAppData> dataProducer)
+        DataProducerImpl<TWorkerAppData> dataProducer)
     {
         // NOTE: Don't create the DataConsumer if the remote Peer cannot consume it.
         if (dataConsumerPeer.Data().SctpCapabilities == null)
@@ -1737,7 +1737,7 @@ public class Room : EventEmitter
         }
 
         // Create the DataConsumer.
-        DataConsumer<TWorkerAppData> dataConsumer;
+        DataConsumerImpl<TWorkerAppData> dataConsumer;
 
         try
         {
@@ -1810,10 +1810,10 @@ public class Room : EventEmitter
         public required DeviceR                                          Device          { get; set; }
         public          RtpCapabilities?                                 RtpCapabilities { get; set; }
         public          Dictionary<string, ITransport>                   Transports      { get; init; } = [];
-        public          Dictionary<string, Producer<TWorkerAppData>>     Producers       { get; init; } = [];
-        public          Dictionary<string, Consumer<TWorkerAppData>>     Consumers       { get; init; } = [];
-        public          Dictionary<string, DataProducer<TWorkerAppData>> DataProducers   { get; init; } = [];
-        public          Dictionary<string, DataConsumer<TWorkerAppData>> DataConsumers   { get; init; } = [];
+        public          Dictionary<string, ProducerImpl<TWorkerAppData>>     Producers       { get; init; } = [];
+        public          Dictionary<string, ConsumerImpl<TWorkerAppData>>     Consumers       { get; init; } = [];
+        public          Dictionary<string, DataProducerImpl<TWorkerAppData>> DataProducers   { get; init; } = [];
+        public          Dictionary<string, DataConsumerImpl<TWorkerAppData>> DataConsumers   { get; init; } = [];
     }
 
     internal class PeerData : BroadcasterData
@@ -1832,10 +1832,10 @@ file static class PeerExtensions
 
     public static TWorkerAppData AppData(this ITransport transport) => transport switch
     {
-        PlainTransport<TWorkerAppData> plainTransport  => plainTransport.AppData,
-        WebRtcTransport<TWorkerAppData> plainTransport => plainTransport.AppData,
-        DirectTransport<TWorkerAppData> plainTransport => plainTransport.AppData,
-        PipeTransport<TWorkerAppData> plainTransport   => plainTransport.AppData,
+        PlainTransportImpl<TWorkerAppData> plainTransport  => plainTransport.AppData,
+        WebRtcTransportImpl<TWorkerAppData> plainTransport => plainTransport.AppData,
+        DirectTransportImpl<TWorkerAppData> plainTransport => plainTransport.AppData,
+        PipeTransportImpl<TWorkerAppData> plainTransport   => plainTransport.AppData,
         _                                              => throw new ArgumentOutOfRangeException(nameof(transport))
     };
 }

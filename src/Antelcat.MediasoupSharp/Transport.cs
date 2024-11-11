@@ -1,7 +1,6 @@
 ﻿using System.Reflection;
 using Antelcat.AutoGen.ComponentModel.Diagnostic;
 using Antelcat.MediasoupSharp.Internals.Extensions;
-using FBS.Common;
 using FBS.DirectTransport;
 using FBS.Request;
 using FBS.SctpAssociation;
@@ -11,35 +10,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
 
 namespace Antelcat.MediasoupSharp;
-
-using TransportObserver = IEnhancedEventEmitter<TransportObserverEvents>;
-
-public abstract class TransportEvents
-{
-    public          object?            RouterClose;
-    public          object?            ListenServerClose;
-    public required TraceNotificationT Trace;
-
-    public (string, Exception)? ListenerError;
-
-    // Private events.
-    internal object?       close;
-    internal IProducer     newProducer;
-    internal IProducer     producerClose;
-    internal IDataProducer newDataProducer;
-    internal IDataProducer dataProducerClose;
-    internal object?       listenServerClose;
-}
-
-public abstract class TransportObserverEvents
-{
-    public          object?            Close;
-    public required IProducer          NewProducer;
-    public required IConsumer          NewConsumer;
-    public required IDataProducer      NewDataProducer;
-    public required IDataConsumer      NewDataConsumer;
-    public required TraceNotificationT Trace;
-}
 
 public class TransportConstructorOptions<TTransportAppData>(TransportBaseData data)
 {
@@ -90,7 +60,13 @@ public partial class TransportBaseData
 }
 
 [AutoExtractInterface(Interfaces = [typeof(IEnhancedEventEmitter<TransportEvents>)])]
-public abstract class Transport<TTransportAppData, TEvents, TObserver> : EnhancedEventEmitter<TEvents>, ITransport
+public abstract class Transport<TTransportAppData, TEvents, TObserver> 
+    : EnhancedEventEmitter<TEvents>, 
+        ITransport<
+            TTransportAppData, 
+            TEvents, 
+            TObserver
+        >
     where TTransportAppData : new()
     where TEvents : TransportEvents
     where TObserver : TransportObserver
@@ -101,7 +77,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
     /// <summary>
     /// Logger.
     /// </summary>
-    private readonly ILogger logger = new Logger<Transport<TTransportAppData, TEvents, TObserver>>();
+    private readonly ILogger logger = new Logger<IWebRtcTransport>();
 
     /// <summary>
     /// Whether the Transport is closed.
@@ -136,7 +112,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
     /// <summary>
     /// App custom data.
     /// </summary>
-    public TTransportAppData AppData { get; }
+    public TTransportAppData AppData { get; set; }
 
     /// <summary>
     /// Method to retrieve Router RTP capabilities.
@@ -220,7 +196,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
     /// <summary>
     /// Observer instance.
     /// </summary>
-    public virtual TransportObserver Observer { get; }
+    public virtual TObserver Observer { get; }
 
     /// <summary>
     /// <para>Events:</para>
@@ -630,7 +606,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
     /// <summary>
     /// Create a Producer.
     /// </summary>
-    public virtual async Task<Producer<TProducerAppData>> ProduceAsync<TProducerAppData>(
+    public virtual async Task<ProducerImpl<TProducerAppData>> ProduceAsync<TProducerAppData>(
         ProducerOptions<TProducerAppData> producerOptions)
         where TProducerAppData : new()
     {
@@ -728,7 +704,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 ConsumableRtpParameters = consumableRtpParameters
             };
 
-            var producer = new Producer<TProducerAppData>(
+            var producer = new ProducerImpl<TProducerAppData>(
                 new ProducerInternal
                 {
                     RouterId    = Internal.RouterId,
@@ -787,7 +763,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
     /// <summary>
     /// Create a Consumer.
     /// </summary>
-    public virtual async Task<Consumer<TConsumeAppData>> ConsumeAsync<TConsumeAppData>(
+    public virtual async Task<ConsumerImpl<TConsumeAppData>> ConsumeAsync<TConsumeAppData>(
         ConsumerOptions<TConsumeAppData> consumerOptions)
         where TConsumeAppData : new()
     {
@@ -888,7 +864,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 Type          = producer.Data.Type
             };
 
-            var consumer = new Consumer<TConsumeAppData>(
+            var consumer = new ConsumerImpl<TConsumeAppData>(
                 new ConsumerInternal
                 {
                     RouterId    = Internal.RouterId,
@@ -965,7 +941,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
     /// <summary>
     /// Create a DataProducer.
     /// </summary>
-    public async Task<DataProducer<TDataProducerAppData>> ProduceDataAsync<TDataProducerAppData>(
+    public async Task<DataProducerImpl<TDataProducerAppData>> ProduceDataAsync<TDataProducerAppData>(
         DataProducerOptions<TDataProducerAppData> dataProducerOptions)
         where TDataProducerAppData : new()
     {
@@ -1047,7 +1023,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 Protocol             = data.Protocol.NotNull()
             };
 
-            var dataProducer = new DataProducer<TDataProducerAppData>(
+            var dataProducer = new DataProducerImpl<TDataProducerAppData>(
                 new DataProducerInternal
                 {
                     RouterId       = Internal.RouterId,
@@ -1107,7 +1083,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
     /// <summary>
     /// Create a DataConsumer.
     /// </summary>
-    public async Task<DataConsumer<TDataConsumerAppData>> ConsumeDataAsync<TDataConsumerAppData>(
+    public async Task<DataConsumerImpl<TDataConsumerAppData>> ConsumeDataAsync<TDataConsumerAppData>(
         DataConsumerOptions<TDataConsumerAppData> dataConsumerOptions)
         where TDataConsumerAppData : new()
     {
@@ -1224,7 +1200,7 @@ public abstract class Transport<TTransportAppData, TEvents, TObserver> : Enhance
                 BufferedAmountLowThreshold = data.BufferedAmountLowThreshold
             };
 
-            var dataConsumer = new DataConsumer<TDataConsumerAppData>(
+            var dataConsumer = new DataConsumerImpl<TDataConsumerAppData>(
                 new DataConsumerInternal
                 {
                     RouterId       = Internal.RouterId,

@@ -12,80 +12,6 @@ using Microsoft.Extensions.Logging;
 
 namespace Antelcat.MediasoupSharp;
 
-using PipeTransportObserver = EnhancedEventEmitter<PipeTransportObserverEvents>;
-
-public class PipeTransportOptions<TPipeTransportAppData>
-{
-    /// <summary>
-    /// Listening Information.
-    /// </summary>
-    public required ListenInfoT ListenInfo { get; set; }
-
-    /// <summary>
-    /// Create a SCTP association. Default false.
-    /// </summary>
-    public bool EnableSctp { get; set; }
-
-    /// <summary>
-    /// SCTP streams number.
-    /// </summary>
-    public NumSctpStreamsT NumSctpStreams { get; set; } = new() { Os = 1024, Mis = 1024 };
-
-    /// <summary>
-    /// Maximum allowed size for SCTP messages sent by DataProducers.
-    /// Default 268435456.
-    /// </summary>
-    public uint MaxSctpMessageSize { get; set; } = 268435456;
-
-    /// <summary>
-    /// Maximum SCTP send buffer used by DataConsumers.
-    /// Default 268435456.
-    /// </summary>
-    public uint SctpSendBufferSize { get; set; } = 268435456;
-
-    /// <summary>
-    /// Enable RTX and NACK for RTP retransmission. Useful if both Routers are
-    /// located in different hosts and there is packet lost in the link. For this
-    /// to work, both PipeTransports must enable this setting. Default false.
-    /// </summary>
-    public bool EnableRtx { get; set; }
-
-    /// <summary>
-    /// Enable SRTP. Useful to protect the RTP and RTCP traffic if both Routers
-    /// are located in different hosts. For this to work, connect() must be called
-    /// with remote SRTP parameters. Default false.
-    /// </summary>
-    public bool EnableSrtp { get; set; }
-
-    /// <summary>
-    /// Custom application data.
-    /// </summary>
-    public TPipeTransportAppData? AppData { get; set; }
-}
-
-public class PipeConsumerOptions<TConsumerAppData>
-{
-    /// <summary>
-    /// The id of the Producer to consume.
-    /// </summary>
-    public required string ProducerId { get; set; }
-
-    /// <summary>
-    /// Custom application data.
-    /// </summary>
-    public TConsumerAppData? AppData { get; set; }
-}
-
-public abstract class PipeTransportEvents : TransportEvents
-{
-    public required SctpState SctpStateChange;
-}
-
-public abstract class PipeTransportObserverEvents : TransportObserverEvents
-{
-    public required SctpState SctpStateChange;
-}
-
 public class PipeTransportConstructorOptions<TPipeTransportAppData>(PipeTransportData data)
     : TransportConstructorOptions<TPipeTransportAppData>(data)
 {
@@ -111,16 +37,22 @@ public partial class PipeTransportData(DumpT dump) : TransportBaseData(dump)
     public SrtpParametersT? SrtpParameters { get; set; }
 }
 
-[AutoExtractInterface(Interfaces = [typeof(ITransport), typeof(IEnhancedEventEmitter<PipeTransportObserver>)],
+[AutoExtractInterface(
+    NamingTemplate = nameof(IPipeTransport),
+    Interfaces = [typeof(ITransport), typeof(IEnhancedEventEmitter<PipeTransportObserver>)],
     Exclude = [nameof(ConsumeAsync)])]
-public class PipeTransport<TPipeTransportAppData>
-    : Transport<TPipeTransportAppData, PipeTransportEvents, PipeTransportObserver>, IPipeTransport
+public class PipeTransportImpl<TPipeTransportAppData>
+    : Transport<
+            TPipeTransportAppData, 
+            PipeTransportEvents, 
+            PipeTransportObserver
+        >, IPipeTransport<TPipeTransportAppData>
     where TPipeTransportAppData : new()
 {
     /// <summary>
     /// Logger.
     /// </summary>
-    private readonly ILogger logger = new Logger<PipeTransport<TPipeTransportAppData>>();
+    private readonly ILogger logger = new Logger<IPipeTransport>();
 
     /// <summary>
     /// PipeTransport data.
@@ -142,7 +74,7 @@ public class PipeTransport<TPipeTransportAppData>
     /// <para>@emits <see cref="PipeTransportObserverEvents.SctpStateChange"/> - (sctpState: SctpState)</para>
     /// <para>@emits <see cref="TransportObserverEvents.Trace"/> - (trace: TransportTraceEventData)</para>
     /// </summary>
-    public PipeTransport(PipeTransportConstructorOptions<TPipeTransportAppData> options)
+    public PipeTransportImpl(PipeTransportConstructorOptions<TPipeTransportAppData> options)
         : base(options, new PipeTransportObserver())
     {
         Data = options.Data;
@@ -235,7 +167,7 @@ public class PipeTransport<TPipeTransportAppData>
     /// Create a Consumer.
     /// </summary>
     /// <param name="consumerOptions">注意：由于强类型的原因，这里使用的是 ConsumerOptions 类而不是 PipConsumerOptions 类</param>
-    public override async Task<Consumer<TConsumerAppData>> ConsumeAsync<TConsumerAppData>(
+    public override async Task<ConsumerImpl<TConsumerAppData>> ConsumeAsync<TConsumerAppData>(
         ConsumerOptions<TConsumerAppData> consumerOptions)
     {
         logger.LogDebug($"{nameof(ConsumeAsync)}()");
@@ -291,7 +223,7 @@ public class PipeTransport<TPipeTransportAppData>
             ProducerScores = []
         };
 
-        var consumer = new Consumer<TConsumerAppData>(
+        var consumer = new ConsumerImpl<TConsumerAppData>(
             new ConsumerInternal
             {
                 RouterId    = Internal.RouterId,

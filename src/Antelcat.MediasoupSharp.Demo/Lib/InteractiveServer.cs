@@ -52,7 +52,7 @@ public class Interactive
                             Interactive.transport = transport;
 
                             Transports.Add(transport.Id, transport);
-                            transport.Observer
+                            (((dynamic)transport).Observer as IEnhancedEventEmitter<TransportObserverEvents>)!
                                 .On(static x => x.Close, () => Transports.Remove(transport.Id))
                                 .On(static x => x.NewProducer, producer =>
                                 {

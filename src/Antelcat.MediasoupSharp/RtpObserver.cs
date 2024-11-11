@@ -1,3 +1,4 @@
+using Antelcat.AutoGen.ComponentModel.Diagnostic;
 using Antelcat.MediasoupSharp.Internals.Extensions;
 using FBS.Notification;
 using FBS.Request;
@@ -6,50 +7,17 @@ using Microsoft.VisualStudio.Threading;
 
 namespace Antelcat.MediasoupSharp;
 
-using RtpObserverObserver = IEnhancedEventEmitter<RtpObserverObserverEvents>;
-
-public abstract class RtpObserverEvents
-{
-    public object? RouterClose;
-
-    public required (string, Exception) ListenerError;
-
-    // Private events.
-    internal object? close;
-}
-
-public abstract class RtpObserverObserverEvents
-{
-    public          object?   Close;
-    public          object?   Pause;
-    public          object?   Resume;
-    public required IProducer AddProducer;
-    public required IProducer RemoveProducer;
-}
-
-public class RtpObserverConstructorOptions<TRtpObserverAppData>
-{
-    public required RtpObserverObserverInternal    Internal        { get; set; }
-    public required IChannel                       Channel         { get; set; }
-    public          TRtpObserverAppData?           AppData         { get; set; }
-    public required Func<string, Task<IProducer?>> GetProducerById { get; set; }
-}
-
-public class RtpObserverObserverInternal : RouterInternal
-{
-    public required string RtpObserverId { get; set; }
-}
-
-public class RtpObserverAddRemoveProducerOptions
-{
-    /// <summary>
-    /// The id of the Producer to be added or removed.
-    /// </summary>
-    public required string ProducerId { get; set; }
-}
-
-public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
-    : EnhancedEventEmitter<TEvents>, IRtpObserver
+[AutoExtractInterface(
+    NamingTemplate = nameof(IRtpObserver),
+    Interfaces = [typeof(IEnhancedEventEmitter<RtpObserverEvents>)])
+]
+public abstract class RtpObserverImpl<TRtpObserverAppData, TEvents, TObserver>
+    : EnhancedEventEmitter<TEvents>, 
+        IRtpObserver<
+            TRtpObserverAppData, 
+            TEvents, 
+            TObserver
+        >
     where TRtpObserverAppData : new()
     where TEvents : RtpObserverEvents
     where TObserver : RtpObserverObserver
@@ -57,7 +25,7 @@ public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
     /// <summary>
     /// Logger.
     /// </summary>
-    private readonly ILogger logger = new Logger<RtpObserver<TRtpObserverAppData, TEvents, TObserver>>();
+    private readonly ILogger logger = new Logger<IRtpObserver>();
 
     /// <summary>
     /// Whether the Producer is closed.
@@ -83,10 +51,14 @@ public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
     /// </summary>
     protected readonly IChannel Channel;
 
+    public string Id     => Internal.RtpObserverId;
+    public bool   Closed => closed;
+    public bool   Paused => paused;
+
     /// <summary>
     /// App custom data.
     /// </summary>
-    public TRtpObserverAppData AppData { get; }
+    public TRtpObserverAppData AppData { get; set; }
 
     /// <summary>
     /// Method to retrieve a Producer.
@@ -109,7 +81,7 @@ public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
     /// <para>@emits <see cref="RtpObserverObserverEvents.AddProducer"/> - (producer: Producer)</para>
     /// <para>@emits <see cref="RtpObserverObserverEvents.RemoveProducer"/> - (producer: Producer)</para>
     /// </summary>
-    protected RtpObserver(
+    protected RtpObserverImpl(
         RtpObserverConstructorOptions<TRtpObserverAppData> options,
         TObserver observer
     )
@@ -161,7 +133,7 @@ public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
             this.Emit(static x => x.close);
 
             // Emit observer event.
-            Observer.Emit(static x=>x.Close);
+            Observer.Emit(static x => x.Close);
         }
     }
 
@@ -187,7 +159,7 @@ public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
             this.Emit(static x => x.RouterClose);
 
             // Emit observer event.
-            Observer.Emit(static x=>x.Close);
+            Observer.Emit(static x => x.Close);
         }
     }
 
@@ -225,7 +197,7 @@ public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
                 // Emit observer event.
                 if (!wasPaused)
                 {
-                    Observer.Emit(static x=>x.Pause);
+                    Observer.Emit(static x => x.Pause);
                 }
             }
             catch (Exception ex)
@@ -273,7 +245,7 @@ public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
                 // Emit observer event.
                 if (wasPaused)
                 {
-                    Observer.Emit(static x=>x.Resume);
+                    Observer.Emit(static x => x.Resume);
                 }
             }
             catch (Exception ex)
@@ -385,11 +357,4 @@ public abstract class RtpObserver<TRtpObserverAppData, TEvents, TObserver>
     }
 
     #endregion Event Handlers
-}
-
-public interface IRtpObserver : IEnhancedEventEmitter<RtpObserverEvents>
-{
-    RtpObserverObserverInternal Internal { get; }
-
-    Task RouterClosedAsync();
 }

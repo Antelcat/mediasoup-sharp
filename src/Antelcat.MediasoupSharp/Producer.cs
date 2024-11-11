@@ -11,64 +11,6 @@ using Type = FBS.RtpParameters.Type;
 
 namespace Antelcat.MediasoupSharp;
 
-using ProducerObserver = EnhancedEventEmitter<ProducerObserverEvents>;
-
-public class ProducerOptions<TProducerAppData>
-{
-    /// <summary>
-    /// Producer id (just for Router.pipeToRouter() method).
-    /// </summary>
-    public string? Id { get; set; }
-
-    /// <summary>
-    /// Media kind ('audio' or 'video').
-    /// </summary>
-    public MediaKind Kind { get; set; }
-
-    /// <summary>
-    /// RTP parameters defining what the endpoint is sending.
-    /// </summary>
-    public required RtpParameters RtpParameters { get; set; }
-
-    /// <summary>
-    /// Whether the producer must start in paused mode. Default false.
-    /// </summary>
-    public bool Paused { get; set; }
-
-    /// <summary>
-    /// Just for video. Time (in ms) before asking the sender for a new key frame
-    /// after having asked a previous one. Default 0.
-    /// </summary>
-    public uint KeyFrameRequestDelay { get; set; }
-
-    /// <summary>
-    /// Custom application data.
-    /// </summary>
-    public TProducerAppData? AppData { get; set; }
-}
-
-public abstract class ProducerEvents
-{
-    public          object?                             TransportClose;
-    public required List<ScoreT>                        Score;
-    public required VideoOrientationChangeNotificationT VideoOrientationChange;
-    public required TraceNotificationT                  Trace;
-
-    public (string, Exception)? ListenerError;
-
-    // Private events.
-    internal object? close;
-}
-
-public abstract class ProducerObserverEvents
-{
-    public object?                              Close;
-    public object?                              Pause;
-    public object?                              Resume;
-    public List<ScoreT>?                        Score;
-    public VideoOrientationChangeNotificationT? VideoOrientationChange;
-    public TraceNotificationT?                  Trace;
-}
 
 public class ProducerInternal : TransportInternal
 {
@@ -101,14 +43,15 @@ public class ProducerData
     public required RtpParameters ConsumableRtpParameters { get; init; }
 }
 
-[AutoExtractInterface]
-public class Producer<TProducerAppData> : EnhancedEventEmitter<ProducerEvents>, IProducer
+[AutoExtractInterface(NamingTemplate = nameof(IProducer))]
+public class ProducerImpl<TProducerAppData> 
+    : EnhancedEventEmitter<ProducerEvents>, IProducer<TProducerAppData>
     where TProducerAppData : new()
 {
     /// <summary>
     /// Logger
     /// </summary>
-    private readonly ILogger logger = new Logger<Producer<TProducerAppData>>();
+    private readonly ILogger logger = new Logger<ProducerImpl<TProducerAppData>>();
 
     /// <summary>
     /// Producer id.
@@ -159,7 +102,7 @@ public class Producer<TProducerAppData> : EnhancedEventEmitter<ProducerEvents>, 
     /// <summary>
     /// App custom data.
     /// </summary>
-    public TProducerAppData AppData { get; }
+    public TProducerAppData AppData { get; set; }
 
     /// <summary>
     /// [扩展]Consumers
@@ -196,7 +139,7 @@ public class Producer<TProducerAppData> : EnhancedEventEmitter<ProducerEvents>, 
     /// <para>@emits <see cref="ProducerObserverEvents.VideoOrientationChange"/> - (videoOrientation: ProducerVideoOrientation)</para>
     /// <para>@emits <see cref="ProducerObserverEvents.Trace"/> - (trace: ProducerTraceEventData)</para>
     /// </summary>
-    public Producer(
+    public ProducerImpl(
         ProducerInternal @internal,
         ProducerData data,
         IChannel channel,

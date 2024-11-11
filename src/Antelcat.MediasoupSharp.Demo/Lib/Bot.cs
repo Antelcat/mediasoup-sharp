@@ -7,8 +7,8 @@ namespace Antelcat.MediasoupSharp.Demo.Lib;
 
 public class Bot<TWorkerAppData>(
     ILogger logger,
-    DirectTransport<TWorkerAppData> transport,
-    DataProducer<TWorkerAppData> dataProducer)
+    DirectTransportImpl<TWorkerAppData> transport,
+    DataProducerImpl<TWorkerAppData> dataProducer)
     where TWorkerAppData : new()
 {
     public static async Task<Bot<TWorkerAppData>> CreateAsync(ILoggerFactory loggerFactory, IRouter mediasoupRouter)
@@ -28,7 +28,7 @@ public class Bot<TWorkerAppData>(
         return bot;
     }
 
-    public DataProducer<TWorkerAppData> DataProducer => dataProducer;
+    public DataProducerImpl<TWorkerAppData> DataProducer => dataProducer;
 
     public void Close()
     {

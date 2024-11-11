@@ -16,7 +16,7 @@ public static class MediasoupApplicationBuilderExtensions
         return app;
     }
 
-    private static Task<WebRtcServer<T>> CreateWebRtcServerAsync<T>(Worker<T> worker, ushort portIncrement, WebRtcServerOptions<T> defaultWebRtcServerSettings)
+    private static Task<WebRtcServerImpl<T>> CreateWebRtcServerAsync<T>(WorkerImpl<T> worker, ushort portIncrement, WebRtcServerOptions<T> defaultWebRtcServerSettings)
     where T : new()
     {
         var webRtcServerSettings = defaultWebRtcServerSettings.DeepClone();

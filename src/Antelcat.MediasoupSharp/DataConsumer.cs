@@ -9,80 +9,6 @@ using Microsoft.VisualStudio.Threading;
 
 namespace Antelcat.MediasoupSharp;
 
-using DataConsumerObserver = EnhancedEventEmitter<DataConsumerObserverEvents>;
-
-public class DataConsumerOptions<TDataConsumerAppData>
-{
-    /// <summary>
-    /// The id of the DataProducer to consume.
-    /// </summary>
-    public required string DataProducerId { get; set; }
-
-    /// <summary>
-    /// Just if consuming over SCTP.
-    /// Whether data messages must be received in order. If true the messages will
-    /// be sent reliably. Defaults to the value in the DataProducer if it has type
-    /// 'sctp' or to true if it has type 'direct'.
-    /// </summary>
-    public bool? Ordered { get; set; }
-
-    /// <summary>
-    /// Just if consuming over SCTP.
-    /// When ordered is false indicates the time (in milliseconds) after which a
-    /// SCTP packet will stop being retransmitted. Defaults to the value in the
-    /// DataProducer if it has type 'sctp' or unset if it has type 'direct'.
-    /// </summary>
-    public int? MaxPacketLifeTime { get; set; }
-
-    /// <summary>
-    /// Just if consuming over SCTP.
-    /// When ordered is false indicates the maximum number of times a packet will
-    /// be retransmitted. Defaults to the value in the DataProducer if it has type
-    /// 'sctp' or unset if it has type 'direct'.
-    /// </summary>
-    public int? MaxRetransmits { get; set; }
-
-    /// <summary>
-    /// Whether the data consumer must start in paused mode. Default false.
-    /// </summary>
-    /// <value></value>
-    public bool Paused { get; set; }
-
-    /**
-     * Subchannels this data consumer initially subscribes to.
-     * Only used in case this data consumer receives messages from a local data
-     * producer that specifies subchannel(s) when calling send().
-     */
-    public List<ushort>? Subchannels { get; set; }
-
-    /// <summary>
-    /// Custom application data.
-    /// </summary>
-    public TDataConsumerAppData? AppData { get; set; }
-}
-
-public abstract class DataConsumerEvents
-{
-    public          object?              TransportClose;
-    public          object?              DataProducerClose;
-    public          object?              DataProducerPause;
-    public          object?              DataProducerResume;
-    public required MessageNotificationT Message;
-    public          object?              SctpSendBufferFull;
-    public          uint                 BufferedAmountLow;
-    public          (string, Exception)  ListenerError;
-
-    // Private events.
-    internal object? close;
-    internal object? dataProducerClose;
-}
-
-public abstract class DataConsumerObserverEvents
-{
-    public object? Close;
-    public object? Pause;
-    public object? Resume;
-}
 
 public class DataConsumerInternal : TransportInternal
 {
@@ -120,15 +46,15 @@ public class DataConsumerData
 }
 
 
-[AutoExtractInterface]
-public class DataConsumer<TDataConsumerAppData>
-    : EnhancedEventEmitter<DataConsumerEvents>, IDataConsumer
+[AutoExtractInterface(NamingTemplate = nameof(IDataConsumer))]
+public class DataConsumerImpl<TDataConsumerAppData>
+    : EnhancedEventEmitter<DataConsumerEvents>, IDataConsumer<TDataConsumerAppData>
     where TDataConsumerAppData : new()
 {
     /// <summary>
     /// Logger.
     /// </summary>
-    private readonly ILogger logger = new Logger<DataConsumer<TDataConsumerAppData>>();
+    private readonly ILogger logger = new Logger<IDataConsumer>();
 
     /// <summary>
     /// Internal data.
@@ -175,7 +101,7 @@ public class DataConsumer<TDataConsumerAppData>
     /// <summary>
     /// App custom data.
     /// </summary>
-    public TDataConsumerAppData AppData { get; }
+    public TDataConsumerAppData AppData { get; set; }
 
     /// <summary>
     /// Observer instance.
@@ -196,7 +122,7 @@ public class DataConsumer<TDataConsumerAppData>
     /// <para>@emits <see cref="DataConsumerObserverEvents.Pause"/></para>
     /// <para>@emits <see cref="DataConsumerObserverEvents.Resume"/></para>
     /// </summary>
-    public DataConsumer(
+    public DataConsumerImpl(
         DataConsumerInternal @internal,
         DataConsumerData data,
         IChannel channel,

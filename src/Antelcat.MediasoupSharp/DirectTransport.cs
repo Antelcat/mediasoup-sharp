@@ -7,45 +7,25 @@ using Microsoft.Extensions.Logging;
 
 namespace Antelcat.MediasoupSharp;
 
-using DirectTransportObserver = EnhancedEventEmitter<DirectTransportObserverEvents>;
-
-public class DirectTransportOptions<TDirectTransportAppData>
-{
-    /// <summary>
-    /// Maximum allowed size for direct messages sent from DataProducers.
-    /// Default 262144.
-    /// </summary>
-    public uint MaxMessageSize { get; set; } = 262144;
-
-    /// <summary>
-    /// Custom application data.
-    /// </summary>
-    public TDirectTransportAppData? AppData { get; set; }
-}
-
-public abstract class DirectTransportEvents : TransportEvents
-{
-    public required List<byte> Rtcp;
-}
-
-public abstract class DirectTransportObserverEvents : TransportObserverEvents
-{
-    public required List<byte> Rtcp;
-}
-
 public class DirectTransportConstructorOptions<TDirectTransportAppData>(TransportBaseData data)
     : TransportConstructorOptions<TDirectTransportAppData>(data);
 
-
-[AutoExtractInterface(Interfaces = [typeof(ITransport)], Exclude = [nameof(ProduceAsync)])]
-public class DirectTransport<TDirectTransportAppData>
-    : Transport<TDirectTransportAppData, DirectTransportEvents, DirectTransportObserver>, IDirectTransport
+[AutoExtractInterface(
+    NamingTemplate = nameof(IDirectTransport),
+    Interfaces = [typeof(ITransport)],
+    Exclude = [nameof(ProduceAsync)])]
+public class DirectTransportImpl<TDirectTransportAppData>
+    : Transport<
+            TDirectTransportAppData, 
+            DirectTransportEvents, 
+            DirectTransportObserver
+        >, IDirectTransport<TDirectTransportAppData>
     where TDirectTransportAppData : new()
 {
     /// <summary>
     /// Logger.
     /// </summary>
-    private readonly ILogger logger = new Logger<DirectTransport<TDirectTransportAppData>>();
+    private readonly ILogger logger = new Logger<IDirectTransport>();
 
     /// <summary>
     /// <para>Events:</para>
@@ -57,7 +37,7 @@ public class DirectTransport<TDirectTransportAppData>
     /// <para>@emits <see cref="TransportObserverEvents.NewDataConsumer"/> - (dataProducer: DataProducer)</para>
     /// <para>@emits <see cref="TransportObserverEvents.Trace"/> - (trace: TransportTraceEventData)</para>
     /// </summary>
-    public DirectTransport(DirectTransportConstructorOptions<TDirectTransportAppData> options)
+    public DirectTransportImpl(DirectTransportConstructorOptions<TDirectTransportAppData> options)
         : base(options, new DirectTransportObserver())
     {
         HandleWorkerNotifications();
@@ -112,7 +92,8 @@ public class DirectTransport<TDirectTransportAppData>
     /// </summary>
     public override Task<string> SetMaxIncomingBitrateAsync(uint bitrate)
     {
-        logger.LogError($"{nameof(SetMaxIncomingBitrateAsync)}() | DirectTransport:{{TransportId}} Bitrate:{{Bitrate}}", Id, bitrate);
+        logger.LogError($"{nameof(SetMaxIncomingBitrateAsync)}() | DirectTransport:{{TransportId}} Bitrate:{{Bitrate}}",
+            Id, bitrate);
         throw new NotSupportedException($"{nameof(SetMaxIncomingBitrateAsync)}() not implemented in DirectTransport");
     }
 
@@ -121,7 +102,8 @@ public class DirectTransport<TDirectTransportAppData>
     /// </summary>
     public override Task<string> SetMaxOutgoingBitrateAsync(uint bitrate)
     {
-        logger.LogError($"{nameof(SetMaxOutgoingBitrateAsync)}() | DirectTransport:{{TransportId}} Bitrate:{{Bitrate}}", Id, bitrate);
+        logger.LogError($"{nameof(SetMaxOutgoingBitrateAsync)}() | DirectTransport:{{TransportId}} Bitrate:{{Bitrate}}",
+            Id, bitrate);
         throw new NotSupportedException($"{nameof(SetMaxOutgoingBitrateAsync)} is not implemented in DirectTransport");
     }
 
@@ -130,12 +112,13 @@ public class DirectTransport<TDirectTransportAppData>
     /// </summary>
     public override Task<string> SetMinOutgoingBitrateAsync(uint bitrate)
     {
-        logger.LogError($"{nameof(SetMinOutgoingBitrateAsync)}() | DirectTransport:{{TransportId}} Bitrate:{{Bitrate}}", Id,
+        logger.LogError($"{nameof(SetMinOutgoingBitrateAsync)}() | DirectTransport:{{TransportId}} Bitrate:{{Bitrate}}",
+            Id,
             Id);
         throw new NotSupportedException($"{nameof(SetMinOutgoingBitrateAsync)} is not implemented in DirectTransport");
     }
 
-    public override Task<Producer<TProducerAppData>> ProduceAsync<TProducerAppData>(
+    public override Task<ProducerImpl<TProducerAppData>> ProduceAsync<TProducerAppData>(
         ProducerOptions<TProducerAppData> producerOptions)
     {
         logger.LogError($"{nameof(ProduceAsync)}() | DirectTransport:{{TransportId}}", Id);
@@ -191,10 +174,10 @@ public class DirectTransport<TDirectTransportAppData>
             {
                 var traceNotification = notification.BodyAsTransport_TraceNotification().UnPack();
 
-                this.Emit(static x=>x.Trace, traceNotification);
+                this.Emit(static x => x.Trace, traceNotification);
 
                 // Emit observer event.
-                Observer.Emit(static x=>x.Trace, traceNotification);
+                Observer.Emit(static x => x.Trace, traceNotification);
 
                 break;
             }

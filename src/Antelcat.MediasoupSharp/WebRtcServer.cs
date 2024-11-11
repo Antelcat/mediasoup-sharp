@@ -7,51 +7,20 @@ using Microsoft.VisualStudio.Threading;
 
 namespace Antelcat.MediasoupSharp;
 
-using WebRtcServerObserver = EnhancedEventEmitter<WebRtcServerObserverEvents>;
-
-public record WebRtcServerOptions<TWebRtcServerAppData>
-{
-    /// <summary>
-    /// Listen infos.
-    /// </summary>
-    public ListenInfoT[] ListenInfos { get; set; } = [];
-
-    /// <summary>
-    /// Custom application data.
-    /// </summary>
-    public TWebRtcServerAppData? AppData { get; set; }
-}
-
-public abstract class WebRtcServerEvents
-{
-    public object? WorkerClose;
-
-    public (string, Exception) ListenerError;
-
-    // Private events.
-    public object? close;
-}
-
-public abstract class WebRtcServerObserverEvents
-{
-    public          object?          Close;
-    public required IWebRtcTransport WebrtcTransportHandled;
-    public required IWebRtcTransport WebrtcTransportUnhandled;
-}
-
 public class WebRtcServerInternal
 {
     public required string WebRtcServerId { get; set; }
 }
 
-[AutoExtractInterface]
-public class WebRtcServer<TWebRtcServerAppData> : EnhancedEventEmitter<WebRtcServerEvents>, IWebRtcServer
+[AutoExtractInterface(NamingTemplate = nameof(IWebRtcServer))]
+public class WebRtcServerImpl<TWebRtcServerAppData> 
+    : EnhancedEventEmitter<WebRtcServerEvents>, IWebRtcServer<TWebRtcServerAppData>
     where TWebRtcServerAppData : new()
 {
     /// <summary>
     /// Logger.
     /// </summary>
-    private readonly ILogger logger = new Logger<WebRtcServer<TWebRtcServerAppData>>();
+    private readonly ILogger logger = new Logger<IWebRtcTransport>();
 
     #region Internal data.
 
@@ -79,7 +48,7 @@ public class WebRtcServer<TWebRtcServerAppData> : EnhancedEventEmitter<WebRtcSer
     /// <summary>
     /// Custom app data.
     /// </summary>
-    public TWebRtcServerAppData AppData { get; }
+    public TWebRtcServerAppData AppData { get; set; }
 
     /// <summary>
     /// Transports map.
@@ -102,7 +71,7 @@ public class WebRtcServer<TWebRtcServerAppData> : EnhancedEventEmitter<WebRtcSer
     /// <para>@emits <see cref="WebRtcServerObserverEvents.WebrtcTransportHandled"/> - (webRtcTransport: WebRtcTransport)</para>
     /// <para>@emits <see cref="WebRtcServerObserverEvents.WebrtcTransportUnhandled"/> - (webRtcTransport: WebRtcTransport)</para>
     /// </summary>
-    public WebRtcServer(
+    public WebRtcServerImpl(
         WebRtcServerInternal @internal,
         IChannel channel,
         TWebRtcServerAppData? appData)
