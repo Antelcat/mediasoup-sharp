@@ -81,6 +81,7 @@ async Task RunMediasoupWorkersAsync()
 
     var useWebRtcServer = Environment.GetEnvironmentVariable("MEDIASOUP_USE_WEBRTC_SERVER") != "false";
 
+    Console.WriteLine(new AppSerialization().Serialize(options));
     foreach (var task in Mediasoup.CreateWorkers(options.WorkerSettings.NotNull(), options.NumWorkers.NotNull()))
     {
         var worker = await task;
@@ -377,7 +378,8 @@ file class AppSerialization : Serialization
         {
             PropertyNameCaseInsensitive = true,
             PropertyNamingPolicy        = JsonNamingPolicy.CamelCase,
-            DefaultIgnoreCondition      = JsonIgnoreCondition.WhenWritingNull
+            DefaultIgnoreCondition      = JsonIgnoreCondition.WhenWritingNull,
+            WriteIndented = true
         };
         foreach (var converter in Mediasoup.JsonConverters) options.Converters.Add(converter);
     }

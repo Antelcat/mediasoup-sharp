@@ -29,11 +29,12 @@ public static class MediasoupServiceCollectionExtensions
             .AddSingleton<Mediasoup>();
         return services;
     }
-    
+
     private static void Correct<T>(this WorkerSettings<T> options)
     {
         options.Apply(MediasoupOptionsContext<T>.Default.WorkerSettings.NotNull());
     }
+
     private static void Correct<T>(this RouterOptions<T> options)
     {
         foreach (var codec in options.MediaCodecs.Where(static m => m.Parameters != null))
@@ -49,20 +50,23 @@ public static class MediasoupServiceCollectionExtensions
             }
         }
     }
+
     private static void Correct<T>(this WebRtcServerOptions<T> options)
     {
         options.ListenInfos = options.ListenInfos.Correct();
     }
+
     private static void Correct<T>(this WebRtcTransportOptions<T> options)
     {
         options.ListenInfos = options.ListenInfos.Correct();
     }
+
     private static void Correct<T>(this PlainTransportOptions<T> options)
     {
         options.Apply(MediasoupOptionsContext<T>.Default.PlainTransportOptions.NotNull());
         options.ListenInfo.Correct();
     }
-    
+
     private static ListenInfoT[] Correct(this ListenInfoT[] listenInfos)
     {
         foreach (var listenInfo in listenInfos)
@@ -72,9 +76,12 @@ public static class MediasoupServiceCollectionExtensions
 
         if (listenInfos.Length != 0) return listenInfos;
 
-        var create = AddressFamily.InterNetwork.GetLocalIPAddresses()
-            .Where(static m => !Equals(m, IPAddress.Loopback))
-            .Select(x => x.ToString())
+        var create =
+            (Environment.GetEnvironmentVariable("MEDIASOUP_ANNOUNCED_IP") is { } announcedId
+                ? (string[]) [announcedId]
+                : AddressFamily.InterNetwork.GetLocalIPAddresses()
+                    .Where(static m => !Equals(m, IPAddress.Loopback))
+                    .Select(x => x.ToString()))
             .SelectMany(static x => (ListenInfoT[])
             [
                 new ListenInfoT

@@ -76,13 +76,13 @@
                 "protocol": "udp",
                 "ip": "0.0.0.0",
                 "announcedAddress": null,
-                "port": 40044
+                "port": 44444
             },
             {
                 "protocol": "tcp",
                 "ip": "0.0.0.0",
                 "announcedAddress": null,
-                "port": 40044
+                "port": 44444
             }
         ]
     },
