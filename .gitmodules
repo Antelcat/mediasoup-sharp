@@ -2,9 +2,6 @@
 	path = mediasoup
 	url = https://github.com/versatica/mediasoup.git
 	branch = v3
-[submodule "libuv-sharp"]
-	path = libuv-sharp
-	url = https://github.com/Antelcat/libuv-sharp.git
 [submodule "mediasoup-demo"]
 	path = mediasoup-demo
 	url = https://github.com/feast107/mediasoup-demo/
