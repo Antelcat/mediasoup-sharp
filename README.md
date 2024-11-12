@@ -13,6 +13,12 @@ Cutting Edge WebRTC Video Conferencing ported to .NET from [mediasoup](https://g
 + Github : [mediasoup](https://github.com/versatica/mediasoup/)
 + Website : [mediasoup.org](https://mediasoup.org/)
 
+## Dependency
+
++ [Libuv](https://www.nuget.org/packages/Libuv)
+
++ [mediasoup-worker](https://github.com/versatica/mediasoup/releases/latest)
+
 ## Getting Start
 
 Try [Antelcat.MediasoupSharp.Demo](./src/Antelcat.MediasoupSharp.Demo/), which is an ASP.NET server side,
