@@ -13,26 +13,9 @@ namespace Microsoft.Extensions.DependencyInjection;
 
 public static class MediasoupServiceCollectionExtensions
 {
-    public static IServiceCollection AddMediasoup<T>(this IServiceCollection services,
-                                                     Action<MediasoupOptionsContext<T>>? configure = null)
-    {
-        services
-            .AddSingleton<MediasoupOptionsContext<T>>(x =>
-            {
-                var conf = x.GetService<IConfiguration>()?
-                    .GetSection("mediasoup")
-                    .Get<MediasoupOptionsContext<T>>() ?? MediasoupOptionsContext<T>.Default;
-                conf.Correct();
-                configure?.Invoke(conf);
-                return conf;
-            })
-            .AddSingleton<Mediasoup>();
-        return services;
-    }
 
     private static void Correct<T>(this WorkerSettings<T> options)
     {
-        options.Apply(MediasoupOptionsContext<T>.Default.WorkerSettings.NotNull());
     }
 
     private static void Correct<T>(this RouterOptions<T> options)
@@ -63,7 +46,6 @@ public static class MediasoupServiceCollectionExtensions
 
     private static void Correct<T>(this PlainTransportOptions<T> options)
     {
-        options.Apply(MediasoupOptionsContext<T>.Default.PlainTransportOptions.NotNull());
         options.ListenInfo.Correct();
     }
 
@@ -119,13 +101,4 @@ public static class MediasoupServiceCollectionExtensions
                                         ?? throw new OperationCanceledException("Cannot get local ip address");
     }
 
-    public static void Correct<T>(this MediasoupOptionsContext<T> options)
-    {
-        options.NumWorkers ??= Environment.ProcessorCount;
-        options.WorkerSettings?.Correct();
-        options.RouterOptions?.Correct();
-        options.WebRtcServerOptions?.Correct();
-        options.WebRtcTransportOptions?.Correct();
-        options.PlainTransportOptions?.Correct();
-    }
 }

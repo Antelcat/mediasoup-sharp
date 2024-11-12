@@ -18,7 +18,7 @@ internal static class ObjectExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static T NotNull<T>(this T? obj) where T : struct =>
         obj ?? throw new NullReferenceException($"{typeof(T)} is null in {nameof(NotNull)}");
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsStringType(this object o) =>
         o is JsonElement jsonElement
@@ -40,8 +40,10 @@ internal static class ObjectExtensions
     [return: NotNullIfNotNull(nameof(obj))]
     public static T? DeepClone<
         [DynamicallyAccessedMembers(
-            DynamicallyAccessedMemberTypes.PublicConstructors |
-            DynamicallyAccessedMemberTypes.NonPublicConstructors)]
+            DynamicallyAccessedMemberTypes.PublicConstructors    |
+            DynamicallyAccessedMemberTypes.NonPublicConstructors |
+            DynamicallyAccessedMemberTypes.PublicFields          |
+            DynamicallyAccessedMemberTypes.NonPublicFields)]
         T>(this T? obj) => (T?)DeepClone(obj, obj?.GetType());
 
     public static object? DeepClone(this object? obj,
@@ -128,6 +130,7 @@ internal static class ObjectExtensions
             {
                 yield return field;
             }
+
             type = type.BaseType;
         }
     }

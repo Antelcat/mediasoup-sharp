@@ -18,6 +18,8 @@ internal static partial class IPAddressExtensions
     public static IPAddress? GetLocalIPv4IPAddress() => LocalIpV4Address ??= AddressFamily.InterNetwork
         .GetLocalIPAddresses()
         .FirstOrDefault(m => !IPAddress.IsLoopback(m));
+
+    public static string? GetLocalIPv4String() => GetLocalIPv4IPAddress()?.ToString();
     
     private static IPAddress? LocalIpV4Address { get; set; }
 

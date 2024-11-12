@@ -972,7 +972,10 @@ public class Room : EventEmitter
                 });
 
 
-                var maxIncomingBitrate = options.WebRtcTransportOptions.NotNull().MaxIncomingBitrate;
+                var maxIncomingBitrate = (options.WebRtcTransportOptions
+                    as AdditionalWebRtcTransportOptions<TWorkerAppData>)
+                    .NotNull()
+                    .MaxIncomingBitrate;
 
                 // If set, apply max incoming bitrate limit.
                 if (maxIncomingBitrate is not null)

@@ -16,6 +16,7 @@
         <RepositoryUrl>https://github.com/Antelcat/mediasoup-sharp.git</RepositoryUrl>
         <PackageTags>mediasoup;webrtc;meeting;stream;channel</PackageTags>
         <PackageReleaseNotes>mediasoup-sharp</PackageReleaseNotes>
+        <Description>Cutting Edge WebRTC Video Conferencing ported to .NET from https://github.com/versatica/mediasoup/</Description>
     </PropertyGroup>
 
     <ItemGroup>

@@ -13,13 +13,12 @@ using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Primitives;
 using Room = Antelcat.MediasoupSharp.Demo.Lib.Room;
 
-List<WorkerImpl<TWorkerAppData>>     mediasoupWorkers       = [];
+List<WorkerImpl<TWorkerAppData>> mediasoupWorkers       = [];
 Dictionary<string, Room>         rooms                  = [];
 var                              nextMediasoupWorkerIdx = 0;
 WebSocketServer                  protooWebSocketServer;
 AwaitQueue                       queue    = new();
 FileExtensionContentTypeProvider provider = new();
-var                              current  = AppContext.BaseDirectory;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.AddConsole();
@@ -41,9 +40,8 @@ foreach (var converter in Mediasoup.JsonConverters)
     jsonSerializerOptions.Converters.Add(converter);
 }
 
-var options = JsonSerializer.Deserialize<MediasoupOptions<TWorkerAppData>>(
-    File.ReadAllText(Path.Combine(current, "mediasoup.config.json")), jsonSerializerOptions)!;
-options.Correct();
+var options = MediasoupOptions<TWorkerAppData>.Default;
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -54,13 +52,13 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseWebSockets();
 
-await Run();
+await RunAsync();
 
 await app.RunAsync();
 
 return;
 
-async Task Run()
+async Task RunAsync()
 {
     // Open the interactive server.
     Interactive.InteractiveServer();

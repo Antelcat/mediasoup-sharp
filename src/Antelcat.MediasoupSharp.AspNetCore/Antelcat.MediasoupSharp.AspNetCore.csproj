@@ -13,6 +13,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Antelcat.MediasoupSharp\Antelcat.MediasoupSharp.csproj" />
+        <InternalsVisibleTo Include="Antelcat.MediasoupSharp.Demo"/>
     </ItemGroup>
 
     <ItemGroup>
