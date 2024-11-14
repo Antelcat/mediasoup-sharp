@@ -1,8 +1,8 @@
 ﻿global using WebRtcTransportObserver = Antelcat.MediasoupSharp.EnhancedEventEmitter<Antelcat.MediasoupSharp.WebRtcTransportObserverEvents>;
 using Antelcat.AutoGen.ComponentModel;
-using FBS.SctpAssociation;
-using FBS.Transport;
-using FBS.WebRtcTransport;
+using Antelcat.MediasoupSharp.FBS.SctpAssociation;
+using Antelcat.MediasoupSharp.FBS.Transport;
+using Antelcat.MediasoupSharp.FBS.WebRtcTransport;
 
 namespace Antelcat.MediasoupSharp;
 
@@ -21,7 +21,7 @@ public partial record WebRtcTransportOptions<TWebRtcTransportAppData>
     /// Listening IP address or addresses in order of preference (first one is the
     /// preferred one).
     /// </summary>
-    public FBS.Transport.ListenInfoT[] ListenInfos { get; set; } = [];
+    public Antelcat.MediasoupSharp.FBS.Transport.ListenInfoT[] ListenInfos { get; set; } = [];
 }
 
 public record WebRtcTransportOptionsBase<TWebRtcTransportAppData>
@@ -59,7 +59,7 @@ public record WebRtcTransportOptionsBase<TWebRtcTransportAppData>
     /// <summary>
     /// SCTP streams number.
     /// </summary>
-    public FBS.SctpParameters.NumSctpStreamsT? NumSctpStreams { get; set; } = new() { Os = 1024, Mis = 1024 };
+    public Antelcat.MediasoupSharp.FBS.SctpParameters.NumSctpStreamsT? NumSctpStreams { get; set; } = new() { Os = 1024, Mis = 1024 };
 
     /// <summary>
     /// Maximum allowed size for SCTP messages sent by DataProducers.

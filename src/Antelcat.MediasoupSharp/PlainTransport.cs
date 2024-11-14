@@ -1,14 +1,11 @@
-﻿using System.Linq.Expressions;
-using System.Reflection;
+﻿using System.Reflection;
 using Antelcat.AutoGen.ComponentModel.Diagnostic;
 using Antelcat.MediasoupSharp.Internals.Extensions;
-using FBS.Notification;
-using FBS.PlainTransport;
-using FBS.Request;
-using FBS.SctpAssociation;
-using FBS.SctpParameters;
-using FBS.SrtpParameters;
-using FBS.Transport;
+using Antelcat.MediasoupSharp.FBS.Notification;
+using Antelcat.MediasoupSharp.FBS.PlainTransport;
+using Antelcat.MediasoupSharp.FBS.Request;
+using Antelcat.MediasoupSharp.FBS.SrtpParameters;
+using Antelcat.MediasoupSharp.FBS.Transport;
 using Microsoft.Extensions.Logging;
 
 namespace Antelcat.MediasoupSharp;
@@ -21,12 +18,12 @@ public class PlainTransportConstructorOptions<TPlainTransportAppData>(PlainTrans
 
 [AutoMetadataFrom(typeof(PlainTransportData), MemberTypes.Property,
     Leading =
-        $"public static implicit operator {nameof(PlainTransportData)}(global::{nameof(FBS)}.{nameof(FBS.PlainTransport)}.{nameof(DumpResponseT)} source) => new (source.Base){{",
+        $"public static implicit operator {nameof(PlainTransportData)}(global::Antelcat.MediasoupSharp.FBS.PlainTransport.{nameof(DumpResponseT)} source) => new (source.Base){{",
     Template = "{Name} = source.{Name},",
     Trailing = "};")]
 [AutoMetadataFrom(typeof(PlainTransportData), MemberTypes.Property,
     Leading =
-        $"public static implicit operator global::{nameof(FBS)}.{nameof(FBS.PlainTransport)}.{nameof(DumpResponseT)}({nameof(PlainTransportData)} source) => new (){{",
+        $"public static implicit operator global::Antelcat.MediasoupSharp.FBS.PlainTransport.{nameof(DumpResponseT)}({nameof(PlainTransportData)} source) => new (){{",
     Template = "{Name} = source.{Name},",
     Trailing = "Base = source  };")]
 public partial class PlainTransportData(DumpT dump) : TransportBaseData(dump)
@@ -97,7 +94,7 @@ public class PlainTransportImpl<TPlainTransportAppData>
     {
         if (Data.SctpState.HasValue)
         {
-            Data.SctpState = FBS.SctpAssociation.SctpState.CLOSED;
+            Data.SctpState = Antelcat.MediasoupSharp.FBS.SctpAssociation.SctpState.CLOSED;
         }
 
         return Task.CompletedTask;
@@ -150,7 +147,7 @@ public class PlainTransportImpl<TPlainTransportAppData>
 
         if (parameters is not ConnectRequestT connectRequestT)
         {
-            throw new Exception($"{nameof(parameters)} type is not FBS.PlainTransport.ConnectRequestT");
+            throw new Exception($"{nameof(parameters)} type is not Antelcat.MediasoupSharp.FBS.PlainTransport.ConnectRequestT");
         }
 
         // Build Request
@@ -159,7 +156,7 @@ public class PlainTransportImpl<TPlainTransportAppData>
         var connectRequestOffset = ConnectRequest.Pack(bufferBuilder, connectRequestT);
 
         var response = await Channel.RequestAsync(bufferBuilder, Method.PLAINTRANSPORT_CONNECT,
-            FBS.Request.Body.PlainTransport_ConnectRequest,
+            Antelcat.MediasoupSharp.FBS.Request.Body.PlainTransport_ConnectRequest,
             connectRequestOffset.Value,
             Internal.TransportId);
 

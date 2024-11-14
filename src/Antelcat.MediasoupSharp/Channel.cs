@@ -4,11 +4,11 @@ using Antelcat.AutoGen.ComponentModel.Diagnostic;
 using Antelcat.LibuvSharp;
 using Antelcat.MediasoupSharp.Internals.Extensions;
 using Antelcat.NodeSharp.Events;
-using FBS.Log;
-using FBS.Message;
-using FBS.Notification;
-using FBS.Request;
-using FBS.Response;
+using Antelcat.MediasoupSharp.FBS.Log;
+using Antelcat.MediasoupSharp.FBS.Message;
+using Antelcat.MediasoupSharp.FBS.Notification;
+using Antelcat.MediasoupSharp.FBS.Request;
+using Antelcat.MediasoupSharp.FBS.Response;
 using Google.FlatBuffers;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ObjectPool;
@@ -130,7 +130,7 @@ public class Channel : EnhancedEventEmitter, IChannel
 
     #region Events
 
-    public event Action<string, FBS.Notification.Event, FBS.Notification.Notification>? OnNotification;
+    public event Action<string, Antelcat.MediasoupSharp.FBS.Notification.Event, Antelcat.MediasoupSharp.FBS.Notification.Notification>? OnNotification;
 
     #endregion Events
 
@@ -223,8 +223,8 @@ public class Channel : EnhancedEventEmitter, IChannel
         }
     }
 
-    public async Task NotifyAsync(FlatBufferBuilder bufferBuilder, FBS.Notification.Event @event,
-                                  FBS.Notification.Body? bodyType, int? bodyOffset, string? handlerId)
+    public async Task NotifyAsync(FlatBufferBuilder bufferBuilder, Antelcat.MediasoupSharp.FBS.Notification.Event @event,
+                                  Antelcat.MediasoupSharp.FBS.Notification.Body? bodyType, int? bodyOffset, string? handlerId)
     {
         logger.LogDebug($"{nameof(NotifyAsync)}() | Worker[{{WorkId}}] Event:{{Event}}", workerId, @event);
 
@@ -267,8 +267,8 @@ public class Channel : EnhancedEventEmitter, IChannel
         });
     }
 
-    public async Task<FBS.Response.Response?> RequestAsync(FlatBufferBuilder bufferBuilder, FBS.Request.Method method,
-                                                           FBS.Request.Body? bodyType = null, int? bodyOffset = null,
+    public async Task<Antelcat.MediasoupSharp.FBS.Response.Response?> RequestAsync(FlatBufferBuilder bufferBuilder, Antelcat.MediasoupSharp.FBS.Request.Method method,
+                                                           Antelcat.MediasoupSharp.FBS.Request.Body? bodyType = null, int? bodyOffset = null,
                                                            string? handlerId = null)
     {
         logger.LogDebug($"{nameof(RequestAsync)}() | Worker[{{WorkId}}] Method:{{Method}}", workerId, method);
@@ -356,27 +356,27 @@ public class Channel : EnhancedEventEmitter, IChannel
 
     #region Event handles
 
-    public void ProcessMessage(FBS.Message.Message message)
+    public void ProcessMessage(Antelcat.MediasoupSharp.FBS.Message.Message message)
     {
         try
         {
             switch (message.DataType)
             {
-                case FBS.Message.Body.Response:
+                case Antelcat.MediasoupSharp.FBS.Message.Body.Response:
                     ThreadPool.QueueUserWorkItem(_ =>
                     {
                         var response = message.DataAsResponse();
                         ProcessResponse(response);
                     });
                     break;
-                case FBS.Message.Body.Notification:
+                case Antelcat.MediasoupSharp.FBS.Message.Body.Notification:
                     ThreadPool.QueueUserWorkItem(_ =>
                     {
                         var notification = message.DataAsNotification();
                         ProcessNotification(notification);
                     });
                     break;
-                case FBS.Message.Body.Log:
+                case Antelcat.MediasoupSharp.FBS.Message.Body.Log:
                     ThreadPool.QueueUserWorkItem(_ =>
                     {
                         var log = message.DataAsLog();
@@ -504,7 +504,7 @@ public class Channel : EnhancedEventEmitter, IChannel
     private RequestMessage CreateRequestRequestMessage(
         FlatBufferBuilder bufferBuilder,
         Method method,
-        FBS.Request.Body? bodyType,
+        Antelcat.MediasoupSharp.FBS.Request.Body? bodyType,
         int? bodyOffset,
         string? handlerId
     )
@@ -531,7 +531,7 @@ public class Channel : EnhancedEventEmitter, IChannel
             requestOffset = Request.CreateRequest(bufferBuilder, id, method, handlerIdOffset);
         }
 
-        var messageOffset = Message.CreateMessage(bufferBuilder, FBS.Message.Body.Request, requestOffset.Value);
+        var messageOffset = Message.CreateMessage(bufferBuilder, Antelcat.MediasoupSharp.FBS.Message.Body.Request, requestOffset.Value);
 
         // Finalizes the buffer and adds a 4 byte prefix with the size of the buffer.
         bufferBuilder.FinishSizePrefixed(messageOffset.Value);
@@ -563,7 +563,7 @@ public class Channel : EnhancedEventEmitter, IChannel
     private RequestMessage CreateNotificationRequestMessage(
         FlatBufferBuilder bufferBuilder,
         Event @event,
-        FBS.Notification.Body? bodyType,
+        Antelcat.MediasoupSharp.FBS.Notification.Body? bodyType,
         int? bodyOffset,
         string? handlerId
     )
@@ -592,7 +592,7 @@ public class Channel : EnhancedEventEmitter, IChannel
         }
 
         var messageOffset =
-            Message.CreateMessage(bufferBuilder, FBS.Message.Body.Notification, notificationOffset.Value);
+            Message.CreateMessage(bufferBuilder, Antelcat.MediasoupSharp.FBS.Message.Body.Notification, notificationOffset.Value);
 
         // Finalizes the buffer and adds a 4 byte prefix with the size of the buffer.
         bufferBuilder.FinishSizePrefixed(messageOffset.Value);

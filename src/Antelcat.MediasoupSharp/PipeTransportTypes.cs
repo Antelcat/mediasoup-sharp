@@ -1,7 +1,7 @@
 ﻿global using PipeTransportObserver = Antelcat.MediasoupSharp.EnhancedEventEmitter<Antelcat.MediasoupSharp.PipeTransportObserverEvents>;
-using FBS.SctpAssociation;
-using FBS.SctpParameters;
-using FBS.Transport;
+using Antelcat.MediasoupSharp.FBS.SctpAssociation;
+using Antelcat.MediasoupSharp.FBS.SctpParameters;
+using Antelcat.MediasoupSharp.FBS.Transport;
 
 namespace Antelcat.MediasoupSharp;
 

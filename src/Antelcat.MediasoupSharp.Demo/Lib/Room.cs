@@ -5,13 +5,13 @@ using Antelcat.MediasoupSharp.AspNetCore;
 using Antelcat.MediasoupSharp.Demo.Extensions;
 using Antelcat.MediasoupSharp.Internals.Extensions;
 using Antelcat.NodeSharp.Events;
-using FBS.Common;
-using FBS.Consumer;
-using FBS.RtpParameters;
-using FBS.SctpParameters;
-using FBS.Transport;
-using FBS.WebRtcTransport;
-using TraceEventType = FBS.Transport.TraceEventType;
+using Antelcat.MediasoupSharp.FBS.Common;
+using Antelcat.MediasoupSharp.FBS.Consumer;
+using Antelcat.MediasoupSharp.FBS.RtpParameters;
+using Antelcat.MediasoupSharp.FBS.SctpParameters;
+using Antelcat.MediasoupSharp.FBS.Transport;
+using Antelcat.MediasoupSharp.FBS.WebRtcTransport;
+using TraceEventType = Antelcat.MediasoupSharp.FBS.Transport.TraceEventType;
 
 namespace Antelcat.MediasoupSharp.Demo.Lib;
 
@@ -395,7 +395,7 @@ public class Room : EventEmitter
         }
     }
 
-    public async Task<object> CreateBroadcasterTransportAsync(CreateBroadcastTransport request)
+    public async Task<TransportDataR> CreateBroadcasterTransportAsync(CreateBroadcastTransport request)
     {
         var (broadcasterId, type, rtcpMux, comedia, sctpCapabilities) = request;
 
@@ -426,13 +426,13 @@ public class Room : EventEmitter
                 // Store it.
                 broadcaster.Data.Transports.Add(transport.Id, transport);
 
-                return new
+                return new TransportDataR
                 {
-                    id             = transport.Id,
-                    iceParameters  = transport.Data.IceParameters,
-                    iceCandidates  = transport.Data.IceParameters,
-                    dtlsParameters = transport.Data.DtlsParameters,
-                    sctpParameters = (object?)null
+                    Id             = transport.Id,
+                    IceParameters  = transport.Data.IceParameters,
+                    IceCandidates  = transport.Data.IceParameters,
+                    DtlsParameters = transport.Data.DtlsParameters,
+                    SctpParameters = (object?)null
                 };
             }
 
@@ -452,12 +452,12 @@ public class Room : EventEmitter
                 // Store it.
                 broadcaster.Data.Transports.Add(transport.Id, transport);
 
-                return new
+                return new TransportDataR
                 {
-                    id       = transport.Id,
-                    ip       = transport.Data.Tuple.LocalAddress,
-                    port     = transport.Data.Tuple.LocalPort,
-                    rtcpPort = transport.Data.RtcpTuple?.LocalPort
+                    Id       = transport.Id,
+                    Ip       = transport.Data.Tuple.LocalAddress,
+                    Port     = transport.Data.Tuple.LocalPort,
+                    RtcpPort = (ushort?)transport.Data.RtcpTuple?.LocalPort
                 };
             }
 

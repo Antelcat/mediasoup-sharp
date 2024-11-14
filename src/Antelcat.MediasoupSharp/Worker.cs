@@ -2,13 +2,13 @@
 using Antelcat.AutoGen.ComponentModel.Diagnostic;
 using Antelcat.LibuvSharp;
 using Antelcat.MediasoupSharp.Internals.Extensions;
-using FBS.Notification;
-using FBS.Request;
-using FBS.Transport;
-using FBS.Worker;
+using Antelcat.MediasoupSharp.FBS.Notification;
+using Antelcat.MediasoupSharp.FBS.Request;
+using Antelcat.MediasoupSharp.FBS.Transport;
+using Antelcat.MediasoupSharp.FBS.Worker;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
-using Body = FBS.Request.Body;
+using Body = Antelcat.MediasoupSharp.FBS.Request.Body;
 
 namespace Antelcat.MediasoupSharp;
 
@@ -290,7 +290,7 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
     /// <summary>
     /// Dump Worker.
     /// </summary>
-    public async Task<FBS.Worker.DumpResponseT> DumpAsync()
+    public async Task<Antelcat.MediasoupSharp.FBS.Worker.DumpResponseT> DumpAsync()
     {
         Logger.LogDebug("DumpAsync()");
 
@@ -314,7 +314,7 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
     /// <summary>
     /// Get mediasoup-worker process resource usage.
     /// </summary>
-    public async Task<FBS.Worker.ResourceUsageResponseT> GetResourceUsageAsync()
+    public async Task<Antelcat.MediasoupSharp.FBS.Worker.ResourceUsageResponseT> GetResourceUsageAsync()
     {
         Logger.LogDebug("GetResourceUsageAsync()");
 

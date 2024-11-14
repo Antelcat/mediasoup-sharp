@@ -1,8 +1,8 @@
 ﻿global using PlainTransportObserver = Antelcat.MediasoupSharp.EnhancedEventEmitter<Antelcat.MediasoupSharp.PlainTransportObserverEvents>;
-using FBS.SctpAssociation;
-using FBS.SctpParameters;
-using FBS.SrtpParameters;
-using FBS.Transport;
+using Antelcat.MediasoupSharp.FBS.SctpAssociation;
+using Antelcat.MediasoupSharp.FBS.SctpParameters;
+using Antelcat.MediasoupSharp.FBS.SrtpParameters;
+using Antelcat.MediasoupSharp.FBS.Transport;
 
 namespace Antelcat.MediasoupSharp;
 
@@ -66,7 +66,7 @@ public record PlainTransportOptions<TPlainTransportAppData>
     /// The SRTP crypto suite to be used if enableSrtp is set. Default
     /// 'AES_CM_128_HMAC_SHA1_80'.
     /// </summary>
-    public SrtpCryptoSuite? SrtpCryptoSuite { get; set; } = FBS.SrtpParameters.SrtpCryptoSuite.AES_CM_128_HMAC_SHA1_80;
+    public SrtpCryptoSuite? SrtpCryptoSuite { get; set; } = Antelcat.MediasoupSharp.FBS.SrtpParameters.SrtpCryptoSuite.AES_CM_128_HMAC_SHA1_80;
 
     /// <summary>
     /// Custom application data.

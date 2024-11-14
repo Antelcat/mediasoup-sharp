@@ -1,6 +1,5 @@
 using System.Text.Json;
-using Antelcat.MediasoupSharp.Internals.Extensions;
-using FBS.RtpParameters;
+using Antelcat.MediasoupSharp.FBS.RtpParameters;
 
 namespace Antelcat.MediasoupSharp.Internals.Extensions;
 

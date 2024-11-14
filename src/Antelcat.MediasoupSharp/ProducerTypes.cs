@@ -1,6 +1,6 @@
 ﻿global using ProducerObserver = Antelcat.MediasoupSharp.EnhancedEventEmitter<Antelcat.MediasoupSharp.ProducerObserverEvents>;
-using FBS.Producer;
-using FBS.RtpParameters;
+using Antelcat.MediasoupSharp.FBS.Producer;
+using Antelcat.MediasoupSharp.FBS.RtpParameters;
 
 namespace Antelcat.MediasoupSharp;
 

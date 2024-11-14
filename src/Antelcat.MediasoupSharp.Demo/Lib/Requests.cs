@@ -1,7 +1,7 @@
-﻿using FBS.Consumer;
-using FBS.RtpParameters;
-using FBS.SctpParameters;
-using FBS.WebRtcTransport;
+﻿using Antelcat.MediasoupSharp.FBS.Consumer;
+using Antelcat.MediasoupSharp.FBS.RtpParameters;
+using Antelcat.MediasoupSharp.FBS.SctpParameters;
+using Antelcat.MediasoupSharp.FBS.WebRtcTransport;
 
 namespace Antelcat.MediasoupSharp.Demo.Lib;
 

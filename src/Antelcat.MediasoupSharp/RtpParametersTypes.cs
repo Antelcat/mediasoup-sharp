@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 using Antelcat.MediasoupSharp.Internals.Extensions;
-using FBS.RtpParameters;
+using Antelcat.MediasoupSharp.FBS.RtpParameters;
 
 namespace Antelcat.MediasoupSharp;
 
@@ -10,6 +10,7 @@ namespace Antelcat.MediasoupSharp;
 /// media level.
 /// </summary>
 [Serializable]
+[DynamicallyAccessedMembers(ObjectExtensions.CloneMemberTypes)]
 public class RtpCapabilities
 {
     /// <summary>
@@ -657,6 +658,7 @@ public class RtpCapabilities
 }
 
 [Serializable]
+[DynamicallyAccessedMembers(ObjectExtensions.CloneMemberTypes)]
 public class RtpCodecShared
 {
     /// <summary>
@@ -707,6 +709,7 @@ public class RtpCodecShared
 /// </para>
 /// </summary>
 [Serializable]
+[DynamicallyAccessedMembers(ObjectExtensions.CloneMemberTypes)]
 public class RtpCodecCapability : RtpCodecShared
 {
     /// <summary>
@@ -751,6 +754,7 @@ public enum RtpHeaderExtensionDirection
 /// </para>
 /// </summary>
 [Serializable]
+[DynamicallyAccessedMembers(ObjectExtensions.CloneMemberTypes)]
 public class RtpHeaderExtension
 {
     /// <summary>

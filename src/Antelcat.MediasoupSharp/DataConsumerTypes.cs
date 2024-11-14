@@ -1,5 +1,5 @@
 ﻿global using DataConsumerObserver = Antelcat.MediasoupSharp.EnhancedEventEmitter<Antelcat.MediasoupSharp.DataConsumerObserverEvents>;
-using FBS.DataConsumer;
+using Antelcat.MediasoupSharp.FBS.DataConsumer;
 
 namespace Antelcat.MediasoupSharp;
 

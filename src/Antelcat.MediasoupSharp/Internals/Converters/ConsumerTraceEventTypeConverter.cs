@@ -1,4 +1,4 @@
-﻿using FBS.Consumer;
+﻿using Antelcat.MediasoupSharp.FBS.Consumer;
 
 namespace Antelcat.MediasoupSharp.Internals.Converters;
 

@@ -1,11 +1,11 @@
 ﻿using System.Reflection;
 using Antelcat.AutoGen.ComponentModel.Diagnostic;
 using Antelcat.MediasoupSharp.Internals.Extensions;
-using FBS.DirectTransport;
-using FBS.Request;
-using FBS.SctpAssociation;
-using FBS.SctpParameters;
-using FBS.Transport;
+using Antelcat.MediasoupSharp.FBS.DirectTransport;
+using Antelcat.MediasoupSharp.FBS.Request;
+using Antelcat.MediasoupSharp.FBS.SctpAssociation;
+using Antelcat.MediasoupSharp.FBS.SctpParameters;
+using Antelcat.MediasoupSharp.FBS.Transport;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
 
@@ -32,20 +32,20 @@ public class TransportInternal : RouterInternal
 
 [AutoMetadataFrom(typeof(TransportBaseData), MemberTypes.Property,
     Leading =
-        $"public {nameof(TransportBaseData)}(global::{nameof(FBS)}.{nameof(FBS.Transport)}.{nameof(DumpT)} dump){{",
+        $"public {nameof(TransportBaseData)}(Antelcat.MediasoupSharp.FBS.Transport.{nameof(DumpT)} dump){{",
     Template = "{Name} = dump.{Name};",
     Trailing = "}")]
 [AutoMetadataFrom(typeof(TransportBaseData), MemberTypes.Property,
     Leading =
-        $"public static implicit operator {nameof(TransportBaseData)}(global::{nameof(FBS)}.{nameof(FBS.DirectTransport)}.{nameof(DumpResponseT)} dump) => new(dump.Base); ")]
+        $"public static implicit operator {nameof(TransportBaseData)}(global::Antelcat.MediasoupSharp.FBS.DirectTransport.{nameof(DumpResponseT)} dump) => new(dump.Base); ")]
 [AutoMetadataFrom(typeof(TransportBaseData), MemberTypes.Property,
     Leading =
-        $"public static implicit operator global::{nameof(FBS)}.{nameof(FBS.Transport)}.{nameof(DumpT)}({nameof(TransportBaseData)} source) => new (){{",
+        $"public static implicit operator global::Antelcat.MediasoupSharp.FBS.Transport.{nameof(DumpT)}({nameof(TransportBaseData)} source) => new (){{",
     Template = "{Name} = source.{Name},",
     Trailing = "};")]
 [AutoMetadataFrom(typeof(TransportBaseData), MemberTypes.Property,
     Leading =
-        $"public static implicit operator {nameof(TransportBaseData)}(global::{nameof(FBS)}.{nameof(FBS.Transport)}.{nameof(DumpT)} dump) => new(dump);")]
+        $"public static implicit operator {nameof(TransportBaseData)}(global::Antelcat.MediasoupSharp.FBS.Transport.{nameof(DumpT)} dump) => new(dump);")]
 public partial class TransportBaseData
 {
     /// <summary>
@@ -256,8 +256,8 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
             // Build Request
             var bufferBuilder = Channel.BufferPool.Get();
 
-            var requestOffset = FBS.Router.CloseTransportRequest.Pack(bufferBuilder,
-                new FBS.Router.CloseTransportRequestT
+            var requestOffset = Antelcat.MediasoupSharp.FBS.Router.CloseTransportRequest.Pack(bufferBuilder,
+                new Antelcat.MediasoupSharp.FBS.Router.CloseTransportRequestT
                 {
                     TransportId = Internal.TransportId
                 });
@@ -840,7 +840,7 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
                 ProducerId             = consumerOptions.ProducerId,
                 Kind                   = producer.Data.Kind,
                 RtpParameters          = rtpParameters.SerializeRtpParameters(),
-                Type                   = consumerOptions.Pipe ? FBS.RtpParameters.Type.PIPE : producer.Data.Type,
+                Type                   = consumerOptions.Pipe ? Antelcat.MediasoupSharp.FBS.RtpParameters.Type.PIPE : producer.Data.Type,
                 ConsumableRtpEncodings = producer.Data.ConsumableRtpParameters.Encodings,
                 Paused                 = consumerOptions.Paused,
                 PreferredLayers        = consumerOptions.PreferredLayers,
@@ -969,11 +969,11 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
                 throw new InvalidStateException("Transport closed");
             }
 
-            FBS.DataProducer.Type type;
+            Antelcat.MediasoupSharp.FBS.DataProducer.Type type;
             // If this is not a DirectTransport, sctpStreamParameters are required.
             if (this is not IDirectTransport)
             {
-                type = FBS.DataProducer.Type.SCTP;
+                type = Antelcat.MediasoupSharp.FBS.DataProducer.Type.SCTP;
 
                 // This may throw.
                 Ortc.ValidateSctpStreamParameters(dataProducerOptions.SctpStreamParameters.NotNull());
@@ -981,7 +981,7 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
             // If this is a DirectTransport, sctpStreamParameters must not be given.
             else
             {
-                type = FBS.DataProducer.Type.DIRECT;
+                type = Antelcat.MediasoupSharp.FBS.DataProducer.Type.DIRECT;
 
                 if (dataProducerOptions.SctpStreamParameters != null)
                 {
@@ -1105,7 +1105,7 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
                 throw new InvalidStateException("Transport closed");
             }
 
-            FBS.DataProducer.Type  type;
+            Antelcat.MediasoupSharp.FBS.DataProducer.Type  type;
             SctpStreamParametersT? sctpStreamParameters = null;
             ushort?                sctpStreamId         = null;
 
@@ -1113,7 +1113,7 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
             // DataProducer (if type 'sctp') unless they are given in method parameters.
             if (this is not IDirectTransport)
             {
-                type = FBS.DataProducer.Type.SCTP;
+                type = Antelcat.MediasoupSharp.FBS.DataProducer.Type.SCTP;
 
                 sctpStreamParameters =
                     dataProducer.Data.SctpStreamParameters?.DeepClone() ?? new SctpStreamParametersT();
@@ -1150,7 +1150,7 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
             // If this is a DirectTransport, sctpStreamParameters must not be used.
             else
             {
-                type = FBS.DataProducer.Type.DIRECT;
+                type = Antelcat.MediasoupSharp.FBS.DataProducer.Type.DIRECT;
 
                 if (
                     dataConsumerOptions.Ordered.HasValue
@@ -1291,7 +1291,7 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
     /// <summary>
     /// Enable 'trace' event.
     /// </summary>
-    public async Task EnableTraceEventAsync(List<FBS.Transport.TraceEventType> types)
+    public async Task EnableTraceEventAsync(List<Antelcat.MediasoupSharp.FBS.Transport.TraceEventType> types)
     {
         logger.LogDebug("EnableTraceEventAsync() | Transport:{TransportId}", Id);
 

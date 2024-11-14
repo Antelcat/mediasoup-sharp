@@ -1,7 +1,7 @@
 ﻿using System.Reflection;
 using System.Text.Json.Serialization;
 using Antelcat.AutoGen.ComponentModel.Diagnostic;
-using FBS.SctpParameters;
+using Antelcat.MediasoupSharp.FBS.SctpParameters;
 
 namespace Antelcat.MediasoupSharp;
 
@@ -12,12 +12,12 @@ public class SctpCapabilities
 
 [AutoMetadataFrom(typeof(SctpStreamParameters), MemberTypes.Property,
     Leading =
-        $"public static implicit operator {nameof(SctpStreamParameters)}(global::{nameof(FBS)}.{nameof(SctpParameters)}.{nameof(SctpStreamParametersT)}? param) => param is null ? new() : new (){{",
+        $"public static implicit operator {nameof(SctpStreamParameters)}(global::Antelcat.MediasoupSharp.FBS.{nameof(SctpParameters)}.{nameof(SctpStreamParametersT)}? param) => param is null ? new() : new (){{",
     Template = "{Name} = param.{Name},",
     Trailing = "};")]
 [AutoMetadataFrom(typeof(SctpStreamParameters), MemberTypes.Property,
     Leading =
-        $"public static implicit operator global::{nameof(FBS)}.{nameof(SctpParameters)}.{nameof(SctpStreamParametersT)}({nameof(SctpStreamParameters)}? param) => param is null ? new() : new (){{",
+        $"public static implicit operator global::Antelcat.MediasoupSharp.FBS.{nameof(SctpParameters)}.{nameof(SctpStreamParametersT)}({nameof(SctpStreamParameters)}? param) => param is null ? new() : new (){{",
     Template = "{Name} = param.{Name},",
     Trailing = "};")]
 public partial record SctpStreamParameters

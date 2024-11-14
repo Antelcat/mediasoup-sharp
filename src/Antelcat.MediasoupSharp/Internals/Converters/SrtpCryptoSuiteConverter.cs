@@ -1,4 +1,4 @@
-﻿using FBS.SrtpParameters;
+﻿using Antelcat.MediasoupSharp.FBS.SrtpParameters;
 
 namespace Antelcat.MediasoupSharp.Internals.Converters;
 

@@ -1,17 +1,17 @@
 ﻿using Antelcat.AutoGen.ComponentModel.Diagnostic;
 using Antelcat.MediasoupSharp.Internals.Extensions;
-using FBS.Consumer;
-using FBS.Notification;
-using FBS.Request;
-using FBS.RtpParameters;
+using Antelcat.MediasoupSharp.FBS.Consumer;
+using Antelcat.MediasoupSharp.FBS.Notification;
+using Antelcat.MediasoupSharp.FBS.Request;
+using Antelcat.MediasoupSharp.FBS.RtpParameters;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
 
 namespace Antelcat.MediasoupSharp;
 
-using ConsumerLayers = FBS.Consumer.ConsumerLayersT;
-using ConsumerTraceEventType = FBS.Consumer.TraceEventType;
-using ConsumerScore = FBS.Consumer.ConsumerScoreT;
+using ConsumerLayers = Antelcat.MediasoupSharp.FBS.Consumer.ConsumerLayersT;
+using ConsumerTraceEventType = Antelcat.MediasoupSharp.FBS.Consumer.TraceEventType;
+using ConsumerScore = Antelcat.MediasoupSharp.FBS.Consumer.ConsumerScoreT;
 
 public class ConsumerInternal : TransportInternal
 {
@@ -41,7 +41,7 @@ public class ConsumerData
     /// <summary>
     /// Consumer type.
     /// </summary>
-    public FBS.RtpParameters.Type Type { get; set; }
+    public Antelcat.MediasoupSharp.FBS.RtpParameters.Type Type { get; set; }
 }
 
 [AutoExtractInterface(NamingTemplate = nameof(IConsumer))]
@@ -199,7 +199,7 @@ public class ConsumerImpl<TConsumerAppData>
             // Build Request
             var bufferBuilder = channel.BufferPool.Get();
 
-            var requestOffset = FBS.Transport.CloseConsumerRequest.Pack(bufferBuilder, new FBS.Transport.CloseConsumerRequestT
+            var requestOffset = Antelcat.MediasoupSharp.FBS.Transport.CloseConsumerRequest.Pack(bufferBuilder, new Antelcat.MediasoupSharp.FBS.Transport.CloseConsumerRequestT
             {
                 ConsumerId = @internal.ConsumerId
             });
@@ -208,7 +208,7 @@ public class ConsumerImpl<TConsumerAppData>
             channel.RequestAsync(
                     bufferBuilder,
                     Method.TRANSPORT_CLOSE_CONSUMER,
-                    FBS.Request.Body.Transport_CloseConsumerRequest,
+                    Antelcat.MediasoupSharp.FBS.Request.Body.Transport_CloseConsumerRequest,
                     requestOffset.Value,
                     @internal.TransportId
                 )
@@ -250,7 +250,7 @@ public class ConsumerImpl<TConsumerAppData>
     /// <summary>
     /// Dump DataProducer.
     /// </summary>
-    public async Task<FBS.Consumer.DumpResponseT> DumpAsync()
+    public async Task<Antelcat.MediasoupSharp.FBS.Consumer.DumpResponseT> DumpAsync()
     {
         logger.LogDebug($"{nameof(DumpAsync)}() | Consumer:{{ConsumerId}}", Id);
 
@@ -271,7 +271,7 @@ public class ConsumerImpl<TConsumerAppData>
     /// <summary>
     /// Get DataProducer stats.
     /// </summary>
-    public async Task<List<FBS.RtpStream.StatsT>> GetStatsAsync()
+    public async Task<List<Antelcat.MediasoupSharp.FBS.RtpStream.StatsT>> GetStatsAsync()
     {
         logger.LogDebug($"{nameof(GetStatsAsync)}() | Consumer:{{ConsumerId}}", Id);
 
@@ -380,7 +380,7 @@ public class ConsumerImpl<TConsumerAppData>
     /// <summary>
     /// Set preferred video layers.
     /// </summary>
-    public async Task SetPreferredLayersAsync(FBS.Consumer.SetPreferredLayersRequestT setPreferredLayersRequest)
+    public async Task SetPreferredLayersAsync(Antelcat.MediasoupSharp.FBS.Consumer.SetPreferredLayersRequestT setPreferredLayersRequest)
     {
         logger.LogDebug($"{nameof(SetPreferredLayersAsync)}() | Consumer:{{ConsumerId}}", Id);
 
@@ -399,7 +399,7 @@ public class ConsumerImpl<TConsumerAppData>
             var response = await channel.RequestAsync(
                 bufferBuilder,
                 Method.CONSUMER_SET_PREFERRED_LAYERS,
-                FBS.Request.Body.Consumer_SetPreferredLayersRequest,
+                Antelcat.MediasoupSharp.FBS.Request.Body.Consumer_SetPreferredLayersRequest,
                 setPreferredLayersRequestOffset.Value,
                 @internal.ConsumerId);
             var preferredLayers = response?.BodyAsConsumer_SetPreferredLayersResponse().UnPack().PreferredLayers;
@@ -432,7 +432,7 @@ public class ConsumerImpl<TConsumerAppData>
             var response = await channel.RequestAsync(
                 bufferBuilder,
                 Method.CONSUMER_SET_PRIORITY,
-                FBS.Request.Body.Consumer_SetPriorityRequest,
+                Antelcat.MediasoupSharp.FBS.Request.Body.Consumer_SetPriorityRequest,
                 setPriorityRequestOffset.Value,
                 @internal.ConsumerId);
 
@@ -479,7 +479,7 @@ public class ConsumerImpl<TConsumerAppData>
     /// <summary>
     /// Enable 'trace' event.
     /// </summary>
-    public async Task EnableTraceEventAsync(List<FBS.Consumer.TraceEventType> types)
+    public async Task EnableTraceEventAsync(List<Antelcat.MediasoupSharp.FBS.Consumer.TraceEventType> types)
     {
         logger.LogDebug($"{nameof(EnableTraceEventAsync)}() | Consumer:{{ConsumerId}}", Id);
 
@@ -504,7 +504,7 @@ public class ConsumerImpl<TConsumerAppData>
             channel.RequestAsync(
                     bufferBuilder,
                     Method.CONSUMER_ENABLE_TRACE_EVENT,
-                    FBS.Request.Body.Consumer_EnableTraceEventRequest,
+                    Antelcat.MediasoupSharp.FBS.Request.Body.Consumer_EnableTraceEventRequest,
                     requestOffset.Value,
                     @internal.ConsumerId)
                 .ContinueWithOnFaultedHandleLog(logger);

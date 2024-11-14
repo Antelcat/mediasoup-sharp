@@ -1,6 +1,6 @@
 ﻿using Antelcat.MediasoupSharp.AspNetCore.Extensions;
-using FBS.RtpParameters;
-using FBS.Transport;
+using Antelcat.MediasoupSharp.FBS.RtpParameters;
+using Antelcat.MediasoupSharp.FBS.Transport;
 
 namespace Antelcat.MediasoupSharp.Demo;
 

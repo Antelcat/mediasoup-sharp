@@ -1,4 +1,4 @@
-using FBS.RtpParameters;
+using Antelcat.MediasoupSharp.FBS.RtpParameters;
 
 namespace Antelcat.MediasoupSharp.Internals.Extensions;
 

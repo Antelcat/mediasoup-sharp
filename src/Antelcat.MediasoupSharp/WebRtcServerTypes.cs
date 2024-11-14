@@ -1,8 +1,11 @@
 ﻿global using WebRtcServerObserver = Antelcat.MediasoupSharp.EnhancedEventEmitter<Antelcat.MediasoupSharp.WebRtcServerObserverEvents>;
-using FBS.Transport;
+using System.Diagnostics.CodeAnalysis;
+using Antelcat.MediasoupSharp.Internals.Extensions;
+using Antelcat.MediasoupSharp.FBS.Transport;
 
 namespace Antelcat.MediasoupSharp;
 
+[DynamicallyAccessedMembers(ObjectExtensions.CloneMemberTypes)]
 public record WebRtcServerOptions<TWebRtcServerAppData>
 {
     /// <summary>

@@ -2,23 +2,23 @@
 using Antelcat.AutoGen.ComponentModel;
 using Antelcat.AutoGen.ComponentModel.Diagnostic;
 using Antelcat.MediasoupSharp.Internals.Extensions;
-using FBS.Notification;
-using FBS.Request;
-using FBS.SctpAssociation;
-using FBS.Transport;
-using FBS.WebRtcTransport;
+using Antelcat.MediasoupSharp.FBS.Notification;
+using Antelcat.MediasoupSharp.FBS.Request;
+using Antelcat.MediasoupSharp.FBS.SctpAssociation;
+using Antelcat.MediasoupSharp.FBS.Transport;
+using Antelcat.MediasoupSharp.FBS.WebRtcTransport;
 using Microsoft.Extensions.Logging;
 
 namespace Antelcat.MediasoupSharp;
 
 [AutoMetadataFrom(typeof(WebRtcTransportData), MemberTypes.Property,
     Leading =
-        $"public static implicit operator {nameof(WebRtcTransportData)}(global::{nameof(FBS)}.{nameof(FBS.WebRtcTransport)}.{nameof(DumpResponseT)} source) => new (source.Base){{",
+        $"public static implicit operator {nameof(WebRtcTransportData)}(global::Antelcat.MediasoupSharp.FBS.WebRtcTransport.{nameof(DumpResponseT)} source) => new (source.Base){{",
     Template = "{Name} = source.{Name},",
     Trailing = "};")]
 [AutoMetadataFrom(typeof(WebRtcTransportData), MemberTypes.Property,
     Leading =
-        $"public static implicit operator global::{nameof(FBS)}.{nameof(FBS.WebRtcTransport)}.{nameof(DumpResponseT)}({nameof(WebRtcTransportData)} source) => new (){{",
+        $"public static implicit operator global::Antelcat.MediasoupSharp.FBS.WebRtcTransport.{nameof(DumpResponseT)}({nameof(WebRtcTransportData)} source) => new (){{",
     Template = "{Name} = source.{Name},",
     Trailing = "Base = source  };")]
 public partial class WebRtcTransportData(DumpT dump) : TransportBaseData(dump)
@@ -104,7 +104,7 @@ public class WebRtcTransportImpl<TWebRtcTransportAppData> :
 
         if (Data.SctpState.HasValue)
         {
-            Data.SctpState = FBS.SctpAssociation.SctpState.CLOSED;
+            Data.SctpState = Antelcat.MediasoupSharp.FBS.SctpAssociation.SctpState.CLOSED;
         }
 
         return Task.CompletedTask;
@@ -157,7 +157,7 @@ public class WebRtcTransportImpl<TWebRtcTransportAppData> :
 
         if (parameters is not ConnectRequestT connectRequestT)
         {
-            throw new Exception($"{nameof(parameters)} type is not FBS.WebRtcTransport.ConnectRequestT");
+            throw new Exception($"{nameof(parameters)} type is not Antelcat.MediasoupSharp.FBS.WebRtcTransport.ConnectRequestT");
         }
 
         // Build Request
@@ -166,7 +166,7 @@ public class WebRtcTransportImpl<TWebRtcTransportAppData> :
         var connectRequestOffset = ConnectRequest.Pack(bufferBuilder, connectRequestT);
 
         var response = await Channel.RequestAsync(bufferBuilder, Method.WEBRTCTRANSPORT_CONNECT,
-            FBS.Request.Body.WebRtcTransport_ConnectRequest,
+            Antelcat.MediasoupSharp.FBS.Request.Body.WebRtcTransport_ConnectRequest,
             connectRequestOffset.Value,
             Internal.TransportId);
 
@@ -180,7 +180,7 @@ public class WebRtcTransportImpl<TWebRtcTransportAppData> :
     /// <summary>
     /// Restart ICE.
     /// </summary>
-    public async Task<FBS.WebRtcTransport.IceParametersT> RestartIceAsync()
+    public async Task<Antelcat.MediasoupSharp.FBS.WebRtcTransport.IceParametersT> RestartIceAsync()
     {
         logger.LogDebug("RestartIceAsync() | WebRtcTransportId:{WebRtcTransportId}", Id);
 

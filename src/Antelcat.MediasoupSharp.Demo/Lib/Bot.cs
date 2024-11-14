@@ -1,7 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text;
 using Antelcat.AspNetCore.ProtooSharp;
-using FBS.DataConsumer;
+using Antelcat.MediasoupSharp.FBS.DataConsumer;
 
 namespace Antelcat.MediasoupSharp.Demo.Lib;
 

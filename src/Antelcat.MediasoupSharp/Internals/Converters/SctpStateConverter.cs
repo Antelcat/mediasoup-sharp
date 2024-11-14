@@ -1,4 +1,4 @@
-﻿using FBS.SctpAssociation;
+﻿using Antelcat.MediasoupSharp.FBS.SctpAssociation;
 
 namespace Antelcat.MediasoupSharp.Internals.Converters;
 

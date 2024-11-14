@@ -1,6 +1,6 @@
 global using RouterObserver = Antelcat.MediasoupSharp.EnhancedEventEmitter<Antelcat.MediasoupSharp.RouterObserverEvents>;
-using FBS.SctpParameters;
-using FBS.Transport;
+using Antelcat.MediasoupSharp.FBS.SctpParameters;
+using Antelcat.MediasoupSharp.FBS.Transport;
 
 namespace Antelcat.MediasoupSharp;
 

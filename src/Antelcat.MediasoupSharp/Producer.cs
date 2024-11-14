@@ -1,13 +1,13 @@
 ﻿using Antelcat.AutoGen.ComponentModel.Diagnostic;
 using Antelcat.MediasoupSharp.Internals.Extensions;
-using FBS.Notification;
-using FBS.Producer;
-using FBS.Request;
-using FBS.RtpParameters;
+using Antelcat.MediasoupSharp.FBS.Notification;
+using Antelcat.MediasoupSharp.FBS.Producer;
+using Antelcat.MediasoupSharp.FBS.Request;
+using Antelcat.MediasoupSharp.FBS.RtpParameters;
 using Google.FlatBuffers;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
-using Type = FBS.RtpParameters.Type;
+using Type = Antelcat.MediasoupSharp.FBS.RtpParameters.Type;
 
 namespace Antelcat.MediasoupSharp;
 
@@ -63,7 +63,7 @@ public class ProducerImpl<TProducerAppData>
     /// </summary>
     public bool Closed { get; private set; }
 
-    public FBS.RtpParameters.MediaKind Kind => Data.Kind;
+    public Antelcat.MediasoupSharp.FBS.RtpParameters.MediaKind Kind => Data.Kind;
 
     private readonly AsyncReaderWriterLock closeLock = new();
 
@@ -197,15 +197,15 @@ public class ProducerImpl<TProducerAppData>
         // Build Request
         var bufferBuilder = channel.BufferPool.Get();
 
-        var requestOffset = FBS.Transport.CloseProducerRequest.Pack(bufferBuilder,
-            new FBS.Transport.CloseProducerRequestT
+        var requestOffset = Antelcat.MediasoupSharp.FBS.Transport.CloseProducerRequest.Pack(bufferBuilder,
+            new Antelcat.MediasoupSharp.FBS.Transport.CloseProducerRequestT
             {
                 ProducerId = @internal.ProducerId
             });
 
         // Fire and forget
         channel.RequestAsync(bufferBuilder, Method.TRANSPORT_CLOSE_CONSUMER,
-                FBS.Request.Body.Transport_CloseConsumerRequest,
+                Antelcat.MediasoupSharp.FBS.Request.Body.Transport_CloseConsumerRequest,
                 requestOffset.Value,
                 @internal.TransportId
             )
@@ -245,7 +245,7 @@ public class ProducerImpl<TProducerAppData>
     /// <summary>
     /// Dump DataProducer.
     /// </summary>
-    public async Task<FBS.Producer.DumpResponseT> DumpAsync()
+    public async Task<Antelcat.MediasoupSharp.FBS.Producer.DumpResponseT> DumpAsync()
     {
         logger.LogDebug("DumpAsync() | Producer:{ProducerId}", Id);
 
@@ -267,7 +267,7 @@ public class ProducerImpl<TProducerAppData>
     /// <summary>
     /// Get DataProducer stats.
     /// </summary>
-    public async Task<List<FBS.RtpStream.StatsT>> GetStatsAsync()
+    public async Task<List<Antelcat.MediasoupSharp.FBS.RtpStream.StatsT>> GetStatsAsync()
     {
         logger.LogDebug("GetStatsAsync() | Producer:{ProducerId}", Id);
 
@@ -375,7 +375,7 @@ public class ProducerImpl<TProducerAppData>
     /// <summary>
     /// Enable 'trace' event.
     /// </summary>
-    public async Task EnableTraceEventAsync(List<FBS.Producer.TraceEventType> types)
+    public async Task EnableTraceEventAsync(List<Antelcat.MediasoupSharp.FBS.Producer.TraceEventType> types)
     {
         logger.LogDebug("EnableTraceEventAsync() | Producer:{ProducerId}", Id);
 
@@ -396,7 +396,7 @@ public class ProducerImpl<TProducerAppData>
 
             // Fire and forget
             channel.RequestAsync(bufferBuilder, Method.CONSUMER_ENABLE_TRACE_EVENT,
-                    FBS.Request.Body.Consumer_EnableTraceEventRequest,
+                    Antelcat.MediasoupSharp.FBS.Request.Body.Consumer_EnableTraceEventRequest,
                     requestOffset.Value,
                     @internal.ProducerId)
                 .ContinueWithOnFaultedHandleLog(logger);
@@ -427,7 +427,7 @@ public class ProducerImpl<TProducerAppData>
 
             // Fire and forget
             channel.NotifyAsync(bufferBuilder, Event.PRODUCER_SEND,
-                FBS.Notification.Body.Producer_SendNotification,
+                Antelcat.MediasoupSharp.FBS.Notification.Body.Producer_SendNotification,
                 notificationOffset.Value,
                 @internal.ProducerId
             ).ContinueWithOnFaultedHandleLog(logger);

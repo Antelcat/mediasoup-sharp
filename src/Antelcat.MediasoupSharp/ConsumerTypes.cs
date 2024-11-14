@@ -1,10 +1,10 @@
 ﻿global using ConsumerObserver = Antelcat.MediasoupSharp.IEnhancedEventEmitter<Antelcat.MediasoupSharp.ConsumerObserverEvents>;
-using FBS.Consumer;
+using Antelcat.MediasoupSharp.FBS.Consumer;
 
 namespace Antelcat.MediasoupSharp;
 
-using ConsumerScore = FBS.Consumer.ConsumerScoreT;
-using ConsumerLayers = FBS.Consumer.ConsumerLayersT;
+using ConsumerScore = Antelcat.MediasoupSharp.FBS.Consumer.ConsumerScoreT;
+using ConsumerLayers = Antelcat.MediasoupSharp.FBS.Consumer.ConsumerLayersT;
 
 public class ConsumerOptions<TConsumerAppData>
 {

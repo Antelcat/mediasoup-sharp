@@ -1,7 +1,7 @@
 ﻿using Antelcat.AutoGen.ComponentModel.Diagnostic;
 using Antelcat.MediasoupSharp.Internals.Extensions;
-using FBS.Request;
-using FBS.Transport;
+using Antelcat.MediasoupSharp.FBS.Request;
+using Antelcat.MediasoupSharp.FBS.Transport;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
 
@@ -100,13 +100,13 @@ public class WebRtcServerImpl<TWebRtcServerAppData>
             // Build Request
             var bufferBuilder = channel.BufferPool.Get();
 
-            var closeWebRtcServerRequest = new FBS.Worker.CloseWebRtcServerRequestT
+            var closeWebRtcServerRequest = new Antelcat.MediasoupSharp.FBS.Worker.CloseWebRtcServerRequestT
             {
                 WebRtcServerId = @internal.WebRtcServerId
             };
 
             var closeWebRtcServerRequestOffset =
-                FBS.Worker.CloseWebRtcServerRequest.Pack(bufferBuilder, closeWebRtcServerRequest);
+                Antelcat.MediasoupSharp.FBS.Worker.CloseWebRtcServerRequest.Pack(bufferBuilder, closeWebRtcServerRequest);
 
             // Fire and forget
             channel.RequestAsync(bufferBuilder, Method.WORKER_WEBRTCSERVER_CLOSE,
@@ -168,7 +168,7 @@ public class WebRtcServerImpl<TWebRtcServerAppData>
     /// <summary>
     /// Dump Router.
     /// </summary>
-    public async Task<FBS.WebRtcServer.DumpResponseT> DumpAsync()
+    public async Task<Antelcat.MediasoupSharp.FBS.WebRtcServer.DumpResponseT> DumpAsync()
     {
         logger.LogDebug("DumpAsync() | WebRtcServerId:{WebRtcServerId}", Id);
 

@@ -1,5 +1,5 @@
 ﻿using Antelcat.AutoGen.ComponentModel.Diagnostic;
-using FBS.Notification;
+using Antelcat.MediasoupSharp.FBS.Notification;
 using Microsoft.Extensions.Logging;
 
 namespace Antelcat.MediasoupSharp;

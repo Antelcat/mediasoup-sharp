@@ -1,9 +1,9 @@
 ﻿using System.Text;
 using Antelcat.AutoGen.ComponentModel.Diagnostic;
 using Antelcat.MediasoupSharp.Internals.Extensions;
-using FBS.DataConsumer;
-using FBS.Notification;
-using FBS.Request;
+using Antelcat.MediasoupSharp.FBS.DataConsumer;
+using Antelcat.MediasoupSharp.FBS.Notification;
+using Antelcat.MediasoupSharp.FBS.Request;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
 
@@ -25,7 +25,7 @@ public class DataConsumerData
     /// </summary>
     public required string DataProducerId { get; init; }
 
-    public FBS.DataProducer.Type Type { get; set; }
+    public Antelcat.MediasoupSharp.FBS.DataProducer.Type Type { get; set; }
 
     /// <summary>
     /// SCTP stream parameters.
@@ -165,19 +165,19 @@ public class DataConsumerImpl<TDataConsumerAppData>
             // Build Request
             var bufferBuilder = channel.BufferPool.Get();
 
-            var closeDataConsumerRequest = new FBS.Transport.CloseDataConsumerRequestT
+            var closeDataConsumerRequest = new Antelcat.MediasoupSharp.FBS.Transport.CloseDataConsumerRequestT
             {
                 DataConsumerId = @internal.DataConsumerId
             };
 
             var closeDataConsumerRequestOffset =
-                FBS.Transport.CloseDataConsumerRequest.Pack(bufferBuilder, closeDataConsumerRequest);
+                Antelcat.MediasoupSharp.FBS.Transport.CloseDataConsumerRequest.Pack(bufferBuilder, closeDataConsumerRequest);
 
             // Fire and forget
             channel.RequestAsync(
                 bufferBuilder,
                 Method.TRANSPORT_CLOSE_DATACONSUMER,
-                FBS.Request.Body.Transport_CloseDataConsumerRequest,
+                Antelcat.MediasoupSharp.FBS.Request.Body.Transport_CloseDataConsumerRequest,
                 closeDataConsumerRequestOffset.Value,
                 @internal.TransportId
             ).ContinueWithOnFaultedHandleLog(logger);
@@ -218,7 +218,7 @@ public class DataConsumerImpl<TDataConsumerAppData>
     /// <summary>
     /// Dump DataConsumer.
     /// </summary>
-    public async Task<FBS.DataConsumer.DumpResponseT> DumpAsync()
+    public async Task<Antelcat.MediasoupSharp.FBS.DataConsumer.DumpResponseT> DumpAsync()
     {
         logger.LogDebug("DumpAsync() | DataConsumer:{DataConsumerId}", Id);
 
@@ -246,7 +246,7 @@ public class DataConsumerImpl<TDataConsumerAppData>
     /// <summary>
     /// Get DataConsumer stats. Return: DataConsumerStat[]
     /// </summary>
-    public async Task<FBS.DataConsumer.GetStatsResponseT[]> GetStatsAsync()
+    public async Task<Antelcat.MediasoupSharp.FBS.DataConsumer.GetStatsResponseT[]> GetStatsAsync()
     {
         logger.LogDebug("GetStatsAsync() | DataConsumer:{DataConsumerId}", Id);
 
@@ -370,7 +370,7 @@ public class DataConsumerImpl<TDataConsumerAppData>
             channel.RequestAsync(
                 bufferBuilder,
                 Method.DATACONSUMER_SET_BUFFERED_AMOUNT_LOW_THRESHOLD,
-                FBS.Request.Body.DataConsumer_SetBufferedAmountLowThresholdRequest,
+                Antelcat.MediasoupSharp.FBS.Request.Body.DataConsumer_SetBufferedAmountLowThresholdRequest,
                 setBufferedAmountLowThresholdRequestOffset.Value,
                 @internal.DataConsumerId
             ).ContinueWithOnFaultedHandleLog(logger);
@@ -451,7 +451,7 @@ public class DataConsumerImpl<TDataConsumerAppData>
 
             // Fire and forget
             channel.RequestAsync(bufferBuilder, Method.DATACONSUMER_SEND,
-                FBS.Request.Body.DataConsumer_SendRequest,
+                Antelcat.MediasoupSharp.FBS.Request.Body.DataConsumer_SendRequest,
                 sendRequestOffset.Value,
                 @internal.DataConsumerId
             ).ContinueWithOnFaultedHandleLog(logger);
@@ -511,7 +511,7 @@ public class DataConsumerImpl<TDataConsumerAppData>
             var setSubchannelsRequestOffset = SetSubchannelsRequest.Pack(bufferBuilder, setSubchannelsRequest);
 
             var response = await channel.RequestAsync(bufferBuilder, Method.DATACONSUMER_SET_SUBCHANNELS,
-                FBS.Request.Body.DataConsumer_SetSubchannelsRequest,
+                Antelcat.MediasoupSharp.FBS.Request.Body.DataConsumer_SetSubchannelsRequest,
                 setSubchannelsRequestOffset.Value,
                 @internal.DataConsumerId);
 
@@ -547,7 +547,7 @@ public class DataConsumerImpl<TDataConsumerAppData>
             var addSubchannelRequestOffset = AddSubchannelRequest.Pack(bufferBuilder, addSubchannelsRequest);
 
             var response = await channel.RequestAsync(bufferBuilder, Method.DATACONSUMER_ADD_SUBCHANNEL,
-                FBS.Request.Body.DataConsumer_AddSubchannelRequest,
+                Antelcat.MediasoupSharp.FBS.Request.Body.DataConsumer_AddSubchannelRequest,
                 addSubchannelRequestOffset.Value,
                 @internal.DataConsumerId);
 
@@ -583,7 +583,7 @@ public class DataConsumerImpl<TDataConsumerAppData>
             var removeSubchannelRequestOffset = RemoveSubchannelRequest.Pack(bufferBuilder, removeSubchannelsRequest);
 
             var response = await channel.RequestAsync(bufferBuilder, Method.DATACONSUMER_REMOVE_SUBCHANNEL,
-                FBS.Request.Body.DataConsumer_RemoveSubchannelRequest,
+                Antelcat.MediasoupSharp.FBS.Request.Body.DataConsumer_RemoveSubchannelRequest,
                 removeSubchannelRequestOffset.Value,
                 @internal.DataConsumerId);
 

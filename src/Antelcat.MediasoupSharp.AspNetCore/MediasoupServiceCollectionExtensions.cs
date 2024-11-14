@@ -5,7 +5,7 @@ using Antelcat.MediasoupSharp;
 using Antelcat.MediasoupSharp.AspNetCore;
 using Antelcat.MediasoupSharp.AspNetCore.Extensions;
 using Antelcat.MediasoupSharp.Internals.Extensions;
-using FBS.Transport;
+using Antelcat.MediasoupSharp.FBS.Transport;
 using IPAddressExtensions = Antelcat.MediasoupSharp.AspNetCore.Extensions.IPAddressExtensions;
 
 // ReSharper disable once CheckNamespace
