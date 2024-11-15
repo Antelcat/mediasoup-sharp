@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Antelcat.AutoGen.ComponentModel;
 using Antelcat.MediasoupSharp.FBS.RtpParameters;
+using Antelcat.MediasoupSharp.FBS.SctpParameters;
 using Antelcat.MediasoupSharp.FBS.Transport;
 
 namespace Antelcat.MediasoupSharp.Internals.Extensions;
@@ -14,23 +15,35 @@ internal static partial class ObjectExtensions
         DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors |
         DynamicallyAccessedMemberTypes.PublicFields       | DynamicallyAccessedMemberTypes.NonPublicFields       |
         DynamicallyAccessedMemberTypes.PublicNestedTypes  | DynamicallyAccessedMemberTypes.NonPublicNestedTypes;
-    
+
+        
     static ObjectExtensions()
     {
         Register(typeof(List<>));
         Register(typeof(Dictionary<,>));
         Register(typeof(KeyValuePair<,>));
         Register(typeof(EqualityComparer<>));
-        
+
+        Register(typeof(RtpCapabilities));
+        Register(typeof(RtpCodecCapability));
+        Register(typeof(RtpCodecShared));
+        Register(typeof(RtpHeaderExtension));
+            
+        Register(typeof(RtpCodecParameters));
+        Register(typeof(RtpCodecParameters));
         Register(typeof(RtcpFeedbackT));
+            
+            
         Register(typeof(ListenInfoT));
         Register(typeof(Protocol));
         Register(typeof(PortRangeT));
         Register(typeof(SocketFlagsT));
+            
+        Register(typeof(SctpStreamParametersT));
         Register(typeof(RtpEncodingParametersT));
         Register(typeof(RtxT));
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static T Sure<T>(this object obj) where T : class => obj as T ?? throw new InvalidCastException();
 

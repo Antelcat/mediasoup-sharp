@@ -4,7 +4,16 @@ using Antelcat.MediasoupSharp.FBS.Transport;
 
 namespace Antelcat.MediasoupSharp.Demo;
 
-public class MediasoupOptions<T>
+public abstract class MediasoupOptions
+{
+    public const string MEDIASOUP_LISTEN_IP    = nameof(MEDIASOUP_LISTEN_IP);
+    public const string MEDIASOUP_ANNOUNCED_IP = nameof(MEDIASOUP_ANNOUNCED_IP);
+    public const string MEDIASOUP_MIN_PORT     = nameof(MEDIASOUP_MIN_PORT);
+    public const string MEDIASOUP_MAX_PORT     = nameof(MEDIASOUP_MAX_PORT);
+    public const string MEDIASOUP_WORKER_NUM   = nameof(MEDIASOUP_WORKER_NUM);
+}
+
+public class MediasoupOptions<T> : MediasoupOptions
 {
     public int?                       NumWorkers             { get; set; } = Environment.ProcessorCount;
     public WorkerSettings<T>?         WorkerSettings         { get; init; }
@@ -14,10 +23,10 @@ public class MediasoupOptions<T>
     public PlainTransportOptions<T>?  PlainTransportOptions  { get; init; }
 
     // mediasoup settings.
-    public static MediasoupOptions<T> Default { get; } = new()
+    public static MediasoupOptions<T> Default => new()
     {
         // Number of mediasoup workers to launch.
-        NumWorkers = Environment.ProcessorCount,
+        NumWorkers = Env<int>(MEDIASOUP_WORKER_NUM) ?? Environment.ProcessorCount,
         // mediasoup WorkerSettings.
         // See https://mediasoup.org/documentation/v3/mediasoup/api/#WorkerSettings
         WorkerSettings = new()
@@ -114,8 +123,8 @@ public class MediasoupOptions<T>
                 new()
                 {
                     Protocol         = Protocol.UDP,
-                    Ip               = Env("MEDIASOUP_LISTEN_IP")    ?? "0.0.0.0",
-                    AnnouncedAddress = Env("MEDIASOUP_ANNOUNCED_IP") ?? IPAddressExtensions.GetLocalIPv4String(),
+                    Ip               = Env(MEDIASOUP_LISTEN_IP)    ?? "0.0.0.0",
+                    AnnouncedAddress = Env(MEDIASOUP_ANNOUNCED_IP) ?? IPAddressExtensions.GetLocalIPv4String(),
                     Port             = 44444,
                     Flags            = new(),
                     PortRange        = new()
@@ -123,8 +132,8 @@ public class MediasoupOptions<T>
                 new()
                 {
                     Protocol         = Protocol.TCP,
-                    Ip               = Env("MEDIASOUP_LISTEN_IP")    ?? "0.0.0.0",
-                    AnnouncedAddress = Env("MEDIASOUP_ANNOUNCED_IP") ?? IPAddressExtensions.GetLocalIPv4String(),
+                    Ip               = Env(MEDIASOUP_LISTEN_IP)    ?? "0.0.0.0",
+                    AnnouncedAddress = Env(MEDIASOUP_ANNOUNCED_IP) ?? IPAddressExtensions.GetLocalIPv4String(),
                     Port             = 44444,
                     Flags            = new(),
                     PortRange        = new()
@@ -144,25 +153,25 @@ public class MediasoupOptions<T>
                 {
                     Protocol = Protocol.UDP,
 
-                    Ip               = Env("MEDIASOUP_LISTEN_IP")    ?? "0.0.0.0",
-                    AnnouncedAddress = Env("MEDIASOUP_ANNOUNCED_IP") ?? IPAddressExtensions.GetLocalIPv4String(),
+                    Ip               = Env(MEDIASOUP_LISTEN_IP)    ?? "0.0.0.0",
+                    AnnouncedAddress = Env(MEDIASOUP_ANNOUNCED_IP) ?? IPAddressExtensions.GetLocalIPv4String(),
                     Flags            = new(),
                     PortRange = new()
                     {
-                        Min = Env<ushort>("MEDIASOUP_MIN_PORT") ?? 40000,
-                        Max = Env<ushort>("MEDIASOUP_MAX_PORT") ?? 49999
+                        Min = Env<ushort>(MEDIASOUP_MIN_PORT) ?? 40000,
+                        Max = Env<ushort>(MEDIASOUP_MAX_PORT) ?? 49999
                     }
                 },
                 new()
                 {
                     Protocol         = Protocol.TCP,
-                    Ip               = Env("MEDIASOUP_LISTEN_IP")    ?? "0.0.0.0",
-                    AnnouncedAddress = Env("MEDIASOUP_ANNOUNCED_IP") ?? IPAddressExtensions.GetLocalIPv4String(),
+                    Ip               = Env(MEDIASOUP_LISTEN_IP)    ?? "0.0.0.0",
+                    AnnouncedAddress = Env(MEDIASOUP_ANNOUNCED_IP) ?? IPAddressExtensions.GetLocalIPv4String(),
                     Flags            = new(),
                     PortRange = new()
                     {
-                        Min = Env<ushort>("MEDIASOUP_MIN_PORT") ?? 40000,
-                        Max = Env<ushort>("MEDIASOUP_MAX_PORT") ?? 49999
+                        Min = Env<ushort>(MEDIASOUP_MIN_PORT) ?? 40000,
+                        Max = Env<ushort>(MEDIASOUP_MAX_PORT) ?? 49999
                     }
                 }
             ],
@@ -180,13 +189,13 @@ public class MediasoupOptions<T>
             ListenInfo = new()
             {
                 Protocol         = Protocol.UDP,
-                Ip               = Env("MEDIASOUP_LISTEN_IP")    ?? "0.0.0.0",
-                AnnouncedAddress = Env("MEDIASOUP_ANNOUNCED_IP") ?? IPAddressExtensions.GetLocalIPv4String(),
+                Ip               = Env(MEDIASOUP_LISTEN_IP)      ?? "0.0.0.0",
+                AnnouncedAddress = Env(MEDIASOUP_ANNOUNCED_IP) ?? IPAddressExtensions.GetLocalIPv4String(),
                 Flags            = new(),
                 PortRange = new()
                 {
-                    Min = Env<ushort>("MEDIASOUP_MIN_PORT") ?? 40000,
-                    Max = Env<ushort>("MEDIASOUP_MAX_PORT") ?? 49999
+                    Min = Env<ushort>(MEDIASOUP_MIN_PORT) ?? 40000,
+                    Max = Env<ushort>(MEDIASOUP_MAX_PORT) ?? 49999
                 }
             },
             MaxSctpMessageSize = 262144

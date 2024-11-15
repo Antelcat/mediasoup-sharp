@@ -10,7 +10,6 @@ namespace Antelcat.MediasoupSharp;
 /// media level.
 /// </summary>
 [Serializable]
-[DynamicallyAccessedMembers(ObjectExtensions.CloneMemberTypes)]
 public class RtpCapabilities
 {
     /// <summary>
@@ -658,7 +657,6 @@ public class RtpCapabilities
 }
 
 [Serializable]
-[DynamicallyAccessedMembers(ObjectExtensions.CloneMemberTypes)]
 public class RtpCodecShared
 {
     /// <summary>
@@ -709,7 +707,6 @@ public class RtpCodecShared
 /// </para>
 /// </summary>
 [Serializable]
-[DynamicallyAccessedMembers(ObjectExtensions.CloneMemberTypes)]
 public class RtpCodecCapability : RtpCodecShared
 {
     /// <summary>
@@ -754,7 +751,6 @@ public enum RtpHeaderExtensionDirection
 /// </para>
 /// </summary>
 [Serializable]
-[DynamicallyAccessedMembers(ObjectExtensions.CloneMemberTypes)]
 public class RtpHeaderExtension
 {
     /// <summary>

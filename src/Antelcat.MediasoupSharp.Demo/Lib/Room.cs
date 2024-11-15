@@ -381,10 +381,7 @@ public class Room : EventEmitter
         if (broadcaster == null)
             throw new KeyNotFoundException($"broadcaster with id {broadcasterId} does not exist");
 
-        foreach (var transport in broadcaster.Data.Transports.Values)
-        {
-            await transport.CloseAsync();
-        }
+        await broadcaster.Data.Transports.Values.Select(x => x.CloseAsync());
 
         broadcasters.Remove(broadcasterId);
 
@@ -432,7 +429,7 @@ public class Room : EventEmitter
                     IceParameters  = transport.Data.IceParameters,
                     IceCandidates  = transport.Data.IceParameters,
                     DtlsParameters = transport.Data.DtlsParameters,
-                    SctpParameters = (object?)null
+                    SctpParameters = transport.Data.SctpParameters
                 };
             }
 
@@ -536,7 +533,7 @@ public class Room : EventEmitter
         // Optimization: Create a server-side Consumer for each Peer.
         foreach (var peer in GetJoinedPeers())
         {
-            await CreateConsumerAsync(peer, broadcaster.Id, producer);
+            _ = CreateConsumerAsync(peer, broadcaster.Id, producer);
         }
 
         // Add into the AudioLevelObserver and ActiveSpeakerObserver.
