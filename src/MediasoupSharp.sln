@@ -10,6 +10,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_", "_", "{D6F2D417-D704-4C
 	ProjectSection(SolutionItems) = preProject
 		Build.props = Build.props
 		..\README.md = ..\README.md
+		..\.gitignore = ..\.gitignore
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Antelcat.MediasoupSharp.Demo", "Antelcat.MediasoupSharp.Demo\Antelcat.MediasoupSharp.Demo.csproj", "{4D77A7A7-EBA0-4794-94A8-D25A08BD829C}"

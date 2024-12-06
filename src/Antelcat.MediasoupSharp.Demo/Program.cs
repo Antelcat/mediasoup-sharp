@@ -12,9 +12,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Primitives;
 using Room = Antelcat.MediasoupSharp.Demo.Lib.Room;
+using Utils = Antelcat.AspNetCore.ProtooSharp.Utils;
 
-Environment.SetEnvironmentVariable(MediasoupOptions.MEDIASOUP_WORKER_NUM, "2");
-Environment.SetEnvironmentVariable(MediasoupOptions.MEDIASOUP_ANNOUNCED_IP, "192.168.1.105");
+Utils.RandomNumberGenerator = () => Guid.NewGuid().GetHashCode();
 
 List<WorkerImpl<TWorkerAppData>> mediasoupWorkers       = [];
 Dictionary<string, Room>         rooms                  = [];
