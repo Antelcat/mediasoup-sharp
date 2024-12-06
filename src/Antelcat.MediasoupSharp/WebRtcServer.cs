@@ -43,7 +43,7 @@ public class WebRtcServerImpl<TWebRtcServerAppData>
     /// <summary>
     /// Close locker.
     /// </summary>
-    private readonly AsyncReaderWriterLock closeLock = new();
+    private readonly AsyncReaderWriterLock closeLock = new(null);
 
     /// <summary>
     /// Custom app data.
@@ -55,7 +55,7 @@ public class WebRtcServerImpl<TWebRtcServerAppData>
     /// </summary>
     private readonly Dictionary<string, IWebRtcTransport> webRtcTransports = new();
 
-    private readonly AsyncReaderWriterLock webRtcTransportsLock = new();
+    private readonly AsyncReaderWriterLock webRtcTransportsLock = new(null);
 
     /// <summary>
     /// Observer instance.

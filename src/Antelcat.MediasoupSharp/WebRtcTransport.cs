@@ -153,7 +153,7 @@ public class WebRtcTransportImpl<TWebRtcTransportAppData> :
     /// </summary>
     protected override async Task OnConnectAsync(object parameters)
     {
-        logger.LogDebug("OnConnectAsync() | WebRtcTransportId:{WebRtcTransportId}", Id);
+        logger.LogDebug($"{nameof(OnConnectAsync)}() | WebRtcTransportId:{{WebRtcTransportId}}", Id);
 
         if (parameters is not ConnectRequestT connectRequestT)
         {

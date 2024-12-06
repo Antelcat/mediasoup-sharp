@@ -101,7 +101,7 @@ public abstract class RouterObserverEvents
     public required IRtpObserver NewRtpObserver;
 }
 
-public interface IRouter<TRouterAppData> : IEnhancedEventEmitter<RouterEvents>, IEquatable<IRouter>, IRouter
+public interface IRouter<TRouterAppData> : IEnhancedEventEmitter<RouterEvents>, IRouter
 {
     TRouterAppData AppData { get; set; }
 }

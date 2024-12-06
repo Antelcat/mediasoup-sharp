@@ -83,7 +83,7 @@ public class Channel : EnhancedEventEmitter, IChannel
     /// <summary>
     /// Close locker.
     /// </summary>
-    private readonly AsyncReaderWriterLock closeLock = new();
+    private readonly AsyncReaderWriterLock closeLock = new(null);
 
     /// <summary>
     /// Worker id.
@@ -130,7 +130,9 @@ public class Channel : EnhancedEventEmitter, IChannel
 
     #region Events
 
-    public event Action<string, Antelcat.MediasoupSharp.FBS.Notification.Event, Antelcat.MediasoupSharp.FBS.Notification.Notification>? OnNotification;
+    public event
+        Action<string, Antelcat.MediasoupSharp.FBS.Notification.Event,
+            Antelcat.MediasoupSharp.FBS.Notification.Notification>? OnNotification;
 
     #endregion Events
 
@@ -174,57 +176,51 @@ public class Channel : EnhancedEventEmitter, IChannel
             }
 
             closed = true;
-
-            Cleanup();
-        }
-    }
-
-    public void Cleanup()
-    {
-        // Close every pending sent.
-        try
-        {
+            
+            // Close every pending sent.
             foreach (var value in sents.Values)
             {
                 value.Close();
             }
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, $"{nameof(Cleanup)}() | Worker[{{WorkId}}] sents.Values.ForEach(m => m.Close.Invoke())", workerId);
-        }
 
-        // Remove event listeners but leave a fake 'error' handler to avoid
-        // propagation.
-        consumerSocket.Data   -= ConsumerSocketOnData;
-        consumerSocket.Closed -= ConsumerSocketOnClosed;
-        consumerSocket.Error  -= ConsumerSocketOnError;
 
-        producerSocket.Closed -= ProducerSocketOnClosed;
-        producerSocket.Error  -= ProducerSocketOnError;
+            // Remove event listeners but leave a fake 'error' handler to avoid
+            // propagation.
+            consumerSocket.Data   -= ConsumerSocketOnData;
+            consumerSocket.Closed -= ConsumerSocketOnClosed;
+            consumerSocket.Error  -= ConsumerSocketOnError;
 
-        // Destroy the socket after a while to allow pending incoming messages.
-        try
-        {
-            producerSocket.Close();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, $"{nameof(CloseAsync)}() | Worker[{{WorkerId}}] {nameof(producerSocket)}.Close()", workerId);
-        }
+            producerSocket.Closed -= ProducerSocketOnClosed;
+            producerSocket.Error  -= ProducerSocketOnError;
 
-        try
-        {
-            consumerSocket.Close();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, $"{nameof(CloseAsync)}() | Worker[{{WorkerId}}] {nameof(consumerSocket)}.Close()", workerId);
+            // Destroy the socket after a while to allow pending incoming messages.
+            try
+            {
+                producerSocket.Close();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, $"{nameof(CloseAsync)}() | Worker[{{WorkerId}}] {nameof(producerSocket)}.Close()",
+                    workerId);
+            }
+
+            try
+            {
+                consumerSocket.Close();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, $"{nameof(CloseAsync)}() | Worker[{{WorkerId}}] {nameof(consumerSocket)}.Close()",
+                    workerId);
+            }
         }
     }
 
-    public async Task NotifyAsync(FlatBufferBuilder bufferBuilder, Antelcat.MediasoupSharp.FBS.Notification.Event @event,
-                                  Antelcat.MediasoupSharp.FBS.Notification.Body? bodyType, int? bodyOffset, string? handlerId)
+
+    public async Task NotifyAsync(FlatBufferBuilder bufferBuilder,
+                                  Antelcat.MediasoupSharp.FBS.Notification.Event @event,
+                                  Antelcat.MediasoupSharp.FBS.Notification.Body? bodyType, int? bodyOffset,
+                                  string? handlerId)
     {
         logger.LogDebug($"{nameof(NotifyAsync)}() | Worker[{{WorkId}}] Event:{{Event}}", workerId, @event);
 
@@ -238,7 +234,7 @@ public class Channel : EnhancedEventEmitter, IChannel
 
             var notificationRequestMessage =
                 CreateNotificationRequestMessage(bufferBuilder, @event, bodyType, bodyOffset, handlerId);
-            SendNotification(notificationRequestMessage);
+             SendNotification(notificationRequestMessage);
         }
     }
 
@@ -255,7 +251,8 @@ public class Channel : EnhancedEventEmitter, IChannel
                     {
                         if (ex != null)
                         {
-                            logger.LogError(ex, $"{nameof(producerSocket)}.Write() | Worker[{{WorkerId}}] Error", workerId);
+                            logger.LogError(ex, $"{nameof(producerSocket)}.Write() | Worker[{{WorkerId}}] Error",
+                                workerId);
                         }
                     }
                 );
@@ -267,9 +264,13 @@ public class Channel : EnhancedEventEmitter, IChannel
         });
     }
 
-    public async Task<Antelcat.MediasoupSharp.FBS.Response.Response?> RequestAsync(FlatBufferBuilder bufferBuilder, Antelcat.MediasoupSharp.FBS.Request.Method method,
-                                                           Antelcat.MediasoupSharp.FBS.Request.Body? bodyType = null, int? bodyOffset = null,
-                                                           string? handlerId = null)
+    public async Task<Antelcat.MediasoupSharp.FBS.Response.Response?> RequestAsync(FlatBufferBuilder bufferBuilder,
+                                                                                   Antelcat.MediasoupSharp.FBS.Request.
+                                                                                       Method method,
+                                                                                   Antelcat.MediasoupSharp.FBS.Request.
+                                                                                       Body? bodyType = null,
+                                                                                   int? bodyOffset = null,
+                                                                                   string? handlerId = null)
     {
         logger.LogDebug($"{nameof(RequestAsync)}() | Worker[{{WorkId}}] Method:{{Method}}", workerId, method);
 
@@ -278,7 +279,7 @@ public class Channel : EnhancedEventEmitter, IChannel
             if (closed)
             {
                 BufferPool.Return(bufferBuilder);
-                throw new InvalidStateException("Channel closed");
+                throw new InvalidStateException($"Channel closed, cannot send request [method:{method}]");
             }
 
             var requestMessage = CreateRequestRequestMessage(bufferBuilder, method, bodyType, bodyOffset, handlerId);
@@ -531,7 +532,8 @@ public class Channel : EnhancedEventEmitter, IChannel
             requestOffset = Request.CreateRequest(bufferBuilder, id, method, handlerIdOffset);
         }
 
-        var messageOffset = Message.CreateMessage(bufferBuilder, Antelcat.MediasoupSharp.FBS.Message.Body.Request, requestOffset.Value);
+        var messageOffset = Message.CreateMessage(bufferBuilder, Antelcat.MediasoupSharp.FBS.Message.Body.Request,
+            requestOffset.Value);
 
         // Finalizes the buffer and adds a 4 byte prefix with the size of the buffer.
         bufferBuilder.FinishSizePrefixed(messageOffset.Value);
@@ -592,7 +594,8 @@ public class Channel : EnhancedEventEmitter, IChannel
         }
 
         var messageOffset =
-            Message.CreateMessage(bufferBuilder, Antelcat.MediasoupSharp.FBS.Message.Body.Notification, notificationOffset.Value);
+            Message.CreateMessage(bufferBuilder, Antelcat.MediasoupSharp.FBS.Message.Body.Notification,
+                notificationOffset.Value);
 
         // Finalizes the buffer and adds a 4 byte prefix with the size of the buffer.
         bufferBuilder.FinishSizePrefixed(messageOffset.Value);
@@ -675,30 +678,35 @@ public class Channel : EnhancedEventEmitter, IChannel
         catch (Exception ex)
         {
             logger.LogError(ex,
-                $"{nameof(ConsumerSocketOnData)}() | Worker[{{WorkerId}}] Invalid data received from the worker process", workerId);
+                $"{nameof(ConsumerSocketOnData)}() | Worker[{{WorkerId}}] Invalid data received from the worker process",
+                workerId);
         }
     }
 
     private void ConsumerSocketOnClosed()
     {
-        logger.LogDebug($"{nameof(ConsumerSocketOnClosed)}() | Worker[{{WorkerId}}] Consumer Channel ended by the worker process",
+        logger.LogDebug(
+            $"{nameof(ConsumerSocketOnClosed)}() | Worker[{{WorkerId}}] Consumer Channel ended by the worker process",
             workerId);
     }
 
     private void ConsumerSocketOnError(Exception? exception)
     {
-        logger.LogDebug(exception, $"{nameof(ConsumerSocketOnError)}() | Worker[{{WorkerId}}] Consumer Channel error", workerId);
+        logger.LogDebug(exception, $"{nameof(ConsumerSocketOnError)}() | Worker[{{WorkerId}}] Consumer Channel error",
+            workerId);
     }
 
     private void ProducerSocketOnClosed()
     {
-        logger.LogDebug($"{nameof(ProducerSocketOnClosed)}() | Worker[{{WorkerId}}] Producer Channel ended by the worker process",
+        logger.LogDebug(
+            $"{nameof(ProducerSocketOnClosed)}() | Worker[{{WorkerId}}] Producer Channel ended by the worker process",
             workerId);
     }
 
     private void ProducerSocketOnError(Exception? exception)
     {
-        logger.LogDebug(exception, $"{nameof(ProducerSocketOnError)}() | Worker[{{WorkerId}}] Producer Channel error", workerId);
+        logger.LogDebug(exception, $"{nameof(ProducerSocketOnError)}() | Worker[{{WorkerId}}] Producer Channel error",
+            workerId);
     }
 
     #endregion Event handles

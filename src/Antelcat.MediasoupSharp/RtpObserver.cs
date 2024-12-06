@@ -32,7 +32,7 @@ public abstract class RtpObserverImpl<TRtpObserverAppData, TEvents, TObserver>
     /// </summary>
     private bool closed;
 
-    private readonly AsyncReaderWriterLock closeLock = new();
+    private readonly AsyncReaderWriterLock closeLock = new(null);
 
     /// <summary>
     /// Paused flag.

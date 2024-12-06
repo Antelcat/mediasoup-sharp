@@ -22,7 +22,6 @@
     "https": {
       "commandName": "Project",
       "dotnetRunMessages": true,
-      "launchBrowser": true,
       "launchUrl": "https://127.0.0.1:4443",
       "applicationUrl": "https://[::]:4443",
       "environmentVariables": {

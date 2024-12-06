@@ -65,7 +65,7 @@ public class ProducerImpl<TProducerAppData>
 
     public Antelcat.MediasoupSharp.FBS.RtpParameters.MediaKind Kind => Data.Kind;
 
-    private readonly AsyncReaderWriterLock closeLock = new();
+    private readonly AsyncReaderWriterLock closeLock = new(null);
 
     /// <summary>
     /// Paused flag.

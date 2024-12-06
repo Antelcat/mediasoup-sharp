@@ -59,7 +59,7 @@ public class ConsumerImpl<TConsumerAppData>
     /// </summary>
     private bool closed;
 
-    private readonly AsyncReaderWriterLock closeLock = new();
+    private readonly AsyncReaderWriterLock closeLock = new(null);
 
     /// <summary>
     /// Paused flag.

@@ -87,7 +87,7 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
     /// <summary>
     /// Close locker.
     /// </summary>
-    protected readonly AsyncReaderWriterLock CloseLock = new();
+    protected readonly AsyncReaderWriterLock CloseLock = new(null);
 
     /// <summary>
     /// Internal data.
@@ -717,7 +717,7 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
                 producerOptions.Paused
             );
 
-            producer.On(x => x.close,
+            producer.On(static x => x.close,
                 async _ =>
                 {
                     await ProducersLock.WaitAsync();

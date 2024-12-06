@@ -89,7 +89,7 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
     /// <summary>
     /// Close locker.
     /// </summary>
-    protected readonly AsyncReaderWriterLock CloseLock = new();
+    protected readonly AsyncReaderWriterLock CloseLock = new(null);
 
     #endregion Protected Fields
 

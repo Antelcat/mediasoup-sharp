@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Antelcat.AutoGen.ComponentModel.Diagnostic;
 
 namespace Antelcat.MediasoupSharp.Test;
 

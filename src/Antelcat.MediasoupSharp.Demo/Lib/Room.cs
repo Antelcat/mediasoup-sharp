@@ -1562,7 +1562,7 @@ public class Room : EventEmitter
         }
 
         // Must take the Transport the remote Peer is using for consuming.
-        var transport = consumerPeer.Data().Transports.Values.FirstOrDefault(x => x.AppData()["consuming"] is true);
+        var transport = consumerPeer.Data().Transports.Values.FirstOrDefault(static x => x.AppData()["consuming"] is true);
 
         // This should not happen.
         if (transport == null)
@@ -1699,7 +1699,7 @@ public class Room : EventEmitter
                     }
                     catch (Exception ex)
                     {
-                        logger.LogWarning("CreateConsumer() | failed:{Ex}", ex);
+                        logger.LogWarning($"{nameof(CreateConsumerAsync)}() | failed:{{Ex}}", ex);
                     }
                 })
             );
