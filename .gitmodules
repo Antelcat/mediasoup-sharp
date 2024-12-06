@@ -1,6 +1,6 @@
 [submodule "mediasoup"]
 	path = mediasoup
-	url = https://github.com/versatica/mediasoup.git
+	url = https://github.com/feast107/mediasoup/
 	branch = v3
 [submodule "mediasoup-demo"]
 	path = mediasoup-demo
