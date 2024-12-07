@@ -21,8 +21,10 @@ namespace Antelcat.MediasoupSharp;
         $"public static implicit operator global::Antelcat.MediasoupSharp.FBS.WebRtcTransport.{nameof(DumpResponseT)}({nameof(WebRtcTransportData)} source) => new (){{",
     Template = "{Name} = source.{Name},",
     Trailing = "Base = source  };")]
-public partial record WebRtcTransportData(DumpT dump) : TransportBaseData(dump)
+public partial record WebRtcTransportData : TransportBaseData
 {
+    public WebRtcTransportData(DumpT dump) : base(dump) { }
+    
     public IceRole IceRole { get; init; }
 
     public required IceParametersT IceParameters { get; set; }

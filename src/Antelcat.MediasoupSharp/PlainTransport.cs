@@ -26,8 +26,10 @@ public class PlainTransportConstructorOptions<TPlainTransportAppData>(PlainTrans
         $"public static implicit operator global::Antelcat.MediasoupSharp.FBS.PlainTransport.{nameof(DumpResponseT)}({nameof(PlainTransportData)} source) => new (){{",
     Template = "{Name} = source.{Name},",
     Trailing = "Base = source  };")]
-public partial record PlainTransportData(DumpT dump) : TransportBaseData(dump)
+public partial record PlainTransportData : TransportBaseData
 {
+    public PlainTransportData(DumpT dump) : base(dump) { }
+    
     public bool RtcpMux { get; set; }
 
     public bool Comedia { get; set; }

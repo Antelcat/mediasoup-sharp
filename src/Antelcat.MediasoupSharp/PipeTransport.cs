@@ -28,8 +28,10 @@ public class PipeTransportConstructorOptions<TPipeTransportAppData>(PipeTranspor
         $"public static implicit operator global::Antelcat.MediasoupSharp.FBS.PipeTransport.{nameof(DumpResponseT)}({nameof(PipeTransportData)} source) => new (){{",
     Template = "{Name} = source.{Name},",
     Trailing = "Base = source  };")]
-public partial record PipeTransportData(DumpT dump) : TransportBaseData(dump)
+public partial record PipeTransportData : TransportBaseData
 {
+    public PipeTransportData(DumpT dump) : base(dump) { }
+    
     public required TupleT Tuple { get; set; }
 
     public bool Rtx { get; set; }
