@@ -100,11 +100,42 @@ public static class EnhancedEventEmitterExtensions
         return emitter;
     }
     
-    public static void Emit<T, TProperty>(this IEnhancedEventEmitter<T> emitter,
-                                          Expression<Func<T, TProperty>> eventName, TProperty? arg = default) =>
+    public static bool Emit<T, TProperty>(this IEnhancedEventEmitter<T> emitter,
+                                          Expression<Func<T, TProperty>> eventName, 
+                                          TProperty? arg = default) =>
         emitter.EventEmitter.Emit(GetMemberNameOrThrow(eventName), arg);
+
+    public static bool Emit<T, TProperty>(this EnhancedEventEmitter<T> emitter,
+                                          Expression<Func<T, TProperty>> eventName,
+                                          TProperty? arg = default) =>
+        (emitter as IEnhancedEventEmitter<T>).Emit(eventName, arg);
     
-    public static void Emit<T, TProperty>(this EnhancedEventEmitter<T> emitter,
-                                          Expression<Func<T, TProperty>> eventName, TProperty? arg = default) =>
-        emitter.EventEmitter.Emit(GetMemberNameOrThrow(eventName), arg);
+    public static bool SafeEmit<T, TProperty>(this IEnhancedEventEmitter<T> emitter,
+                                              Expression<Func<T, TProperty>> eventName, 
+                                              TProperty? arg = default)
+    {
+        var name = GetMemberNameOrThrow(eventName);
+        try
+        {
+            return emitter.EventEmitter.Emit(name, arg);
+        }
+        catch (Exception ex)
+        {
+            try
+            {
+                emitter.EventEmitter.Emit("listenererror", eventName, ex);
+            }
+            catch
+            {
+                //
+            }
+
+            return emitter.EventEmitter.ListenerCount(name) > 0;
+        }
+    }
+
+    public static bool SafeEmit<T, TProperty>(this EnhancedEventEmitter<T> emitter,
+                                              Expression<Func<T, TProperty>> eventName,
+                                              TProperty? arg = default)
+        => (emitter as IEnhancedEventEmitter<T>).SafeEmit(eventName, arg);
 }

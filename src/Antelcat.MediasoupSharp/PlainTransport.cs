@@ -199,10 +199,10 @@ public class PlainTransportImpl<TPlainTransportAppData>
 
                 Data.Tuple = tupleNotification.Tuple;
 
-                this.Emit(static x => x.Tuple, Data.Tuple);
+                this.SafeEmit(static x => x.Tuple, Data.Tuple);
 
                 // Emit observer event.
-                Observer.Emit(static x => x.Tuple, Data.Tuple);
+                Observer.SafeEmit(static x => x.Tuple, Data.Tuple);
 
                 break;
             }
@@ -212,10 +212,10 @@ public class PlainTransportImpl<TPlainTransportAppData>
 
                 Data.RtcpTuple = rtcpTupleNotification.Tuple;
 
-                this.Emit(static x => x.RtcpTuple, Data.RtcpTuple);
+                this.SafeEmit(static x => x.RtcpTuple, Data.RtcpTuple);
 
                 // Emit observer event.
-                Observer.Emit(static x => x.RtcpTuple, Data.RtcpTuple);
+                Observer.SafeEmit(static x => x.RtcpTuple, Data.RtcpTuple);
 
                 break;
             }
@@ -225,10 +225,10 @@ public class PlainTransportImpl<TPlainTransportAppData>
 
                 Data.SctpState = sctpStateChangeNotification.SctpState;
 
-                this.Emit(static x => x.SctpStateChange, Data.SctpState);
+                this.SafeEmit(static x => x.SctpStateChange, Data.SctpState);
 
                 // Emit observer event.
-                Observer.Emit(static x => x.SctpStateChange, Data.SctpState);
+                Observer.SafeEmit(static x => x.SctpStateChange, Data.SctpState);
 
                 break;
             }
@@ -236,10 +236,10 @@ public class PlainTransportImpl<TPlainTransportAppData>
             {
                 var traceNotification = notification.BodyAsTransport_TraceNotification().UnPack();
 
-                this.Emit(static x=>x.Trace, traceNotification);
+                this.SafeEmit(static x=>x.Trace, traceNotification);
 
                 // Emit observer event.
-                Observer.Emit(static x => x.Trace, traceNotification);
+                Observer.SafeEmit(static x => x.Trace, traceNotification);
 
                 break;
             }

@@ -45,8 +45,8 @@ public class ConsumerData
 }
 
 [AutoExtractInterface(NamingTemplate = nameof(IConsumer))]
-public class ConsumerImpl<TConsumerAppData> 
-    : EnhancedEventEmitter<ConsumerEvents> , IConsumer<TConsumerAppData>
+public class ConsumerImpl<TConsumerAppData>
+    : EnhancedEventEmitter<ConsumerEvents>, IConsumer<TConsumerAppData>
     where TConsumerAppData : new()
 {
     /// <summary>
@@ -184,9 +184,9 @@ public class ConsumerImpl<TConsumerAppData>
     {
         logger.LogDebug($"{nameof(CloseAsync)}() | Consumer:{{ConsumerId}}", Id);
 
-        await using(await closeLock.WriteLockAsync())
+        await using (await closeLock.WriteLockAsync())
         {
-            if(closed)
+            if (closed)
             {
                 return;
             }
@@ -199,10 +199,11 @@ public class ConsumerImpl<TConsumerAppData>
             // Build Request
             var bufferBuilder = channel.BufferPool.Get();
 
-            var requestOffset = Antelcat.MediasoupSharp.FBS.Transport.CloseConsumerRequest.Pack(bufferBuilder, new Antelcat.MediasoupSharp.FBS.Transport.CloseConsumerRequestT
-            {
-                ConsumerId = @internal.ConsumerId
-            });
+            var requestOffset = Antelcat.MediasoupSharp.FBS.Transport.CloseConsumerRequest.Pack(bufferBuilder,
+                new Antelcat.MediasoupSharp.FBS.Transport.CloseConsumerRequestT
+                {
+                    ConsumerId = @internal.ConsumerId
+                });
 
             // Fire and forget
             channel.RequestAsync(
@@ -214,10 +215,10 @@ public class ConsumerImpl<TConsumerAppData>
                 )
                 .ContinueWithOnFaultedHandleLog(logger);
 
-            this.Emit(static x=>x.close);
+            this.Emit(static x => x.close);
 
             // Emit observer event.
-            Observer.Emit(static x => x.Close);
+            Observer.SafeEmit(static x => x.Close);
         }
     }
 
@@ -228,9 +229,9 @@ public class ConsumerImpl<TConsumerAppData>
     {
         logger.LogDebug($"{nameof(TransportClosedAsync)}() | Consumer:{{ConsumerId}}", Id);
 
-        await using(await closeLock.WriteLockAsync())
+        await using (await closeLock.WriteLockAsync())
         {
-            if(closed)
+            if (closed)
             {
                 return;
             }
@@ -240,10 +241,10 @@ public class ConsumerImpl<TConsumerAppData>
             // Remove notification subscriptions.
             channel.OnNotification -= OnNotificationHandle;
 
-            this.Emit(static x => x.TransportClose);
+            this.SafeEmit(static x => x.TransportClose);
 
             // Emit observer event.
-            Observer.Emit(static x=>x.Close);
+            Observer.SafeEmit(static x => x.Close);
         }
     }
 
@@ -254,15 +255,16 @@ public class ConsumerImpl<TConsumerAppData>
     {
         logger.LogDebug($"{nameof(DumpAsync)}() | Consumer:{{ConsumerId}}", Id);
 
-        await using(await closeLock.ReadLockAsync())
+        await using (await closeLock.ReadLockAsync())
         {
-            if(closed)
+            if (closed)
             {
                 throw new InvalidStateException("Consumer closed");
             }
 
             var bufferBuilder = channel.BufferPool.Get();
-            var response = await channel.RequestAsync(bufferBuilder, Method.CONSUMER_DUMP, null, null, @internal.ConsumerId);
+            var response =
+                await channel.RequestAsync(bufferBuilder, Method.CONSUMER_DUMP, null, null, @internal.ConsumerId);
             var data = response.NotNull().BodyAsConsumer_DumpResponse().UnPack();
             return data;
         }
@@ -275,15 +277,16 @@ public class ConsumerImpl<TConsumerAppData>
     {
         logger.LogDebug($"{nameof(GetStatsAsync)}() | Consumer:{{ConsumerId}}", Id);
 
-        await using(await closeLock.ReadLockAsync())
+        await using (await closeLock.ReadLockAsync())
         {
-            if(closed)
+            if (closed)
             {
                 throw new InvalidStateException("Consumer closed");
             }
 
             var bufferBuilder = channel.BufferPool.Get();
-            var response = await channel.RequestAsync(bufferBuilder, Method.CONSUMER_GET_STATS, null, null, @internal.ConsumerId);
+            var response = await channel.RequestAsync(bufferBuilder, Method.CONSUMER_GET_STATS, null, null,
+                @internal.ConsumerId);
             var stats = response.NotNull().BodyAsConsumer_GetStatsResponse().UnPack().Stats;
             return stats;
         }
@@ -296,9 +299,9 @@ public class ConsumerImpl<TConsumerAppData>
     {
         logger.LogDebug($"{nameof(PauseAsync)}() | Consumer:{{ConsumerId}}", Id);
 
-        await using(await closeLock.ReadLockAsync())
+        await using (await closeLock.ReadLockAsync())
         {
-            if(closed)
+            if (closed)
             {
                 throw new InvalidStateException("Consumer closed");
             }
@@ -306,25 +309,25 @@ public class ConsumerImpl<TConsumerAppData>
             await pauseLock.WaitAsync();
             try
             {
-                var wasPaused = paused || ProducerPaused;
-
                 var bufferBuilder = channel.BufferPool.Get();
 
                 // Fire and forget
-                channel.RequestAsync(bufferBuilder, Method.CONSUMER_PAUSE, null, null, @internal.ConsumerId)
+                channel.RequestAsync(bufferBuilder, 
+                        Method.CONSUMER_PAUSE, 
+                        null, 
+                        null, 
+                        @internal.ConsumerId)
                     .ContinueWithOnFaultedHandleLog(logger);
+
+                var wasPaused = paused;
 
                 paused = true;
 
                 // Emit observer event.
-                if(!wasPaused)
+                if (!wasPaused && !ProducerPaused)
                 {
-                    Observer.Emit(static x=>x.Pause);
+                    Observer.SafeEmit(static x => x.Pause);
                 }
-            }
-            catch(Exception ex)
-            {
-                logger.LogError(ex, "PauseAsync()");
             }
             finally
             {
@@ -340,9 +343,9 @@ public class ConsumerImpl<TConsumerAppData>
     {
         logger.LogDebug($"{nameof(ResumeAsync)}() | Consumer:{{ConsumerId}}", Id);
 
-        await using(await closeLock.ReadLockAsync())
+        await using (await closeLock.ReadLockAsync())
         {
-            if(closed)
+            if (closed)
             {
                 throw new InvalidStateException("Consumer closed");
             }
@@ -350,25 +353,25 @@ public class ConsumerImpl<TConsumerAppData>
             await pauseLock.WaitAsync();
             try
             {
-                var wasPaused = paused || ProducerPaused;
-
                 var bufferBuilder = channel.BufferPool.Get();
 
                 // Fire and forget
-                channel.RequestAsync(bufferBuilder, Method.CONSUMER_RESUME, null, null, @internal.ConsumerId)
-                    .ContinueWithOnFaultedHandleLog(logger);
+                await channel.RequestAsync(bufferBuilder, 
+                        Method.CONSUMER_RESUME, 
+                        null, 
+                        null, 
+                        @internal.ConsumerId);
 
+                var wasPaused = paused;
+
+                
                 paused = false;
 
                 // Emit observer event.
-                if(wasPaused && !ProducerPaused)
+                if (wasPaused && !ProducerPaused)
                 {
-                    Observer.Emit(static x=>x.Resume);
+                    Observer.SafeEmit(static x => x.Resume);
                 }
-            }
-            catch(Exception ex)
-            {
-                logger.LogError(ex, "ResumeAsync()");
             }
             finally
             {
@@ -380,13 +383,14 @@ public class ConsumerImpl<TConsumerAppData>
     /// <summary>
     /// Set preferred video layers.
     /// </summary>
-    public async Task SetPreferredLayersAsync(Antelcat.MediasoupSharp.FBS.Consumer.SetPreferredLayersRequestT setPreferredLayersRequest)
+    public async Task SetPreferredLayersAsync(
+        Antelcat.MediasoupSharp.FBS.Consumer.SetPreferredLayersRequestT setPreferredLayersRequest)
     {
         logger.LogDebug($"{nameof(SetPreferredLayersAsync)}() | Consumer:{{ConsumerId}}", Id);
 
-        await using(await closeLock.ReadLockAsync())
+        await using (await closeLock.ReadLockAsync())
         {
-            if(closed)
+            if (closed)
             {
                 throw new InvalidStateException("Consumer closed");
             }
@@ -394,7 +398,8 @@ public class ConsumerImpl<TConsumerAppData>
             // Build Request
             var bufferBuilder = channel.BufferPool.Get();
 
-            var setPreferredLayersRequestOffset = SetPreferredLayersRequest.Pack(bufferBuilder, setPreferredLayersRequest);
+            var setPreferredLayersRequestOffset =
+                SetPreferredLayersRequest.Pack(bufferBuilder, setPreferredLayersRequest);
 
             var response = await channel.RequestAsync(
                 bufferBuilder,
@@ -402,6 +407,7 @@ public class ConsumerImpl<TConsumerAppData>
                 Antelcat.MediasoupSharp.FBS.Request.Body.Consumer_SetPreferredLayersRequest,
                 setPreferredLayersRequestOffset.Value,
                 @internal.ConsumerId);
+            
             var preferredLayers = response?.BodyAsConsumer_SetPreferredLayersResponse().UnPack().PreferredLayers;
 
             PreferredLayers = preferredLayers;
@@ -415,16 +421,16 @@ public class ConsumerImpl<TConsumerAppData>
     {
         logger.LogDebug($"{nameof(SetPriorityAsync)}() | Consumer:{{ConsumerId}}", Id);
 
-        await using(await closeLock.ReadLockAsync())
+        await using (await closeLock.ReadLockAsync())
         {
-            if(closed)
+            if (closed)
             {
                 throw new InvalidStateException("Consumer closed");
             }
 
             var bufferBuilder = channel.BufferPool.Get();
 
-            var setPriorityRequestOffset = SetPriorityRequest.Pack(bufferBuilder, new SetPriorityRequestT()
+            var setPriorityRequestOffset = SetPriorityRequest.Pack(bufferBuilder, new SetPriorityRequestT
             {
                 Priority = priority
             });
@@ -459,9 +465,9 @@ public class ConsumerImpl<TConsumerAppData>
     {
         logger.LogDebug($"{nameof(RequestKeyFrameAsync)}() | Consumer:{{ConsumerId}}", Id);
 
-        await using(await closeLock.ReadLockAsync())
+        await using (await closeLock.ReadLockAsync())
         {
-            if(closed)
+            if (closed)
             {
                 throw new InvalidStateException("Consumer closed");
             }
@@ -483,9 +489,9 @@ public class ConsumerImpl<TConsumerAppData>
     {
         logger.LogDebug($"{nameof(EnableTraceEventAsync)}() | Consumer:{{ConsumerId}}", Id);
 
-        await using(await closeLock.ReadLockAsync())
+        await using (await closeLock.ReadLockAsync())
         {
-            if(closed)
+            if (closed)
             {
                 throw new InvalidStateException("Consumer closed");
             }
@@ -522,18 +528,17 @@ public class ConsumerImpl<TConsumerAppData>
     private async void OnNotificationHandle(string handlerId, Event @event, Notification notification)
 #pragma warning restore VSTHRD100 // Avoid async void methods
     {
-        if(handlerId != Id)
+        if (handlerId != Id)
         {
             return;
         }
 
-        switch(@event)
+        switch (@event)
         {
             case Event.CONSUMER_PRODUCER_CLOSE:
-            {
-                await using(await closeLock.WriteLockAsync())
+                await using (await closeLock.WriteLockAsync())
                 {
-                    if(closed)
+                    if (closed)
                     {
                         break;
                     }
@@ -543,95 +548,96 @@ public class ConsumerImpl<TConsumerAppData>
                     // Remove notification subscriptions.
                     channel.OnNotification -= OnNotificationHandle;
 
-                    this.Emit(static x => x.ProducerClose);
-                    this.Emit(static x=>x.ProducerClose);
+                    this.Emit(static x => x.producerClose);
+                    this.SafeEmit(static x => x.ProducerClose);
 
                     // Emit observer event.
-                    Observer.Emit(static x=>x.Close);
+                    Observer.SafeEmit(static x => x.Close);
                 }
 
                 break;
-            }
             case Event.CONSUMER_PRODUCER_PAUSE:
-            {
-                if(ProducerPaused)
+                if (ProducerPaused)
                 {
                     break;
                 }
-
-                var wasPaused = paused || ProducerPaused;
 
                 ProducerPaused = true;
 
-                this.Emit(static x => x.ProducerPause);
+                this.SafeEmit(static x => x.ProducerPause);
 
                 // Emit observer event.
-                if(!wasPaused)
+                if (!paused)
                 {
-                    Observer.Emit(static x=>x.Pause);
+                    Observer.SafeEmit(static x => x.Pause);
                 }
 
                 break;
-            }
             case Event.CONSUMER_PRODUCER_RESUME:
-            {
-                if(!ProducerPaused)
+                if (!ProducerPaused)
                 {
                     break;
                 }
 
-                var wasPaused = paused || ProducerPaused;
-
                 ProducerPaused = false;
 
-                this.Emit(static x=>x.ProducerResume);
+                this.SafeEmit(static x => x.ProducerResume);
 
                 // Emit observer event.
-                if(wasPaused && !paused)
+                if (!paused)
                 {
-                    Observer.Emit(static x=>x.Resume);
+                    Observer.SafeEmit(static x => x.Resume);
                 }
 
                 break;
-            }
             case Event.CONSUMER_SCORE:
-            {
-                var scoreNotification = notification.BodyAsConsumer_ScoreNotification();
-                var score             = scoreNotification.Score.NotNull().UnPack();
+                var score = notification.BodyAsConsumer_ScoreNotification().Score.NotNull().UnPack();
+                
                 Score = score;
 
-                this.Emit(static x=>x.Score, Score);
+                this.SafeEmit(static x => x.Score, score);
 
                 // Emit observer event.
-                Observer.Emit(static x => x.Score, Score);
+                Observer.SafeEmit(static x => x.Score, score);
 
                 break;
-            }
             case Event.CONSUMER_LAYERS_CHANGE:
-            {
-                var layersChangeNotification = notification.BodyAsConsumer_LayersChangeNotification();
-                var currentLayers            = layersChangeNotification.Layers?.UnPack();
-                CurrentLayers = currentLayers;
+                var layers = notification.BodyAsConsumer_LayersChangeNotification().Layers?.UnPack();
+                
+                CurrentLayers = layers;
 
-                this.Emit(static x => x.LayersChange, CurrentLayers);
+                this.SafeEmit(static x => x.LayersChange, layers);
 
                 // Emit observer event.
-                Observer.Emit(static x => x.LayersChange, CurrentLayers);
+                Observer.SafeEmit(static x => x.LayersChange, layers);
 
                 break;
-            }
             case Event.CONSUMER_TRACE:
-            {
-                var traceNotification = notification.BodyAsConsumer_TraceNotification();
-                var trace             = traceNotification.UnPack();
+                var trace = notification.BodyAsConsumer_TraceNotification().UnPack();
 
-                this.Emit(static x => x.Trace, trace);
+                this.SafeEmit(static x => x.Trace, trace);
 
                 // Emit observer event.
-                Observer.Emit(static x => x.Trace, trace);
+                Observer.SafeEmit(static x => x.Trace, trace);
+                
+                //mediasoup 在这里Emit了第二遍，不知道为什么
+                //this.SafeEmit(static x => x.Trace, trace);
+
+                // Emit observer event.
+                //Observer.SafeEmit(static x => x.Trace, trace);
+                
+                break;
+            case Event.CONSUMER_RTP:
+                if (closed)
+                {
+                    break;
+                }
+
+                var rtpNotification = notification.BodyAsConsumer_RtpNotification().UnPack();
+
+                this.SafeEmit(static x => x.Rtp, rtpNotification.Data);
 
                 break;
-            }
             default:
             {
                 logger.LogError("OnNotificationHandle() | Ignoring unknown event{Event}", @event);

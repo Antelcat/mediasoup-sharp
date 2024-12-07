@@ -275,7 +275,7 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
             this.Emit(static x => x.close);
 
             // Emit observer event.
-            Observer.Emit(static x => x.Close);
+            Observer.SafeEmit(static x => x.Close);
         }
     }
 
@@ -304,10 +304,10 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
 
             await CloseIternalAsync(false);
 
-            this.Emit(static x => x.RouterClose);
+            this.SafeEmit(static x => x.RouterClose);
 
             // Emit observer event.
-            Observer.Emit(static x => x.Close);
+            Observer.SafeEmit(static x => x.Close);
         }
     }
 
@@ -434,10 +434,11 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
             // transport.listenServerClosed() is called by the listen server.
             // NOTE: Currently there is just WebRtcServer for WebRtcTransports.
             this.Emit(static x => x.listenServerClose);
-            this.Emit(static x => x.ListenServerClose);
+            
+            this.SafeEmit(static x => x.ListenServerClose);
 
             // Emit observer event.
-            Observer.Emit(static x => x.Close);
+            Observer.SafeEmit(static x => x.Close);
         }
     }
 
@@ -754,7 +755,7 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
             this.Emit(static x => x.newProducer, producer);
 
             // Emit observer event.
-            Observer.Emit(static x => x.NewProducer, producer);
+            Observer.SafeEmit(static x => x.NewProducer, producer);
 
             return producer;
         }
@@ -932,7 +933,7 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
             }
 
             // Emit observer event.
-            Observer.Emit(static x => x.NewConsumer, consumer);
+            Observer.SafeEmit(static x => x.NewConsumer, consumer);
 
             return consumer;
         }
@@ -1074,7 +1075,7 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
             this.Emit(static x => x.newDataProducer, dataProducer);
 
             // Emit observer event.
-            Observer.Emit(static x => x.NewDataProducer, dataProducer);
+            Observer.SafeEmit(static x => x.NewDataProducer, dataProducer);
 
             return dataProducer;
         }

@@ -133,7 +133,7 @@ public abstract class RtpObserverImpl<TRtpObserverAppData, TEvents, TObserver>
             this.Emit(static x => x.close);
 
             // Emit observer event.
-            Observer.Emit(static x => x.Close);
+            Observer.SafeEmit(static x => x.Close);
         }
     }
 
@@ -156,10 +156,10 @@ public abstract class RtpObserverImpl<TRtpObserverAppData, TEvents, TObserver>
             // Remove notification subscriptions.
             Channel.OnNotification -= OnNotificationHandle;
 
-            this.Emit(static x => x.RouterClose);
+            this.SafeEmit(static x => x.RouterClose);
 
             // Emit observer event.
-            Observer.Emit(static x => x.Close);
+            Observer.SafeEmit(static x => x.Close);
         }
     }
 
@@ -197,7 +197,7 @@ public abstract class RtpObserverImpl<TRtpObserverAppData, TEvents, TObserver>
                 // Emit observer event.
                 if (!wasPaused)
                 {
-                    Observer.Emit(static x => x.Pause);
+                    Observer.SafeEmit(static x => x.Pause);
                 }
             }
             catch (Exception ex)
@@ -245,7 +245,7 @@ public abstract class RtpObserverImpl<TRtpObserverAppData, TEvents, TObserver>
                 // Emit observer event.
                 if (wasPaused)
                 {
-                    Observer.Emit(static x => x.Resume);
+                    Observer.SafeEmit(static x => x.Resume);
                 }
             }
             catch (Exception ex)
@@ -298,7 +298,7 @@ public abstract class RtpObserverImpl<TRtpObserverAppData, TEvents, TObserver>
             ).ContinueWithOnFaultedHandleLog(logger);
 
             // Emit observer event.
-            Observer.Emit(static x => x.AddProducer, producer);
+            Observer.SafeEmit(static x => x.AddProducer, producer);
         }
     }
 
@@ -341,7 +341,7 @@ public abstract class RtpObserverImpl<TRtpObserverAppData, TEvents, TObserver>
             ).ContinueWithOnFaultedHandleLog(logger);
 
             // Emit observer event.
-            Observer.Emit(static x => x.RemoveProducer, producer);
+            Observer.SafeEmit(static x => x.RemoveProducer, producer);
         }
     }
 

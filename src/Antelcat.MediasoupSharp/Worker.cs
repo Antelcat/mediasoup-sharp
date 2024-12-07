@@ -240,7 +240,7 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
             {
                 // 执行到这里的可能性？
                 Logger.LogError(ex, "Worker() | Worker process error [pid:{ProcessId}]", Pid);
-                this.Emit(static x => x.Died, ex);
+                this.SafeEmit(static x => x.Died, ex);
             }
 
             return;
@@ -274,7 +274,7 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
             );
 
 
-            this.Emit(static x => x.SubprocessClose);
+            this.SafeEmit(static x => x.SubprocessClose);
         };
 
         channel.OnNotification += OnNotificationHandle;
@@ -446,7 +446,7 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
             );
 
             // Emit observer event.
-            Observer.Emit(static x => x.NewWebrtcServer, webRtcServer);
+            Observer.SafeEmit(static x => x.NewWebrtcServer, webRtcServer);
 
             return webRtcServer;
         }
@@ -514,7 +514,7 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
             );
 
             // Emit observer event.
-            Observer.Emit(static x => x.NewRouter, router);
+            Observer.SafeEmit(static x => x.NewRouter, router);
 
             return router;
         }
@@ -604,7 +604,7 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
             }
 
             // Emit observer event.
-            Observer.Emit(static x => x.Close);
+            Observer.SafeEmit(static x => x.Close);
         }
     }
 
@@ -666,7 +666,7 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
             Logger.LogError(
                 "OnExit() | Worker process failed unexpectedly [pid:{ProcessId}, code:{ExitCode}, signal:{TermSignal}]",
                 Pid, process.ExitCode, process.TermSignal);
-            this.Emit(static x => x.Died,
+            this.SafeEmit(static x => x.Died,
                 new Exception(
                     $"Worker process died unexpectedly [pid:{Pid}, code:{process.ExitCode}, signal:{process.TermSignal}]"
                 )

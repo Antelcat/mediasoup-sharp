@@ -237,10 +237,10 @@ public class WebRtcTransportImpl<TWebRtcTransportAppData> :
 
                 Data.IceState = iceStateChangeNotification.IceState;
 
-                this.Emit(static x => x.IceStateChange, Data.IceState);
+                this.SafeEmit(static x => x.IceStateChange, Data.IceState);
 
                 // Emit observer event.
-                Observer.Emit(static x => x.IceStateChange, Data.IceState);
+                Observer.SafeEmit(static x => x.IceStateChange, Data.IceState);
 
                 break;
             }
@@ -251,10 +251,10 @@ public class WebRtcTransportImpl<TWebRtcTransportAppData> :
 
                 Data.IceSelectedTuple = iceSelectedTupleChangeNotification.Tuple;
 
-                this.Emit(static x => x.IceSelectedTupleChange, Data.IceSelectedTuple);
+                this.SafeEmit(static x => x.IceSelectedTupleChange, Data.IceSelectedTuple);
 
                 // Emit observer event.
-                Observer.Emit(static x => x.IceSelectedTupleChange, Data.IceSelectedTuple);
+                Observer.SafeEmit(static x => x.IceSelectedTupleChange, Data.IceSelectedTuple);
 
                 break;
             }
@@ -272,10 +272,10 @@ public class WebRtcTransportImpl<TWebRtcTransportAppData> :
                     // Data.DtlsRemoteCert = dtlsStateChangeNotification.RemoteCert;
                 }
 
-                this.Emit(static x => x.DtlsStateChange, Data.DtlsState);
+                this.SafeEmit(static x => x.DtlsStateChange, Data.DtlsState);
 
                 // Emit observer event.
-                Observer.Emit(static x => x.DtlsStateChange, Data.DtlsState);
+                Observer.SafeEmit(static x => x.DtlsStateChange, Data.DtlsState);
 
                 break;
             }
@@ -285,10 +285,10 @@ public class WebRtcTransportImpl<TWebRtcTransportAppData> :
 
                 Data.SctpState = sctpStateChangeNotification.SctpState;
 
-                this.Emit(static x => x.SctpStateChange, Data.SctpState);
+                this.SafeEmit(static x => x.SctpStateChange, Data.SctpState);
 
                 // Emit observer event.
-                Observer.Emit(static x => x.SctpStateChange, Data.SctpState);
+                Observer.SafeEmit(static x => x.SctpStateChange, Data.SctpState);
 
                 break;
             }
@@ -296,10 +296,10 @@ public class WebRtcTransportImpl<TWebRtcTransportAppData> :
             {
                 var traceNotification = notification.BodyAsTransport_TraceNotification().UnPack();
 
-                this.Emit(static x => x.Trace, traceNotification);
+                this.SafeEmit(static x => x.Trace, traceNotification);
 
                 // Emit observer event.
-                Observer.Emit(static x => x.Trace, traceNotification);
+                Observer.SafeEmit(static x => x.Trace, traceNotification);
 
                 break;
             }

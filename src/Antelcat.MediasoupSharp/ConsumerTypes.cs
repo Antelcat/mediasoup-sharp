@@ -85,7 +85,7 @@ public abstract class ConsumerEvents
     public required ConsumerScore      Score;
     public          ConsumerLayers?    LayersChange;
     public required TraceNotificationT Trace;
-    public required byte[]             Rtp;
+    public required List<byte>             Rtp;
 
     public required (string, Exception) ListenerError;
 

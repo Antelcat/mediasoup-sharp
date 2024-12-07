@@ -156,7 +156,7 @@ public class DataProducerImpl<TDataProducerAppData>
             this.Emit(static x => x.close);
 
             // Emit observer event.
-            Observer.Emit(static x=>x.Close);
+            Observer.SafeEmit(static x=>x.Close);
         }
     }
 
@@ -179,10 +179,10 @@ public class DataProducerImpl<TDataProducerAppData>
             // Remove notification subscriptions.
             //_channel.OnNotification -= OnNotificationHandle;
 
-            this.Emit(static x=>x.TransportClose);
+            this.SafeEmit(static x=>x.TransportClose);
 
             // Emit observer event.
-            Observer.Emit(static x=>x.Close);
+            Observer.SafeEmit(static x=>x.Close);
         }
     }
 
@@ -271,7 +271,7 @@ public class DataProducerImpl<TDataProducerAppData>
             // Emit observer event.
             if (!wasPaused)
             {
-                Observer.Emit(static x=>x.Pause);
+                Observer.SafeEmit(static x=>x.Pause);
             }
         }
     }
@@ -305,7 +305,7 @@ public class DataProducerImpl<TDataProducerAppData>
             // Emit observer event.
             if (wasPaused)
             {
-                Observer.Emit(static x=>x.Resume);
+                Observer.SafeEmit(static x=>x.Resume);
             }
         }
     }

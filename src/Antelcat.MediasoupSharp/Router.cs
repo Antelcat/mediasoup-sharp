@@ -166,7 +166,7 @@ public class RouterImpl<TRouterAppData>
             this.Emit(static x => x.close);
 
             // Emit observer event.
-            Observer.Emit(static x => x.Close);
+            Observer.SafeEmit(static x => x.Close);
         }
     }
 
@@ -188,10 +188,10 @@ public class RouterImpl<TRouterAppData>
 
             await CloseInternalAsync();
 
-            this.Emit(static x => x.WorkerClose);
+            this.SafeEmit(static x => x.WorkerClose);
 
             // Emit observer event.
-            Observer.Emit(static x => x.Close);
+            Observer.SafeEmit(static x => x.Close);
         }
     }
 
@@ -728,7 +728,7 @@ public class RouterImpl<TRouterAppData>
         });
 
         // Emit observer event.
-        Observer.Emit(static x => x.NewTransport, transport);
+        Observer.SafeEmit(static x => x.NewTransport, transport);
 
         if (webRtcServer != null && transport is IWebRtcTransport webRtcTransport)
         {
@@ -1257,7 +1257,7 @@ public class RouterImpl<TRouterAppData>
         });
 
         // Emit observer event.
-        Observer.Emit(static x => x.NewRtpObserver, rtpObserver);
+        Observer.SafeEmit(static x => x.NewRtpObserver, rtpObserver);
 
         return Task.CompletedTask;
     }

@@ -15,7 +15,7 @@
         <PackageReference Include="Antelcat.AutoGen" Version="3.0.0-preview-241206-1" />
         <PackageReference Include="Antelcat.FlatBuffers" Version="1.0.0" />
         <PackageReference Include="Antelcat.LibuvSharp" Version="1.0.0" />
-        <PackageReference Include="Antelcat.NodeSharp" Version="0.3.0.1" />
+        <PackageReference Include="Antelcat.NodeSharp" Version="0.4.0" />
         <PackageReference Include="Google.FlatBuffers" Version="24.3.25" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0-rc.2.24473.5" />
         <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="9.0.0-rc.2.24474.3" />

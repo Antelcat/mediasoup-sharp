@@ -291,7 +291,7 @@ public class PipeTransportImpl<TPipeTransportAppData>
         }
 
         // Emit observer event.
-        Observer.Emit(static x => x.NewConsumer, consumer);
+        Observer.SafeEmit(static x => x.NewConsumer, consumer);
 
         return consumer;
     }
@@ -318,10 +318,10 @@ public class PipeTransportImpl<TPipeTransportAppData>
 
                 Data.SctpState = sctpStateChangeNotification.SctpState;
 
-                this.Emit(static x => x.SctpStateChange, Data.SctpState);
+                this.SafeEmit(static x => x.SctpStateChange, Data.SctpState);
 
                 // Emit observer event.
-                Observer.Emit(static x => x.SctpStateChange, Data.SctpState);
+                Observer.SafeEmit(static x => x.SctpStateChange, Data.SctpState);
 
                 break;
             }
@@ -329,10 +329,10 @@ public class PipeTransportImpl<TPipeTransportAppData>
             {
                 var traceNotification = notification.BodyAsTransport_TraceNotification().UnPack();
 
-                this.Emit(static x => x.Trace, traceNotification);
+                this.SafeEmit(static x => x.Trace, traceNotification);
 
                 // Emit observer event.
-                Observer.Emit(static x => x.Trace, traceNotification);
+                Observer.SafeEmit(static x => x.Trace, traceNotification);
 
                 break;
             }

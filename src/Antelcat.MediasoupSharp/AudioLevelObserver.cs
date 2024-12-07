@@ -58,20 +58,20 @@ public class AudioLevelObserver<TAudioLevelObserverAppData>
 
                 if (volumes.Count > 0)
                 {
-                    this.Emit(static x => x.Volumes, volumes);
+                    this.SafeEmit(static x => x.Volumes, volumes);
 
                     // Emit observer event.
-                    Observer.Emit(static x => x.Volumes, volumes);
+                    Observer.SafeEmit(static x => x.Volumes, volumes);
                 }
 
                 break;
             }
             case Event.AUDIOLEVELOBSERVER_SILENCE:
             {
-                this.Emit(static x => x.Silence);
+                this.SafeEmit(static x => x.Silence);
 
                 // Emit observer event.
-                Observer.Emit(static x => x.Silence);
+                Observer.SafeEmit(static x => x.Silence);
 
                 break;
             }

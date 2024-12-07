@@ -214,7 +214,7 @@ public class ProducerImpl<TProducerAppData>
         this.Emit(static x => x.close);
 
         // Emit observer event.
-        Observer.Emit(static x=>x.Close);
+        Observer.SafeEmit(static x=>x.Close);
     }
 
     /// <summary>
@@ -235,10 +235,10 @@ public class ProducerImpl<TProducerAppData>
             // Remove notification subscriptions.
             channel.OnNotification -= OnNotificationHandle;
 
-            this.Emit(static x=>x.TransportClose);
+            this.SafeEmit(static x=>x.TransportClose);
 
             // Emit observer event.
-            Observer.Emit(static x=>x.Close);
+            Observer.SafeEmit(static x=>x.Close);
         }
     }
 
@@ -303,19 +303,23 @@ public class ProducerImpl<TProducerAppData>
             await pauseLock.WaitAsync();
             try
             {
-                var wasPaused = Paused;
-
                 // Build Request
                 var bufferBuilder = channel.BufferPool.Get();
 
-                await channel.RequestAsync(bufferBuilder, Method.PRODUCER_PAUSE, null, null, @internal.ProducerId);
+                await channel.RequestAsync(bufferBuilder, 
+                    Method.PRODUCER_PAUSE, 
+                    null, 
+                    null,
+                    @internal.ProducerId);
+                
+                var wasPaused = Paused;
 
                 Paused = true;
 
                 // Emit observer event.
                 if (!wasPaused)
                 {
-                    Observer.Emit(static x=>x.Pause);
+                    Observer.SafeEmit(static x=>x.Pause);
                 }
             }
             catch (Exception ex)
@@ -346,19 +350,19 @@ public class ProducerImpl<TProducerAppData>
             await pauseLock.WaitAsync();
             try
             {
-                var wasPaused = Paused;
-
                 // Build Request
                 var bufferBuilder = channel.BufferPool.Get();
 
                 await channel.RequestAsync(bufferBuilder, Method.PRODUCER_RESUME, null, null, @internal.ProducerId);
+                
+                var wasPaused = Paused;
 
                 Paused = false;
 
                 // Emit observer event.
                 if (wasPaused)
                 {
-                    Observer.Emit(static x=>x.Resume);
+                    Observer.SafeEmit(static x=>x.Resume);
                 }
             }
             catch (Exception ex)
@@ -480,10 +484,10 @@ public class ProducerImpl<TProducerAppData>
                 var score             = scoreNotification.UnPack().Scores;
                 Score = score;
 
-                this.Emit(static x => x.Score, score);
+                this.SafeEmit(static x => x.Score, score);
 
                 // Emit observer event.
-                Observer.Emit(static x=> x.Score, score);
+                Observer.SafeEmit(static x=> x.Score, score);
 
                 break;
             }
@@ -493,10 +497,10 @@ public class ProducerImpl<TProducerAppData>
                     notification.BodyAsProducer_VideoOrientationChangeNotification();
                 var videoOrientation = videoOrientationChangeNotification.UnPack();
 
-                this.Emit(static x=>x.VideoOrientationChange, videoOrientation);
+                this.SafeEmit(static x=>x.VideoOrientationChange, videoOrientation);
 
                 // Emit observer event.
-                Observer.Emit(static x=>x.VideoOrientationChange, videoOrientation);
+                Observer.SafeEmit(static x=>x.VideoOrientationChange, videoOrientation);
 
                 break;
             }
@@ -505,10 +509,10 @@ public class ProducerImpl<TProducerAppData>
                 var traceNotification = notification.BodyAsProducer_TraceNotification();
                 var trace             = traceNotification.UnPack();
 
-                this.Emit(static x => x.Trace, trace);
+                this.SafeEmit(static x => x.Trace, trace);
 
                 // Emit observer event.
-                Observer.Emit(static x => x.Trace, trace);
+                Observer.SafeEmit(static x => x.Trace, trace);
 
                 break;
             }

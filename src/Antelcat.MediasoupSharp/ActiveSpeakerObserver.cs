@@ -53,10 +53,10 @@ public class ActiveSpeakerObserverImpl<TActiveSpeakerObserverAppData>
                         Producer = await GetProducerById(dominantSpeakerNotification.ProducerId)
                     };
 
-                    this.Emit(static x => x.DominantSpeaker, dominantSpeaker);
+                    this.SafeEmit(static x => x.DominantSpeaker, dominantSpeaker);
 
                     // Emit observer event.
-                    Observer.Emit(static x => x.DominantSpeaker, dominantSpeaker);
+                    Observer.SafeEmit(static x => x.DominantSpeaker, dominantSpeaker);
                 }
 
                 break;

@@ -16,10 +16,10 @@ public class DirectTransportConstructorOptions<TDirectTransportAppData>(Transpor
     Exclude = [nameof(ProduceAsync)])]
 public class DirectTransportImpl<TDirectTransportAppData>
     : TransportImpl<
-            TDirectTransportAppData, 
-            DirectTransportEvents, 
-            DirectTransportObserver
-        >, IDirectTransport<TDirectTransportAppData>
+        TDirectTransportAppData,
+        DirectTransportEvents,
+        DirectTransportObserver
+    >, IDirectTransport<TDirectTransportAppData>
     where TDirectTransportAppData : new()
 {
     /// <summary>
@@ -174,13 +174,24 @@ public class DirectTransportImpl<TDirectTransportAppData>
             {
                 var traceNotification = notification.BodyAsTransport_TraceNotification().UnPack();
 
-                this.Emit(static x => x.Trace, traceNotification);
+                this.SafeEmit(static x => x.Trace, traceNotification);
 
                 // Emit observer event.
-                Observer.Emit(static x => x.Trace, traceNotification);
+                Observer.SafeEmit(static x => x.Trace, traceNotification);
 
                 break;
             }
+            case Event.DIRECTTRANSPORT_RTCP:
+                if (Closed)
+                {
+                    break;
+                }
+
+                var rtcpNotification = notification.BodyAsDirectTransport_RtcpNotification().UnPack();
+
+                this.SafeEmit(x => x.Rtcp, rtcpNotification.Data);
+
+                break;
             default:
             {
                 logger.LogError(

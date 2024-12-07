@@ -119,7 +119,7 @@ public class WebRtcServerImpl<TWebRtcServerAppData>
             this.Emit(static x => x.close);
 
             // Emit observer event.
-            Observer.Emit(static x => x.Close);
+            Observer.SafeEmit(static x => x.Close);
         }
     }
 
@@ -141,10 +141,10 @@ public class WebRtcServerImpl<TWebRtcServerAppData>
 
             await CloseInternalAsync();
 
-            this.Emit(static x => x.WorkerClose);
+            this.SafeEmit(static x => x.WorkerClose);
 
             // Emit observer event.
-            Observer.Emit(static x => x.Close);
+            Observer.SafeEmit(static x => x.Close);
         }
     }
 
@@ -158,7 +158,7 @@ public class WebRtcServerImpl<TWebRtcServerAppData>
                 await webRtcTransport.ListenServerClosedAsync();
 
                 // Emit observer event.
-                Observer.Emit(static x => x.WebrtcTransportUnhandled, webRtcTransport);
+                Observer.SafeEmit(static x => x.WebrtcTransportUnhandled, webRtcTransport);
             }
 
             webRtcTransports.Clear();
@@ -201,9 +201,9 @@ public class WebRtcServerImpl<TWebRtcServerAppData>
         }
 
         // Emit observer event.
-        Observer.Emit(static x => x.WebrtcTransportHandled, webRtcTransport);
+        Observer.SafeEmit(static x => x.WebrtcTransportHandled, webRtcTransport);
 
-        ((IEnhancedEventEmitter<WebRtcTransportEvents>)webRtcTransport).On(static x => x.close, async () =>
+        webRtcTransport.On(static x => x.close, async () =>
         {
             await using (await webRtcTransportsLock.WriteLockAsync())
             {
@@ -211,7 +211,7 @@ public class WebRtcServerImpl<TWebRtcServerAppData>
             }
 
             // Emit observer event.
-            Observer.Emit(static x => x.WebrtcTransportUnhandled, webRtcTransport);
+            Observer.SafeEmit(static x => x.WebrtcTransportUnhandled, webRtcTransport);
         });
     }
 }

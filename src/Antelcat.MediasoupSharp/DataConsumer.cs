@@ -185,7 +185,7 @@ public class DataConsumerImpl<TDataConsumerAppData>
             this.Emit(static x => x.close);
 
             // Emit observer event.
-            Observer.Emit(static x => x.Close);
+            Observer.SafeEmit(static x => x.Close);
         }
     }
 
@@ -208,10 +208,10 @@ public class DataConsumerImpl<TDataConsumerAppData>
             // Remove notification subscriptions.
             channel.OnNotification -= OnNotificationHandle;
 
-            this.Emit(static x => x.TransportClose);
+            this.SafeEmit(static x => x.TransportClose);
 
             // Emit observer event.
-            Observer.Emit(static x => x.Close);
+            Observer.SafeEmit(static x => x.Close);
         }
     }
 
@@ -302,7 +302,7 @@ public class DataConsumerImpl<TDataConsumerAppData>
             // Emit observer event.
             if (!wasPaused && !dataProducerPaused)
             {
-                Observer.Emit(static x => x.Pause);
+                Observer.SafeEmit(static x => x.Pause);
             }
         }
     }
@@ -336,7 +336,7 @@ public class DataConsumerImpl<TDataConsumerAppData>
             // Emit observer event.
             if (wasPaused && !dataProducerPaused)
             {
-                Observer.Emit(static x => x.Resume);
+                Observer.SafeEmit(static x => x.Resume);
             }
         }
     }
@@ -627,10 +627,10 @@ public class DataConsumerImpl<TDataConsumerAppData>
                     channel.OnNotification -= OnNotificationHandle;
 
                     this.Emit(static x => x.dataProducerClose);
-                    this.Emit(static x => x.DataProducerClose);
+                    this.SafeEmit(static x => x.DataProducerClose);
 
                     // Emit observer event.
-                    Observer.Emit(static x => x.Close);
+                    Observer.SafeEmit(static x => x.Close);
                 }
 
                 break;
@@ -644,12 +644,12 @@ public class DataConsumerImpl<TDataConsumerAppData>
 
                 dataProducerPaused = true;
 
-                this.Emit(static x => x.DataProducerPause);
+                this.SafeEmit(static x => x.DataProducerPause);
 
                 // Emit observer event.
                 if (!paused)
                 {
-                    Observer.Emit(static x => x.Pause);
+                    Observer.SafeEmit(static x => x.Pause);
                 }
 
                 break;
@@ -664,19 +664,19 @@ public class DataConsumerImpl<TDataConsumerAppData>
 
                 dataProducerPaused = false;
 
-                this.Emit(static x => x.DataProducerResume);
+                this.SafeEmit(static x => x.DataProducerResume);
 
                 // Emit observer event.
                 if (!paused)
                 {
-                    Observer.Emit(static x => x.Resume);
+                    Observer.SafeEmit(static x => x.Resume);
                 }
 
                 break;
             }
             case Event.DATACONSUMER_SCTP_SENDBUFFER_FULL:
             {
-                this.Emit(static x => x.SctpSendBufferFull);
+                this.SafeEmit(static x => x.SctpSendBufferFull);
 
                 break;
             }
@@ -685,14 +685,14 @@ public class DataConsumerImpl<TDataConsumerAppData>
                 var bufferedAmountLowNotification =
                     notification.BodyAsDataConsumer_BufferedAmountLowNotification().UnPack();
 
-                this.Emit(static x => x.BufferedAmountLow, bufferedAmountLowNotification.BufferedAmount);
+                this.SafeEmit(static x => x.BufferedAmountLow, bufferedAmountLowNotification.BufferedAmount);
 
                 break;
             }
             case Event.DATACONSUMER_MESSAGE:
             {
                 var messageNotification = notification.BodyAsDataConsumer_MessageNotification().UnPack();
-                this.Emit(static x => x.Message, messageNotification);
+                this.SafeEmit(static x => x.Message, messageNotification);
 
                 break;
             }

@@ -282,77 +282,125 @@ public class Channel : EnhancedEventEmitter, IChannel
                 throw new InvalidStateException($"Channel closed, cannot send request [method:{method}]");
             }
 
-            var requestMessage = CreateRequestRequestMessage(bufferBuilder, method, bodyType, bodyOffset, handlerId);
+            if (nextId < uint.MaxValue) nextId++;
+            else nextId = 1;
+
+            var id = nextId;
+
+            var handlerIdOffset = bufferBuilder.CreateString(handlerId ?? "");
+
+            Offset<Request> requestOffset;
+
+            if (bodyType != null && bodyOffset != null)
+            {
+                requestOffset = Request.CreateRequest(
+                    bufferBuilder,
+                    id,
+                    method,
+                    handlerIdOffset,
+                    bodyType.Value,
+                    bodyOffset.Value
+                );
+            }
+            else
+            {
+                requestOffset = Request.CreateRequest(
+                    bufferBuilder, 
+                    id, 
+                    method, 
+                    handlerIdOffset);
+            }
+
+            var messageOffset = Message.CreateMessage(
+                bufferBuilder,
+                Antelcat.MediasoupSharp.FBS.Message.Body.Request,
+                requestOffset.Value);
+
+            // Finalizes the buffer and adds a 4 byte prefix with the size of the buffer.
+            bufferBuilder.FinishSizePrefixed(messageOffset.Value);
+
+            // Zero copy.
+            var buffer = bufferBuilder.DataBuffer.ToArraySegment(
+                bufferBuilder.DataBuffer.Position,
+                bufferBuilder.DataBuffer.Length - bufferBuilder.DataBuffer.Position);
+
+            // Clear the buffer builder so it's reused for the next request.
+            bufferBuilder.Clear();
+
+            BufferPool.Return(bufferBuilder);
+
+            if (buffer.Count > MessageMaxLen)
+            {
+                throw new Exception($"request too big [method:{method}]");
+            }
+
+            var requestMessage = new RequestMessage
+            {
+                Id        = id,
+                Method    = method,
+                HandlerId = handlerId,
+                Payload   = buffer
+            };
 
             var tcs = new TaskCompletionSource<Response?>();
+
             var sent = new Sent
             {
                 RequestMessage = requestMessage,
                 Resolve = data =>
                 {
-                    if (!sents.TryRemove(requestMessage.Id.NotNull(), out _))
-                    {
-                        tcs.TrySetException(
-                            new Exception($"Received response does not match any sent request [id:{requestMessage.Id}]")
-                        );
+                    if (!sents.Remove(id, out _))
                         return;
-                    }
 
                     tcs.TrySetResult(data);
                 },
-                Reject = e =>
-                {
-                    if (!sents.TryRemove(requestMessage.Id.NotNull(), out _))
-                    {
-                        tcs.TrySetException(
-                            new Exception($"Received response does not match any sent request [id:{requestMessage.Id}]")
-                        );
-                        return;
-                    }
-
-                    tcs.TrySetException(e);
-                },
-                Close = () => tcs.TrySetException(new InvalidStateException("Channel closed"))
+                Reject = Reject,
+                Close  = () => tcs.TrySetException(new InvalidStateException("Channel closed"))
             };
-            if (!sents.TryAdd(requestMessage.Id.NotNull(), sent))
+            if (!sents.TryAdd(id, sent))
             {
                 throw new Exception($"Error add sent request [id:{requestMessage.Id}]");
             }
 
             tcs.WithTimeout(
                 TimeSpan.FromSeconds(15 + 0.1 * sents.Count),
-                () => sents.TryRemove(requestMessage.Id.NotNull(), out _)
+                () => sents.TryRemove(id, out _)
             );
 
-            SendRequest(sent);
+            Loop.Default.Sync(() =>
+            {
+                try
+                {
+                    // This may throw if closed or remote side ended.
+                    producerSocket.Write(
+                        requestMessage.Payload,
+                        ex =>
+                        {
+                            if (ex == null) return;
+                            logger.LogError(ex, $"{nameof(producerSocket)}.Write() | Worker[{{WorkerId}}] Error", workerId);
+                            Reject(ex);
+                        }
+                    );
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, $"{nameof(producerSocket)}.Write() | Worker[{{WorkerId}}] Error", workerId);
+                    Reject(ex);
+                }
+            });
 
             return await tcs.Task;
-        }
-    }
 
-    private void SendRequest(Sent sent)
-    {
-        Loop.Default.Sync(() =>
-        {
-            try
+            void Reject(Exception e)
             {
-                // This may throw if closed or remote side ended.
-                producerSocket.Write(
-                    sent.RequestMessage.Payload,
-                    ex =>
-                    {
-                        if (ex == null) return;
-                        logger.LogError(ex, $"{nameof(producerSocket)}.Write() | Worker[{{WorkerId}}] Error", workerId);
-                        sent.Reject(ex);
-                    }
-                );
+                if (!sents.Remove(id, out _))
+                {
+                    return;
+                }
+
+                tcs.TrySetException(e);
             }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, $"{nameof(producerSocket)}.Write() | Worker[{{WorkerId}}] Error", workerId);
-                sent.Reject(ex);
-            }
-        });
+        }
     }
 
     #region Event handles
@@ -501,66 +549,6 @@ public class Channel : EnhancedEventEmitter, IChannel
     }
 
     #endregion Event handles
-
-    private RequestMessage CreateRequestRequestMessage(
-        FlatBufferBuilder bufferBuilder,
-        Method method,
-        Antelcat.MediasoupSharp.FBS.Request.Body? bodyType,
-        int? bodyOffset,
-        string? handlerId
-    )
-    {
-        var id = nextId.Increment();
-
-        var handlerIdOffset = bufferBuilder.CreateString(handlerId ?? "");
-
-        Offset<Request> requestOffset;
-
-        if (bodyType.HasValue && bodyOffset.HasValue)
-        {
-            requestOffset = Request.CreateRequest(
-                bufferBuilder,
-                id,
-                method,
-                handlerIdOffset,
-                bodyType.Value,
-                bodyOffset.Value
-            );
-        }
-        else
-        {
-            requestOffset = Request.CreateRequest(bufferBuilder, id, method, handlerIdOffset);
-        }
-
-        var messageOffset = Message.CreateMessage(bufferBuilder, Antelcat.MediasoupSharp.FBS.Message.Body.Request,
-            requestOffset.Value);
-
-        // Finalizes the buffer and adds a 4 byte prefix with the size of the buffer.
-        bufferBuilder.FinishSizePrefixed(messageOffset.Value);
-
-        // Zero copy.
-        var buffer = bufferBuilder.DataBuffer.ToArraySegment(bufferBuilder.DataBuffer.Position,
-            bufferBuilder.DataBuffer.Length - bufferBuilder.DataBuffer.Position);
-
-        // Clear the buffer builder so it's reused for the next request.
-        bufferBuilder.Clear();
-
-        BufferPool.Return(bufferBuilder);
-
-        if (buffer.Count > MessageMaxLen)
-        {
-            throw new Exception($"request too big [method:{method}]");
-        }
-
-        var requestMessage = new RequestMessage
-        {
-            Id        = id,
-            Method    = method,
-            HandlerId = handlerId,
-            Payload   = buffer
-        };
-        return requestMessage;
-    }
 
     private RequestMessage CreateNotificationRequestMessage(
         FlatBufferBuilder bufferBuilder,
