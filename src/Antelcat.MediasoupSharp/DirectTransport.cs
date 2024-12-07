@@ -184,7 +184,7 @@ public class DirectTransportImpl<TDirectTransportAppData>
 
                 var rtcpNotification = notification.BodyAsDirectTransport_RtcpNotification().UnPack();
 
-                this.SafeEmit(x => x.Rtcp, rtcpNotification.Data);
+                this.SafeEmit(static x => x.Rtcp, rtcpNotification.Data);
 
                 break;
             default:

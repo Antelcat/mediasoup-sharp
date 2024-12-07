@@ -71,7 +71,7 @@ public class ActiveSpeakerObserverImpl<TActiveSpeakerObserverAppData>
     }
 
     protected void HandleListenerError() =>
-        this.On(static x=>x.ListenerError, (tuple) =>
+        this.On(static x=>x.ListenerError, tuple =>
         {
             logger.LogError(tuple.error,
                 "event listener threw an error [eventName:{EventName}]:",
