@@ -139,8 +139,9 @@ public class ProducerImpl<TProducerAppData>
         this.@internal = @internal;
         Data           = data;
         this.channel   = channel;
-        AppData        = appData ?? new ();
         Paused         = paused;
+        AppData        = appData ?? new ();
+        
         pauseLock.Set();
 
         if (isCheckConsumer)
@@ -154,6 +155,7 @@ public class ProducerImpl<TProducerAppData>
         }
 
         HandleWorkerNotifications();
+        HandleListenerError();
     }
 
     /// <summary>
@@ -513,6 +515,15 @@ public class ProducerImpl<TProducerAppData>
         }
     }
 
+    private void HandleListenerError() {
+        this.On(x=>x.ListenerError, tuple =>
+        {
+            logger.LogError(tuple.error,
+                "event listener threw an error [eventName:{EventName}]:",
+                tuple.eventName);
+        });
+    }
+    
     #endregion Event Handlers
 
     #region Private Methods

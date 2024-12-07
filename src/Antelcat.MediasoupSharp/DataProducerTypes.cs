@@ -39,7 +39,7 @@ public abstract class DataProducerEvents
 {
     public object? TransportClose;
 
-    public (string, Exception) ListenerError;
+    public (string eventName, Exception error) ListenerError;
 
     // Private events.
     internal object? close;

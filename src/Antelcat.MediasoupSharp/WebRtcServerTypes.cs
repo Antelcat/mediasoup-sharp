@@ -23,7 +23,7 @@ public abstract class WebRtcServerEvents
 {
     public object? WorkerClose;
 
-    public (string, Exception) ListenerError;
+    public (string eventName, Exception error) ListenerError;
 
     // Private events.
     public object? close;

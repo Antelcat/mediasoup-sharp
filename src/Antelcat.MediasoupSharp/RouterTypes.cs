@@ -88,7 +88,7 @@ public abstract class RouterEvents
 {
     public object? WorkerClose;
 
-    public (string, Exception)? ListenerError;
+    public (string eventName, Exception error) ListenerError;
 
     // Private events.
     internal object? close;

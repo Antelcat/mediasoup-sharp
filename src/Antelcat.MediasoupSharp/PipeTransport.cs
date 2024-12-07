@@ -28,7 +28,7 @@ public class PipeTransportConstructorOptions<TPipeTransportAppData>(PipeTranspor
         $"public static implicit operator global::Antelcat.MediasoupSharp.FBS.PipeTransport.{nameof(DumpResponseT)}({nameof(PipeTransportData)} source) => new (){{",
     Template = "{Name} = source.{Name},",
     Trailing = "Base = source  };")]
-public partial class PipeTransportData(DumpT dump) : TransportBaseData(dump)
+public partial record PipeTransportData(DumpT dump) : TransportBaseData(dump)
 {
     public required TupleT Tuple { get; set; }
 
@@ -68,9 +68,10 @@ public class PipeTransportImpl<TPipeTransportAppData>
     public PipeTransportImpl(PipeTransportConstructorOptions<TPipeTransportAppData> options)
         : base(options, new PipeTransportObserver())
     {
-        Data = options.Data;
+        Data = options.Data with { };
 
         HandleWorkerNotifications();
+        HandleListenerError();
     }
 
     /// <summary>
@@ -229,6 +230,16 @@ public class PipeTransportImpl<TPipeTransportAppData>
             responseData.PreferredLayers
         );
 
+        await ConsumersLock.WaitAsync();
+        try
+        {
+            Consumers[consumer.Id] = consumer;
+        }
+        finally
+        {
+            ConsumersLock.Set();
+        }
+        
         consumer.On(static x => x.close,
             async () =>
             {
@@ -236,10 +247,6 @@ public class PipeTransportImpl<TPipeTransportAppData>
                 try
                 {
                     Consumers.Remove(consumer.Id);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "@close");
                 }
                 finally
                 {
@@ -255,30 +262,12 @@ public class PipeTransportImpl<TPipeTransportAppData>
                 {
                     Consumers.Remove(consumer.Id);
                 }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "@producerclose");
-                }
                 finally
                 {
                     ConsumersLock.Set();
                 }
             }
         );
-
-        await ConsumersLock.WaitAsync();
-        try
-        {
-            Consumers[consumer.Id] = consumer;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, $"{nameof(ConsumeAsync)}()");
-        }
-        finally
-        {
-            ConsumersLock.Set();
-        }
 
         // Emit observer event.
         Observer.SafeEmit(static x => x.NewConsumer, consumer);
@@ -335,5 +324,13 @@ public class PipeTransportImpl<TPipeTransportAppData>
         }
     }
 
+    private void HandleListenerError() {
+        this.On(x=>x.ListenerError, tuple =>
+        {
+            logger.LogError(tuple.error,
+                "event listener threw an error [eventName:{EventName}]:",
+                tuple.eventName);
+        });
+    }
     #endregion Event Handlers
 }

@@ -29,6 +29,7 @@ public class AudioLevelObserver<TAudioLevelObserverAppData>
     public AudioLevelObserver(AudioLevelObserverConstructorOptions<TAudioLevelObserverAppData> options) : base(options,
         new())
     {
+        HandleListenerError();
     }
 
 #pragma warning disable VSTHRD100 // Avoid async void methods
@@ -82,4 +83,12 @@ public class AudioLevelObserver<TAudioLevelObserverAppData>
             }
         }
     }
+    
+    protected void HandleListenerError() =>
+        this.On(x=>x.ListenerError, (tuple) =>
+        {
+            logger.LogError(tuple.error,
+                "event listener threw an error [eventName:{EventName}]:",
+                tuple.eventName);
+        });
 }

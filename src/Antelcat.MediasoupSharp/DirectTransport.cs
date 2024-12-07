@@ -35,6 +35,7 @@ public class DirectTransportImpl<TDirectTransportAppData>
         : base(options, new DirectTransportObserver())
     {
         HandleWorkerNotifications();
+        HandleListenerError();
     }
 
     /// <summary>
@@ -196,5 +197,14 @@ public class DirectTransportImpl<TDirectTransportAppData>
         }
     }
 
+    private void HandleListenerError()
+    {
+        this.On(x => x.ListenerError, tuple =>
+        {
+            logger.LogError(tuple.error,
+                "event listener threw an error [eventName:{EventName}]:",
+                tuple.eventName);
+        });
+    }
     #endregion Event Handlers
 }

@@ -7,7 +7,7 @@ public abstract class RtpObserverEvents
 {
     public object? RouterClose;
 
-    public required (string, Exception) ListenerError;
+    public required (string eventName, Exception error) ListenerError;
 
     // Private events.
     internal object? close;

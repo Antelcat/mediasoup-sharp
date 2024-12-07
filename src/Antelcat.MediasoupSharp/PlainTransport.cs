@@ -26,7 +26,7 @@ public class PlainTransportConstructorOptions<TPlainTransportAppData>(PlainTrans
         $"public static implicit operator global::Antelcat.MediasoupSharp.FBS.PlainTransport.{nameof(DumpResponseT)}({nameof(PlainTransportData)} source) => new (){{",
     Template = "{Name} = source.{Name},",
     Trailing = "Base = source  };")]
-public partial class PlainTransportData(DumpT dump) : TransportBaseData(dump)
+public partial record PlainTransportData(DumpT dump) : TransportBaseData(dump)
 {
     public bool RtcpMux { get; set; }
 
@@ -69,9 +69,10 @@ public class PlainTransportImpl<TPlainTransportAppData>
     public PlainTransportImpl(PlainTransportConstructorOptions<TPlainTransportAppData> options)
         : base(options, new PlainTransportObserver())
     {
-        Data = options.Data;
+        Data = options.Data with { };
 
         HandleWorkerNotifications();
+        HandleListenerError();
     }
 
     /// <summary>
@@ -239,5 +240,13 @@ public class PlainTransportImpl<TPlainTransportAppData>
         }
     }
 
+    private void HandleListenerError() {
+        this.On(x=>x.ListenerError, tuple =>
+        {
+            logger.LogError(tuple.error,
+                "event listener threw an error [eventName:{EventName}]:",
+                tuple.eventName);
+        });
+    }
     #endregion Event Handlers
 }

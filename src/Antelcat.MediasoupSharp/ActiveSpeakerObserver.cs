@@ -27,11 +27,12 @@ public class ActiveSpeakerObserverImpl<TActiveSpeakerObserverAppData>
     public ActiveSpeakerObserverImpl(RtpObserverObserverConstructorOptions<TActiveSpeakerObserverAppData> options)
         : base(options, new())
     {
+        HandleListenerError();
     }
 
-#pragma warning disable VSTHRD100 // Avoid async void methods
+#pragma warning disable VSTHRD100
     protected override async void OnNotificationHandle(string handlerId, Event @event, Notification notification)
-#pragma warning restore VSTHRD100 // Avoid async void methods
+#pragma warning restore VSTHRD100
     {
         if (handlerId != Internal.RtpObserverId)
         {
@@ -68,4 +69,12 @@ public class ActiveSpeakerObserverImpl<TActiveSpeakerObserverAppData>
             }
         }
     }
+
+    protected void HandleListenerError() =>
+        this.On(x=>x.ListenerError, (tuple) =>
+        {
+            logger.LogError(tuple.error,
+                "event listener threw an error [eventName:{EventName}]:",
+                tuple.eventName);
+        });
 }

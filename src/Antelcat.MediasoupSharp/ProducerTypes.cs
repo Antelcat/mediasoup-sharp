@@ -45,7 +45,7 @@ public abstract class ProducerEvents
     public required VideoOrientationChangeNotificationT VideoOrientationChange;
     public required TraceNotificationT                  Trace;
 
-    public (string, Exception)? ListenerError;
+    public (string eventName, Exception error) ListenerError;
 
     // Private events.
     internal object? close;

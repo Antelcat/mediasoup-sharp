@@ -131,6 +131,7 @@ public class DataConsumerImpl<TDataConsumerAppData>
         AppData                 = appData ?? new();
 
         HandleWorkerNotifications();
+        HandleListenerError();
     }
 
     /// <summary>
@@ -696,5 +697,13 @@ public class DataConsumerImpl<TDataConsumerAppData>
         }
     }
 
+    private void HandleListenerError() {
+        this.On(x=>x.ListenerError, tuple =>
+        {
+            logger.LogError(tuple.error,
+                "event listener threw an error [eventName:{EventName}]:",
+                tuple.eventName);
+        });
+    }
     #endregion Event Handlers
 }

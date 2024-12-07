@@ -122,9 +122,9 @@ public record WorkerSettings<TWorkerAppData>
 
 public abstract class WorkerEvents
 {
-    public Exception?           Died;
-    public object?              SubprocessClose;
-    public (string, Exception)? ListenerError;
+    public Exception?                          Died;
+    public object?                             SubprocessClose;
+    public (string eventName, Exception error) ListenerError;
 
     // Private events.
     internal object?    success;

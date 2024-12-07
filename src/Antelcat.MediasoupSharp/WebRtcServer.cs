@@ -74,6 +74,8 @@ public class WebRtcServerImpl<TWebRtcServerAppData>
         this.@internal = @internal;
         this.channel   = channel;
         AppData        = appData ?? new();
+        
+        HandleListenerError();
     }
 
     /// <summary>
@@ -200,13 +202,19 @@ public class WebRtcServerImpl<TWebRtcServerAppData>
 
         webRtcTransport.On(static x => x.close, async () =>
         {
-            await using (await webRtcTransportsLock.WriteLockAsync())
-            {
-                webRtcTransports.Remove(webRtcTransport.Id);
-            }
+            await using (await webRtcTransportsLock.WriteLockAsync()) webRtcTransports.Remove(webRtcTransport.Id);
 
             // Emit observer event.
             Observer.SafeEmit(static x => x.WebrtcTransportUnhandled, webRtcTransport);
+        });
+    }
+    
+    private void HandleListenerError() {
+        this.On(x=>x.ListenerError, tuple =>
+        {
+            logger.LogError(tuple.error,
+                "event listener threw an error [eventName:{EventName}]:",
+                tuple.eventName);
         });
     }
 }

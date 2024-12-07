@@ -19,7 +19,7 @@ public class DataProducerInternal : TransportInternal
     public required string DataProducerId { get; init; }
 }
 
-public class DataProducerData
+public record DataProducerData
 {
     public Antelcat.MediasoupSharp.FBS.DataProducer.Type Type { get; set; }
 
@@ -111,6 +111,7 @@ public class DataProducerImpl<TDataProducerAppData>
         AppData        = appData ?? new();
 
         HandleWorkerNotifications();
+        HandleListenerError();
     }
 
     /// <summary>
@@ -399,6 +400,14 @@ public class DataProducerImpl<TDataProducerAppData>
     {
         // No need to subscribe to any event.
     }
-
+    
+    private void HandleListenerError() {
+        this.On(x=>x.ListenerError, tuple =>
+        {
+            logger.LogError(tuple.error,
+                "event listener threw an error [eventName:{EventName}]:",
+                tuple.eventName);
+        });
+    }
     #endregion Event Handlers
 }

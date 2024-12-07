@@ -21,7 +21,7 @@ namespace Antelcat.MediasoupSharp;
         $"public static implicit operator global::Antelcat.MediasoupSharp.FBS.WebRtcTransport.{nameof(DumpResponseT)}({nameof(WebRtcTransportData)} source) => new (){{",
     Template = "{Name} = source.{Name},",
     Trailing = "Base = source  };")]
-public partial class WebRtcTransportData(DumpT dump) : TransportBaseData(dump)
+public partial record WebRtcTransportData(DumpT dump) : TransportBaseData(dump)
 {
     public IceRole IceRole { get; init; }
 
@@ -76,6 +76,7 @@ public class WebRtcTransportImpl<TWebRtcTransportAppData> :
         Data = options.Data;
 
         HandleWorkerNotifications();
+        HandleListenerError();
     }
 
     /// <summary>
@@ -298,5 +299,13 @@ public class WebRtcTransportImpl<TWebRtcTransportAppData> :
         }
     }
 
+    private void HandleListenerError() {
+        this.On(x=>x.ListenerError, tuple =>
+        {
+            logger.LogError(tuple.error,
+                "event listener threw an error [eventName:{EventName}]:",
+                tuple.eventName);
+        });
+    }
     #endregion Event Handlers
 }

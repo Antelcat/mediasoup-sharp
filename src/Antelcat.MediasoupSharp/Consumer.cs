@@ -159,6 +159,7 @@ public class ConsumerImpl<TConsumerAppData>
         pauseLock.Set();
 
         HandleWorkerNotifications();
+        HandleListenerError();
     }
 
     /// <summary>
@@ -629,6 +630,15 @@ public class ConsumerImpl<TConsumerAppData>
             }
         }
     }
+    
+    private void HandleListenerError() =>
+        this.On(x=>x.ListenerError, tuple =>
+        {
+            logger.LogError(tuple.error,
+                "event listener threw an error [eventName:{EventName}]:",
+                tuple.eventName);
+        });
 }
+
 
 #endregion Event Handlers

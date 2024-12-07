@@ -123,9 +123,11 @@ public class RouterImpl<TRouterAppData>
     )
     {
         this.@internal = @internal;
-        this.channel   = channel;
         Data           = data;
+        this.channel   = channel;
         AppData        = appData ?? new();
+        
+        HandleListenerError();
     }
 
     /// <summary>
@@ -684,47 +686,29 @@ public class RouterImpl<TRouterAppData>
             transports[transport.Id] = transport;
         }
 
-        trans.On(static x => x.close, async _ =>
+        trans.On(static x => x.close, async () =>
         {
-            await using (await transportsLock.WriteLockAsync())
-            {
-                transports.Remove(transport.Id);
-            }
+            await using (await transportsLock.WriteLockAsync()) transports.Remove(transport.Id);
         });
-        trans.On(static x => x.listenServerClose, async _ =>
+        trans.On(static x => x.listenServerClose, async () =>
         {
-            await using (await transportsLock.WriteLockAsync())
-            {
-                transports.Remove(transport.Id);
-            }
+            await using (await transportsLock.WriteLockAsync()) transports.Remove(transport.Id);
         });
         trans.On(static x => x.newProducer, async producer =>
         {
-            await using (await producersLock.WriteLockAsync())
-            {
-                producers[producer.Id] = producer;
-            }
+            await using (await producersLock.WriteLockAsync()) producers[producer.Id] = producer;
         });
         trans.On(static x => x.producerClose, async producer =>
         {
-            await using (await producersLock.WriteLockAsync())
-            {
-                producers.Remove(producer.Id);
-            }
+            await using (await producersLock.WriteLockAsync()) producers.Remove(producer.Id);
         });
         trans.On(static x => x.newDataProducer, async dataProducer =>
         {
-            await using (await dataProducersLock.WriteLockAsync())
-            {
-                dataProducers[dataProducer.Id] = dataProducer;
-            }
+            await using (await dataProducersLock.WriteLockAsync()) dataProducers[dataProducer.Id] = dataProducer;
         });
         trans.On(static x => x.dataProducerClose, async dataProducer =>
         {
-            await using (await dataProducersLock.WriteLockAsync())
-            {
-                dataProducers.Remove(dataProducer.Id);
-            }
+            await using (await dataProducersLock.WriteLockAsync()) dataProducers.Remove(dataProducer.Id);
         });
 
         // Emit observer event.
@@ -868,7 +852,7 @@ public class RouterImpl<TRouterAppData>
                             }
                         });
 
-                        remotePipeTransport.Observer.On(static x => x.Close, async _ =>
+                        remotePipeTransport.Observer.On(static x => x.Close, async () =>
                         {
                             await localPipeTransport.CloseAsync();
                             await using (await mapRouterPipeTransportsLock.WriteLockAsync())
@@ -943,7 +927,7 @@ public class RouterImpl<TRouterAppData>
                     pipeConsumer.Observer.On(static x => x.Resume, async () => await pipeProducer.ResumeAsync());
 
                     // Pipe events from the pipe Producer to the pipe Consumer.
-                    pipeProducer.Observer.On(static x => x.Close, async _ => await pipeConsumer.CloseAsync());
+                    pipeProducer.Observer.On(static x => x.Close, async () => await pipeConsumer.CloseAsync());
 
                     return new PipeToRouterResult { PipeConsumer = pipeConsumer, PipeProducer = pipeProducer };
                 }
@@ -988,10 +972,10 @@ public class RouterImpl<TRouterAppData>
                         });
 
                     // Pipe events from the pipe DataConsumer to the pipe DataProducer.
-                    pipeDataConsumer.Observer.On(static x => x.Close, async _ => await pipeDataProducer.CloseAsync());
+                    pipeDataConsumer.Observer.On(static x => x.Close, async () => await pipeDataProducer.CloseAsync());
 
                     // Pipe events from the pipe DataProducer to the pipe DataConsumer.
-                    pipeDataProducer.Observer.On(static x => x.Close, async _ => await pipeDataConsumer.CloseAsync());
+                    pipeDataProducer.Observer.On(static x => x.Close, async () => await pipeDataConsumer.CloseAsync());
 
                     return new PipeToRouterResult
                         { PipeDataConsumer = pipeDataConsumer, PipeDataProducer = pipeDataProducer };
@@ -1248,17 +1232,25 @@ public class RouterImpl<TRouterAppData>
     private Task ConfigureRtpObserverAsync(IRtpObserver rtpObserver)
     {
         rtpObservers[rtpObserver.Internal.RtpObserverId] = rtpObserver;
-        (rtpObserver as IEnhancedEventEmitter<RtpObserverEvents>)?.On(static x => x.close, async _ =>
-        {
-            await using (await rtpObserversLock.WriteLockAsync())
+        (rtpObserver as IEnhancedEventEmitter<RtpObserverEvents>)?.On(static x => x.close,
+            async () =>
             {
-                rtpObservers.Remove(rtpObserver.Internal.RtpObserverId);
-            }
-        });
+                await using (await rtpObserversLock.WriteLockAsync())
+                    rtpObservers.Remove(rtpObserver.Internal.RtpObserverId);
+            });
 
         // Emit observer event.
         Observer.SafeEmit(static x => x.NewRtpObserver, rtpObserver);
 
         return Task.CompletedTask;
+    }
+    
+    private void HandleListenerError() {
+        this.On(x=>x.ListenerError, tuple =>
+        {
+            logger.LogError(tuple.error,
+                "event listener threw an error [eventName:{EventName}]:",
+                tuple.eventName);
+        });
     }
 }

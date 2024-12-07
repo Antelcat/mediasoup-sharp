@@ -87,7 +87,7 @@ public abstract class ConsumerEvents
     public required TraceNotificationT Trace;
     public required List<byte>         Rtp;
 
-    public required (string, Exception) ListenerError;
+    public required (string eventName, Exception error) ListenerError;
 
     // Private events.
     internal object? close;

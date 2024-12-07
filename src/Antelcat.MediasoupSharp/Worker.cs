@@ -54,7 +54,7 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
     /// <summary>
     /// Logger.
     /// </summary>
-    protected readonly ILogger Logger = new Logger<WorkerImpl<TWorkerAppData>>();
+    private readonly ILogger logger = new Logger<WorkerImpl<TWorkerAppData>>();
 
     /// <summary>
     /// Channel instance.
@@ -184,7 +184,7 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
         }
 
 
-        Logger.LogDebug("Worker() | Spawning worker process: {Arguments}", string.Join(" ", argv));
+        logger.LogDebug("Worker() | Spawning worker process: {Arguments}", string.Join(" ", argv));
 
         pipes = new UVStream[StdioCount];
 
@@ -227,13 +227,13 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
             if (!spawnDone)
             {
                 spawnDone = true;
-                Logger.LogError(ex, "Worker() | Worker process failed [pid:{ProcessId}]", Pid);
+                logger.LogError(ex, "Worker() | Worker process failed [pid:{ProcessId}]", Pid);
                 this.Emit(static x => x.failure, ex);
             }
             else
             {
                 // 执行到这里的可能性？
-                Logger.LogError(ex, "Worker() | Worker process error [pid:{ProcessId}]", Pid);
+                logger.LogError(ex, "Worker() | Worker process error [pid:{ProcessId}]", Pid);
                 this.SafeEmit(static x => x.Died, ex);
             }
 
@@ -252,7 +252,7 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
             {
                 spawnDone = true;
 
-                Logger.LogDebug("worker process running [pid:{Pid}]", Pid);
+                logger.LogDebug("worker process running [pid:{Pid}]", Pid);
 
                 this.Emit(static x => x.success);
             }
@@ -260,7 +260,7 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
 
         child.Closed += () =>
         {
-            Logger.LogDebug(
+            logger.LogDebug(
                 "worker subprocess closed [pid:{Pid}, code:{Code}, signal:{Signal}]",
                 Pid,
                 tmpChild.ExitCode,
@@ -277,6 +277,8 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
         {
             pipe?.Resume();
         }
+        
+        HandleListenerError();
     }
 
     #region Request
@@ -286,7 +288,7 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
     /// </summary>
     public async Task<Antelcat.MediasoupSharp.FBS.Worker.DumpResponseT> DumpAsync()
     {
-        Logger.LogDebug("DumpAsync()");
+        logger.LogDebug("DumpAsync()");
 
         await using (await CloseLock.ReadLockAsync())
         {
@@ -310,7 +312,7 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
     /// </summary>
     public async Task<Antelcat.MediasoupSharp.FBS.Worker.ResourceUsageResponseT> GetResourceUsageAsync()
     {
-        Logger.LogDebug("GetResourceUsageAsync()");
+        logger.LogDebug("GetResourceUsageAsync()");
 
         await using (await CloseLock.ReadLockAsync())
         {
@@ -375,7 +377,7 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
         WebRtcServerOptions<TWebRtcServerAppData> webRtcServerOptions)
         where TWebRtcServerAppData : new()
     {
-        Logger.LogDebug("CreateWebRtcServerAsync()");
+        logger.LogDebug("CreateWebRtcServerAsync()");
 
         await using (await CloseLock.ReadLockAsync())
         {
@@ -430,10 +432,7 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
             webRtcServer.On(static x => x.close,
                 () =>
                 {
-                    lock (webRtcServersLock)
-                    {
-                        WebRtcServers.Remove(webRtcServer);
-                    }
+                    lock (webRtcServersLock) WebRtcServers.Remove(webRtcServer);
 
                     return Task.CompletedTask;
                 }
@@ -454,7 +453,7 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
         RouterOptions<TRouterAppData> routerOptions)
         where TRouterAppData : new()
     {
-        Logger.LogDebug("CreateRouterAsync()");
+        logger.LogDebug("CreateRouterAsync()");
 
         await using (await CloseLock.ReadLockAsync())
         {
@@ -500,10 +499,7 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
             router.On(static x => x.close,
                 () =>
                 {
-                    lock (routersLock)
-                    {
-                        routers.Remove(router);
-                    }
+                    lock (routersLock) routers.Remove(router);
                 }
             );
 
@@ -546,7 +542,7 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
 
     public async Task CloseAsync()
     {
-        Logger.LogDebug("CloseAsync() | Worker[{ProcessId}]", Pid);
+        logger.LogDebug("CloseAsync() | Worker[{ProcessId}]", Pid);
 
         await using (await CloseLock.WriteLockAsync())
         {
@@ -617,7 +613,7 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
     {
         if (spawnDone || @event != Event.WORKER_RUNNING) return;
         spawnDone = true;
-        Logger.LogDebug("Worker[{ProcessId}] process running", Pid);
+        logger.LogDebug("Worker[{ProcessId}] process running", Pid);
         this.Emit(static x => x.success);
         channel.OnNotification -= OnNotificationHandle;
     }
@@ -639,13 +635,13 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
 
             if (process.ExitCode == 42)
             {
-                Logger.LogError("OnExit() | Worker process failed due to wrong settings [pid:{ProcessId}]", Pid);
+                logger.LogError("OnExit() | Worker process failed due to wrong settings [pid:{ProcessId}]", Pid);
                 this.Emit(static x => x.failure,
                     new Exception($"Worker process failed due to wrong settings [pid:{Pid}]"));
             }
             else
             {
-                Logger.LogError(
+                logger.LogError(
                     "OnExit() | Worker process failed unexpectedly [pid:{ProcessId}, code:{ExitCode}, signal:{TermSignal}]",
                     Pid, process.ExitCode, process.TermSignal);
                 this.Emit(static x => x.failure,
@@ -657,7 +653,7 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
         }
         else
         {
-            Logger.LogError(
+            logger.LogError(
                 "OnExit() | Worker process failed unexpectedly [pid:{ProcessId}, code:{ExitCode}, signal:{TermSignal}]",
                 Pid, process.ExitCode, process.TermSignal);
             this.SafeEmit(static x => x.Died,
@@ -668,5 +664,13 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
         }
     }
 
+    private void HandleListenerError() {
+        this.On(x=>x.ListenerError, tuple =>
+        {
+            logger.LogError(tuple.error,
+                "event listener threw an error [eventName:{EventName}]:",
+                tuple.eventName);
+        });
+    }
     #endregion Event handles
 }

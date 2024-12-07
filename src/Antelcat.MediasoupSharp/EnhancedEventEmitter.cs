@@ -123,7 +123,7 @@ public static class EnhancedEventEmitterExtensions
         {
             try
             {
-                emitter.EventEmitter.Emit("listenererror", eventName, ex);
+                emitter.EventEmitter.Emit(nameof(TransportEvents.ListenerError), (eventName, ex));
             }
             catch
             {

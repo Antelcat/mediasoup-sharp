@@ -63,7 +63,7 @@ public abstract class DataConsumerEvents
     public required MessageNotificationT Message;
     public          object?              SctpSendBufferFull;
     public          uint                 BufferedAmountLow;
-    public          (string, Exception)  ListenerError;
+    public          (string eventName, Exception error)  ListenerError;
 
     // Private events.
     internal object? close;

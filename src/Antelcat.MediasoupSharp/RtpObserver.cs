@@ -345,9 +345,7 @@ public abstract class RtpObserverImpl<TRtpObserverAppData, TEvents, TObserver>
         Channel.OnNotification += OnNotificationHandle;
     }
 
-    protected virtual void OnNotificationHandle(string handlerId, Event @event, Notification notification)
-    {
-    }
+    protected abstract void OnNotificationHandle(string handlerId, Event @event, Notification notification);
 
     #endregion Event Handlers
 }

@@ -46,7 +46,7 @@ public partial class Mediasoup
                 var worker = new WorkerImpl<TWorkerAppData>(settings);
                 worker.On(static x => x.success, async _ =>
                     {
-                        Observer.Emit(static x => x.NewWorker, worker);
+                        Observer.SafeEmit(static x => x.NewWorker, worker);
                         await Task.Delay(1);
                         lock (sources)
                         {
