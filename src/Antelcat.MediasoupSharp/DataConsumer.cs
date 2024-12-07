@@ -1,9 +1,9 @@
 ﻿using System.Text;
 using Antelcat.AutoGen.ComponentModel.Diagnostic;
-using Antelcat.MediasoupSharp.Internals.Extensions;
 using Antelcat.MediasoupSharp.FBS.DataConsumer;
 using Antelcat.MediasoupSharp.FBS.Notification;
 using Antelcat.MediasoupSharp.FBS.Request;
+using Antelcat.MediasoupSharp.Internals.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
 
@@ -697,13 +697,13 @@ public class DataConsumerImpl<TDataConsumerAppData>
         }
     }
 
-    private void HandleListenerError() {
-        this.On(x=>x.ListenerError, tuple =>
+    private void HandleListenerError() =>
+        this.On(static x => x.ListenerError, tuple =>
         {
             logger.LogError(tuple.error,
                 "event listener threw an error [eventName:{EventName}]:",
                 tuple.eventName);
         });
-    }
+
     #endregion Event Handlers
 }

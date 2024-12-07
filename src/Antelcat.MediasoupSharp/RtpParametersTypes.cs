@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
-using Antelcat.MediasoupSharp.Internals.Extensions;
 using Antelcat.MediasoupSharp.FBS.RtpParameters;
+using Antelcat.MediasoupSharp.Internals.Extensions;
 
 namespace Antelcat.MediasoupSharp;
 

@@ -1,5 +1,5 @@
-﻿global using static Antelcat.MediasoupSharp.Utils;
-global using Antelcat.MediasoupSharp.FBS;
+﻿global using Antelcat.MediasoupSharp.FBS;
+global using static Antelcat.MediasoupSharp.Utils;
 using Antelcat.FlatBuffers;
 
 [assembly: FlatcArguments("--cs-global-alias", "--gen-object-api", "--gen-onefile")]

@@ -1,11 +1,11 @@
 ﻿using System.Reflection;
 using Antelcat.AutoGen.ComponentModel.Diagnostic;
-using Antelcat.MediasoupSharp.Internals.Extensions;
 using Antelcat.MediasoupSharp.FBS.DirectTransport;
 using Antelcat.MediasoupSharp.FBS.Request;
 using Antelcat.MediasoupSharp.FBS.SctpAssociation;
 using Antelcat.MediasoupSharp.FBS.SctpParameters;
 using Antelcat.MediasoupSharp.FBS.Transport;
+using Antelcat.MediasoupSharp.Internals.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
 

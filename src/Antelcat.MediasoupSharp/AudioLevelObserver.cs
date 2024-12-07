@@ -83,9 +83,9 @@ public class AudioLevelObserver<TAudioLevelObserverAppData>
             }
         }
     }
-    
+
     protected void HandleListenerError() =>
-        this.On(x=>x.ListenerError, (tuple) =>
+        this.On(static x => x.ListenerError, (tuple) =>
         {
             logger.LogError(tuple.error,
                 "event listener threw an error [eventName:{EventName}]:",

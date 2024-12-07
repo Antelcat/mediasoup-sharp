@@ -1,11 +1,11 @@
 ﻿using System.Runtime.InteropServices;
 using Antelcat.AutoGen.ComponentModel.Diagnostic;
 using Antelcat.LibuvSharp;
-using Antelcat.MediasoupSharp.Internals.Extensions;
 using Antelcat.MediasoupSharp.FBS.Notification;
 using Antelcat.MediasoupSharp.FBS.Request;
 using Antelcat.MediasoupSharp.FBS.Transport;
 using Antelcat.MediasoupSharp.FBS.Worker;
+using Antelcat.MediasoupSharp.Internals.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
 using Body = Antelcat.MediasoupSharp.FBS.Request.Body;
@@ -664,13 +664,13 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
         }
     }
 
-    private void HandleListenerError() {
-        this.On(x=>x.ListenerError, tuple =>
+    private void HandleListenerError() =>
+        this.On(static x => x.ListenerError, tuple =>
         {
             logger.LogError(tuple.error,
                 "event listener threw an error [eventName:{EventName}]:",
                 tuple.eventName);
         });
-    }
+
     #endregion Event handles
 }

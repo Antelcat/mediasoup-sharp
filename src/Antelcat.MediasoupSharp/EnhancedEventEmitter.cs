@@ -1,5 +1,4 @@
-﻿global using static Antelcat.MediasoupSharp.EnhancedEventEmitterExtensions;
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 using Antelcat.NodeSharp.Events;
 
 namespace Antelcat.MediasoupSharp;

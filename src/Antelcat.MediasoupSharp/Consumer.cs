@@ -1,17 +1,17 @@
 ﻿using Antelcat.AutoGen.ComponentModel.Diagnostic;
-using Antelcat.MediasoupSharp.Internals.Extensions;
 using Antelcat.MediasoupSharp.FBS.Consumer;
 using Antelcat.MediasoupSharp.FBS.Notification;
 using Antelcat.MediasoupSharp.FBS.Request;
 using Antelcat.MediasoupSharp.FBS.RtpParameters;
+using Antelcat.MediasoupSharp.Internals.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
 
 namespace Antelcat.MediasoupSharp;
 
 using ConsumerLayers = Antelcat.MediasoupSharp.FBS.Consumer.ConsumerLayersT;
-using ConsumerTraceEventType = Antelcat.MediasoupSharp.FBS.Consumer.TraceEventType;
 using ConsumerScore = Antelcat.MediasoupSharp.FBS.Consumer.ConsumerScoreT;
+using ConsumerTraceEventType = Antelcat.MediasoupSharp.FBS.Consumer.TraceEventType;
 
 public class ConsumerInternal : TransportInternal
 {
@@ -630,9 +630,9 @@ public class ConsumerImpl<TConsumerAppData>
             }
         }
     }
-    
+
     private void HandleListenerError() =>
-        this.On(x=>x.ListenerError, tuple =>
+        this.On(static x => x.ListenerError, tuple =>
         {
             logger.LogError(tuple.error,
                 "event listener threw an error [eventName:{EventName}]:",

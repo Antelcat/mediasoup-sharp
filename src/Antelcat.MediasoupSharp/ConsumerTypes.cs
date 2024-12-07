@@ -3,8 +3,8 @@ using Antelcat.MediasoupSharp.FBS.Consumer;
 
 namespace Antelcat.MediasoupSharp;
 
-using ConsumerScore = Antelcat.MediasoupSharp.FBS.Consumer.ConsumerScoreT;
 using ConsumerLayers = Antelcat.MediasoupSharp.FBS.Consumer.ConsumerLayersT;
+using ConsumerScore = Antelcat.MediasoupSharp.FBS.Consumer.ConsumerScoreT;
 
 public class ConsumerOptions<TConsumerAppData>
 {
