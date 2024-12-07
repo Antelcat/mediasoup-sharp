@@ -63,13 +63,8 @@ public class WebRtcServerImpl<TWebRtcServerAppData>
     public WebRtcServerObserver Observer { get; } = new();
 
     /// <summary>
-    /// <para>Events:</para>
-    /// <para>@emits <see cref="WebRtcServerEvents.WorkerClose"/></para>
-    /// <para>@emits <see cref="WebRtcServerEvents.close"/></para>
-    /// <para>Observer events:</para>
-    /// <para>@emits <see cref="WebRtcServerObserverEvents.Close"/></para>
-    /// <para>@emits <see cref="WebRtcServerObserverEvents.WebrtcTransportHandled"/> - (webRtcTransport: WebRtcTransport)</para>
-    /// <para>@emits <see cref="WebRtcServerObserverEvents.WebrtcTransportUnhandled"/> - (webRtcTransport: WebRtcTransport)</para>
+    /// <para>Events : <see cref="WebRtcServerEvents"/></para>
+    /// <para>Observer events : <see cref="WebRtcServerObserverEvents"/></para>
     /// </summary>
     public WebRtcServerImpl(
         WebRtcServerInternal @internal,

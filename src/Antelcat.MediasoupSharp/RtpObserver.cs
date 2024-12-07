@@ -71,15 +71,8 @@ public abstract class RtpObserverImpl<TRtpObserverAppData, TEvents, TObserver>
     public TObserver Observer { get; }
 
     /// <summary>
-    /// <para>Events:</para>
-    /// <para>@emits <see cref="RtpObserverEvents.RouterClose"/></para>
-    /// <para>@emits <see cref="RtpObserverEvents.close"/></para>
-    /// <para>Observer events:</para>
-    /// <para>@emits <see cref="RtpObserverObserverEvents.Close"/></para>
-    /// <para>@emits <see cref="RtpObserverObserverEvents.Pause"/></para>
-    /// <para>@emits <see cref="RtpObserverObserverEvents.Resume"/></para>
-    /// <para>@emits <see cref="RtpObserverObserverEvents.AddProducer"/> - (producer: Producer)</para>
-    /// <para>@emits <see cref="RtpObserverObserverEvents.RemoveProducer"/> - (producer: Producer)</para>
+    /// <para>Events : <see cref="RtpObserverEvents"/></para>
+    /// <para>Observer events : <see cref="RtpObserverObserverEvents"/></para>
     /// </summary>
     protected RtpObserverImpl(
         RtpObserverConstructorOptions<TRtpObserverAppData> options,

@@ -125,19 +125,8 @@ public class ProducerImpl<TProducerAppData>
     public ProducerObserver Observer { get; } = new();
 
     /// <summary>
-    /// <para>Events:</para>
-    /// <para>@emits <see cref="ProducerEvents.TransportClose"/></para>
-    /// <para>@emits <see cref="ProducerEvents.Score"/> - (score: ProducerScore[])</para>
-    /// <para>@emits <see cref="ProducerEvents.VideoOrientationChange"/> - (videoOrientation: ProducerVideoOrientation)</para>
-    /// <para>@emits <see cref="ProducerEvents.Trace"/> - (trace: ProducerTraceEventData)</para>
-    /// <para>@emits <see cref="ProducerEvents.close"/></para>
-    /// <para>Observer events:</para>
-    /// <para>@emits <see cref="ProducerObserverEvents.Close"/></para>
-    /// <para>@emits <see cref="ProducerObserverEvents.Pause"/></para>
-    /// <para>@emits <see cref="ProducerObserverEvents.Resume"/></para>
-    /// <para>@emits <see cref="ProducerObserverEvents.Score"/> - (score: ProducerScore[])</para>
-    /// <para>@emits <see cref="ProducerObserverEvents.VideoOrientationChange"/> - (videoOrientation: ProducerVideoOrientation)</para>
-    /// <para>@emits <see cref="ProducerObserverEvents.Trace"/> - (trace: ProducerTraceEventData)</para>
+    /// <para>Events : <see cref="ProducerEvents"/></para>
+    /// <para>Observer events : <see cref="ProducerObserverEvents"/></para>
     /// </summary>
     public ProducerImpl(
         ProducerInternal @internal,

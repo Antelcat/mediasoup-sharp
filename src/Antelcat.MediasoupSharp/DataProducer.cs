@@ -93,11 +93,8 @@ public class DataProducerImpl<TDataProducerAppData>
     public DataProducerObserver Observer { get; } = new();
 
     /// <summary>
-    /// <para>Events:</para>
-    /// <para>@emits <see cref="DataProducerEvents.TransportClose"/></para>
-    /// <para>@emits <see cref="DataProducerEvents.close"/></para>
-    /// <para>Observer events:</para>
-    /// <para>@emits <see cref="DataProducerObserverEvents.Close"/></para>
+    /// <para>Events : <see cref="DataProducerEvents"/></para>
+    /// <para>Observer events : <see cref="DataProducerObserverEvents"/></para>
     /// </summary>
     public DataProducerImpl(
         DataProducerInternal @internal,

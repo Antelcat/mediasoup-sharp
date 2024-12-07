@@ -28,14 +28,8 @@ public class DirectTransportImpl<TDirectTransportAppData>
     private readonly ILogger logger = new Logger<IDirectTransport>();
 
     /// <summary>
-    /// <para>Events:</para>
-    /// <para>@emits <see cref="DirectTransportEvents.Rtcp"/> - (packet: Buffer)</para>
-    /// <para>@emits <see cref="TransportEvents.Trace"/> - (trace: TransportTraceEventData)</para>
-    /// <para>Observer events:</para>
-    /// <para>@emits <see cref="TransportObserverEvents.Close"/></para>
-    /// <para>@emits <see cref="TransportObserverEvents.NewDataProducer"/> - (dataProducer: DataProducer)</para>
-    /// <para>@emits <see cref="TransportObserverEvents.NewDataConsumer"/> - (dataProducer: DataProducer)</para>
-    /// <para>@emits <see cref="TransportObserverEvents.Trace"/> - (trace: TransportTraceEventData)</para>
+    /// <para>Events : <see cref="DirectTransportEvents"/></para>
+    /// <para>Observer events : <see cref="TransportObserverEvents"/></para>
     /// </summary>
     public DirectTransportImpl(DirectTransportConstructorOptions<TDirectTransportAppData> options)
         : base(options, new DirectTransportObserver())

@@ -62,17 +62,8 @@ public class PipeTransportImpl<TPipeTransportAppData>
     public override PipeTransportObserver Observer => base.Observer.Sure<PipeTransportObserver>();
 
     /// <summary>
-    /// <para>Events:</para> 
-    /// <para>@emits <see cref="PipeTransportEvents.SctpStateChange"/> - (sctpState: SctpState)</para>
-    /// <para>@emits <see cref="TransportEvents.Trace"/> - (trace: TransportTraceEventData)</para>
-    /// <para>Observer events:</para>
-    /// <para>@emits <see cref="TransportObserverEvents.Close"/></para>
-    /// <para>@emits <see cref="TransportObserverEvents.NewProducer"/> - (producer: Producer)</para>
-    /// <para>@emits <see cref="TransportObserverEvents.NewConsumer"/> - (consumer: Consumer)</para>
-    /// <para>@emits <see cref="TransportObserverEvents.NewDataProducer"/> - (dataProducer: DataProducer)</para>
-    /// <para>@emits <see cref="TransportObserverEvents.NewDataConsumer"/> - (dataConsumer: DataConsumer)</para>
-    /// <para>@emits <see cref="PipeTransportObserverEvents.SctpStateChange"/> - (sctpState: SctpState)</para>
-    /// <para>@emits <see cref="TransportObserverEvents.Trace"/> - (trace: TransportTraceEventData)</para>
+    /// <para>Events : <see cref="PipeTransportEvents"/></para> 
+    /// <para>Observer events : <see cref="TransportObserverEvents"/></para>
     /// </summary>
     public PipeTransportImpl(PipeTransportConstructorOptions<TPipeTransportAppData> options)
         : base(options, new PipeTransportObserver())
@@ -161,7 +152,6 @@ public class PipeTransportImpl<TPipeTransportAppData>
         // Update data.
         Data.Tuple = data.Tuple;
     }
-
 
     /// <summary>
     /// Create a Consumer.

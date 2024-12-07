@@ -67,23 +67,8 @@ public class WebRtcTransportImpl<TWebRtcTransportAppData> :
     public override WebRtcTransportObserver Observer => base.Observer.Sure<WebRtcTransportObserver>();
 
     /// <summary>
-    /// <para>Events:</para>
-    /// <para>@emits <see cref="WebRtcTransportEvents.IceStateChange"/> - (iceState: IceState)</para>
-    /// <para>@emits <see cref="WebRtcTransportEvents.IceSelectedTupleChange"/> - (iceSelectedTuple: TransportTuple)</para>
-    /// <para>@emits <see cref="WebRtcTransportEvents.DtlsStateChange"/> - (dtlsState: DtlsState)</para>
-    /// <para>@emits <see cref="WebRtcTransportEvents.SctpStateChange"/> - (sctpState: SctpState)</para>
-    /// <para>@emits <see cref="TransportEvents.Trace"/> - (trace: TransportTraceEventData)</para>
-    /// <para>Observer events:</para>
-    /// <para>@emits <see cref="TransportObserverEvents.Close"/></para>
-    /// <para>@emits <see cref="TransportObserverEvents.NewProducer"/> - (producer: Producer)</para>
-    /// <para>@emits <see cref="TransportObserverEvents.NewConsumer"/> - (consumer: Consumer)</para>
-    /// <para>@emits <see cref="TransportObserverEvents.NewDataProducer"/> - (dataProducer: DataProducer)</para>
-    /// <para>@emits <see cref="TransportObserverEvents.NewDataConsumer"/> - (dataConsumer: DataConsumer)</para>
-    /// <para>@emits <see cref="WebRtcTransportObserverEvents.IceStateChange"/> - (iceState: IceState)</para>
-    /// <para>@emits <see cref="WebRtcTransportObserverEvents.IceSelectedTupleChange"/> - (iceSelectedTuple: TransportTuple)</para>
-    /// <para>@emits <see cref="WebRtcTransportObserverEvents.DtlsStateChange"/> - (dtlsState: DtlsState)</para>
-    /// <para>@emits <see cref="WebRtcTransportObserverEvents.SctpStateChange"/> - (sctpState: SctpState)</para>
-    /// <para>@emits <see cref="TransportObserverEvents.Trace"/> - (trace: TransportTraceEventData)</para>
+    /// <para>Events : <see cref="WebRtcTransportEvents"/></para>
+    /// <para>Observer events : <see cref="TransportObserverEvents"/></para>
     /// </summary>
     public WebRtcTransportImpl(WebRtcTransportConstructorOptions<TWebRtcTransportAppData> options)
         : base(options, new WebRtcTransportObserver())

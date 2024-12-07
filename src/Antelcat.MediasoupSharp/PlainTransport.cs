@@ -63,21 +63,8 @@ public class PlainTransportImpl<TPlainTransportAppData>
     public override PlainTransportObserver Observer => base.Observer.Sure<PlainTransportObserver>();
 
     /// <summary>
-    /// <para>Events:</para>
-    /// <para>@emits tuple - (tuple: TransportTuple)</para>
-    /// <para>@emits <see cref="PlainTransportEvents.RtcpTuple"/> - (rtcpTuple: TransportTuple)</para>
-    /// <para>@emits <see cref="PlainTransportEvents.SctpStateChange"/> - (sctpState: SctpState)</para>
-    /// <para>@emits trace - (trace: TransportTraceEventData)</para>
-    /// <para>Observer events:</para>
-    /// <para>@emits close</para>
-    /// <para>@emits <see cref="TransportObserverEvents.NewProducer"/> - (producer: Producer)</para>
-    /// <para>@emits <see cref="TransportObserverEvents.NewConsumer"/> - (consumer: Consumer)</para>
-    /// <para>@emits <see cref="TransportObserverEvents.NewDataProducer"/> - (dataProducer: DataProducer)</para>
-    /// <para>@emits <see cref="TransportObserverEvents.NewDataConsumer"/> - (dataConsumer: DataConsumer)</para>
-    /// <para>@emits <see cref="PlainTransportObserverEvents.Tuple"/> - (tuple: TransportTuple)</para>
-    /// <para>@emits <see cref="PlainTransportObserverEvents.RtcpTuple"/> - (rtcpTuple: TransportTuple)</para>
-    /// <para>@emits <see cref="PlainTransportObserverEvents.SctpStateChange"/> - (sctpState: SctpState)</para>
-    /// <para>@emits <see cref="TransportObserverEvents.Trace"/> - (trace: TransportTraceEventData)</para>
+    /// <para>Events : <see cref="PlainTransportEvents"/></para>
+    /// <para>Observer events : <see cref="TransportObserverEvents"/></para>
     /// </summary>
     public PlainTransportImpl(PlainTransportConstructorOptions<TPlainTransportAppData> options)
         : base(options, new PlainTransportObserver())

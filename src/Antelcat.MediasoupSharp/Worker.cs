@@ -104,14 +104,8 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
     public WorkerObserver Observer { get; } = new();
 
     /// <summary>
-    /// <para>Events:</para>
-    /// <para>@emits <see cref="WorkerEvents.Died"/> - (error: Error)</para>
-    /// <para>@emits <see cref="WorkerEvents.success"/></para>
-    /// <para>@emits <see cref="WorkerEvents.failure"/> - (error: Error)</para>
-    /// <para>Observer events:</para>
-    /// <para>@emits <see cref="WorkerObserverEvents.Close"/></para>
-    /// <para>@emits <see cref="WorkerObserverEvents.NewWebrtcServer"/> - (webRtcServer: WebRtcServer)</para>
-    /// <para>@emits <see cref="WorkerObserverEvents.NewRouter"/> - (router: Router)</para>
+    /// <para>Events : <see cref="WorkerEvents"/></para>
+    /// <para>Observer events : <see cref="WorkerObserverEvents"/></para>
     /// </summary>
     public WorkerImpl(WorkerSettings<TWorkerAppData> workerSettings)
     {

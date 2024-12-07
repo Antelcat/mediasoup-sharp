@@ -134,24 +134,8 @@ public class ConsumerImpl<TConsumerAppData>
     public ConsumerObserver Observer { get; } = new EnhancedEventEmitter<ConsumerObserverEvents>();
 
     /// <summary>
-    /// <para>Events:</para>
-    /// <para>@emits <see cref="ConsumerEvents.TransportClose"/></para>
-    /// <para>@emits <see cref="ConsumerEvents.ProducerClose"/></para>
-    /// <para>@emits <see cref="ConsumerEvents.ProducerPause"/></para>
-    /// <para>@emits <see cref="ConsumerEvents.ProducerResume"/></para>
-    /// <para>@emits <see cref="ConsumerEvents.Score"/> - (score: ConsumerScore)</para>
-    /// <para>@emits <see cref="ConsumerEvents.LayersChange"/> - (layers: ConsumerLayers | undefined)</para>
-    /// <para>@emits <see cref="ConsumerEvents.Trace"/> - (trace: ConsumerTraceEventData)</para>
-    /// <para>@emits <see cref="ConsumerEvents.Rtp"/> - (packet: Buffer)</para>
-    /// <para>@emits <see cref="ConsumerEvents.close"/>@</para>
-    /// <para>@emits <see cref="ConsumerEvents.producerClose"/>@</para>
-    /// <para>Observer events:</para>
-    /// <para>@emits <see cref="ConsumerObserverEvents.Close"/></para>
-    /// <para>@emits <see cref="ConsumerObserverEvents.Pause"/></para>
-    /// <para>@emits <see cref="ConsumerObserverEvents.Resume"/></para>
-    /// <para>@emits <see cref="ConsumerObserverEvents.Score"/> - (score: ConsumerScore)</para>
-    /// <para>@emits <see cref="ConsumerObserverEvents.LayersChange"/> - (layers: ConsumerLayers | undefined)</para>
-    /// <para>@emits <see cref="ConsumerObserverEvents.Trace"/> - (trace: ConsumerTraceEventData)</para>
+    /// <para>Events : <see cref="ConsumerEvents"/></para>
+    /// <para>Observer events : <see cref="ConsumerObserverEvents"/></para>
     /// </summary>
     public ConsumerImpl(
         ConsumerInternal @internal,

@@ -109,18 +109,8 @@ public class DataConsumerImpl<TDataConsumerAppData>
     public DataConsumerObserver Observer { get; } = new();
 
     /// <summary>
-    /// <para>Events:</para>
-    /// <para>@emits <see cref="DataConsumerEvents.TransportClose"/></para>
-    /// <para>@emits <see cref="DataConsumerEvents.DataProducerClose"/></para>
-    /// <para>@emits <see cref="DataConsumerEvents.Message"/> - (message: Buffer, ppid: number)</para>
-    /// <para>@emits <see cref="DataConsumerEvents.SctpSendBufferFull"/></para>
-    /// <para>@emits <see cref="DataConsumerEvents.BufferedAmountLow"/> - (bufferedAmount: number)</para>
-    /// <para>@emits <see cref="DataConsumerEvents.close"/></para>
-    /// <para>@emits <see cref="DataConsumerEvents.dataProducerClose"/></para>
-    /// <para>Observer events:</para>
-    /// <para>@emits <see cref="DataConsumerObserverEvents.Close"/></para>
-    /// <para>@emits <see cref="DataConsumerObserverEvents.Pause"/></para>
-    /// <para>@emits <see cref="DataConsumerObserverEvents.Resume"/></para>
+    /// <para>Events : <see cref="DataConsumerEvents"/></para>
+    /// <para>Observer events : <see cref="DataConsumerObserverEvents"/></para>
     /// </summary>
     public DataConsumerImpl(
         DataConsumerInternal @internal,

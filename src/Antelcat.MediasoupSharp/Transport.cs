@@ -199,22 +199,8 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
     public virtual TObserver Observer { get; }
 
     /// <summary>
-    /// <para>Events:</para>
-    /// <para>@emits <see cref="TransportEvents.RouterClose"/></para>
-    /// <para>@emits <see cref="TransportEvents.ListenServerClose"/></para>
-    /// <para>@emits <see cref="TransportEvents.Trace"/> - (trace: TransportTraceEventData)</para>
-    /// <para>@emits <see cref="TransportEvents.close"/>@</para>
-    /// <para>@emits <see cref="TransportEvents.newProducer"/>@ - (producer: Producer)</para>
-    /// <para>@emits <see cref="TransportEvents.producerClose"/>@ - (producer: Producer)</para>
-    /// <para>@emits <see cref="TransportEvents.newDataProducer"/>@ - (dataProducer: DataProducer)</para>
-    /// <para>@emits <see cref="TransportEvents.dataProducerClose"/>@ - (dataProducer: DataProducer)</para>
-    /// <para>@emits <see cref="TransportEvents.listenServerClose"/>@</para>
-    /// <para>Observer events:</para>
-    /// <para>@emits close</para>
-    /// <para>@emits <see cref="TransportObserverEvents.NewProducer"/> - (producer: Producer)</para>
-    /// <para>@emits <see cref="TransportObserverEvents.NewConsumer"/> - (producer: Producer)</para>
-    /// <para>@emits <see cref="TransportObserverEvents.NewDataProducer"/> - (dataProducer: DataProducer)</para>
-    /// <para>@emits <see cref="TransportObserverEvents.NewDataConsumer"/> - (dataProducer: DataProducer)</para>
+    /// <para>Events : <see cref="TransportEvents"/></para>
+    /// <para>Observer events : <see cref="TransportObserverEvents"/></para>
     /// </summary>
     protected TransportImpl(TransportConstructorOptions<TTransportAppData> options, TObserver observer)
     {
