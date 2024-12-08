@@ -82,7 +82,7 @@ public class WebRtcTransportImpl<TWebRtcTransportAppData> :
     /// <summary>
     /// Close the WebRtcTransport.
     /// </summary>
-    protected override Task OnCloseAsync()
+    protected override Task OnClosingAsync()
     {
         Data.IceState         = IceState.DISCONNECTED; // CLOSED
         Data.IceSelectedTuple = null;
@@ -101,7 +101,7 @@ public class WebRtcTransportImpl<TWebRtcTransportAppData> :
     /// </summary>
     protected override Task OnRouterClosedAsync()
     {
-        return OnCloseAsync();
+        return OnClosingAsync();
     }
 
     /// <summary>

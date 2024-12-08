@@ -8,6 +8,7 @@ using Antelcat.MediasoupSharp.FBS.Transport;
 using Antelcat.MediasoupSharp.Internals.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
+using Antelcat.MediasoupSharp.Internals.Collections;
 
 namespace Antelcat.MediasoupSharp;
 
@@ -65,8 +66,7 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
         ITransport<
             TTransportAppData, 
             TEvents, 
-            TObserver
-        >
+            TObserver>
     where TTransportAppData : new()
     where TEvents : TransportEvents
     where TObserver : TransportObserver
@@ -132,42 +132,22 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
     /// <summary>
     /// Producers map.
     /// </summary>
-    protected readonly Dictionary<string, IProducer> Producers = new();
-
-    /// <summary>
-    /// Producers locker.
-    /// </summary>
-    protected readonly AsyncAutoResetEvent ProducersLock = new();
+    protected readonly AsyncConcurrentDictionary<string, IProducer> Producers = new();
 
     /// <summary>
     /// Consumers map.
     /// </summary>
-    protected readonly Dictionary<string, IConsumer> Consumers = new();
-
-    /// <summary>
-    /// Consumers locker.
-    /// </summary>
-    protected readonly AsyncAutoResetEvent ConsumersLock = new();
+    protected readonly AsyncConcurrentDictionary<string, IConsumer> Consumers = new();
 
     /// <summary>
     /// DataProducers map.
     /// </summary>
-    protected readonly Dictionary<string, IDataProducer> DataProducers = new();
-
-    /// <summary>
-    /// DataProducers locker.
-    /// </summary>
-    protected readonly AsyncAutoResetEvent DataProducersLock = new();
+    protected readonly AsyncConcurrentDictionary<string, IDataProducer> DataProducers = new();
 
     /// <summary>
     /// DataConsumers map.
     /// </summary>
-    protected readonly Dictionary<string, IDataConsumer> DataConsumers = new();
-
-    /// <summary>
-    /// DataConsumers locker.
-    /// </summary>
-    protected readonly AsyncAutoResetEvent DataConsumersLock = new();
+    protected readonly AsyncConcurrentDictionary<string, IDataConsumer> DataConsumers = new();
 
     /// <summary>
     /// RTCP CNAME for Producers.
@@ -212,10 +192,10 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
         GetProducerById          = options.GetProducerById;
         GetDataProducerById      = options.GetDataProducerById;
         Observer                 = observer;
-        ProducersLock.Set();
-        ConsumersLock.Set();
-        DataProducersLock.Set();
-        DataConsumersLock.Set();
+        Producers.Set();
+        Consumers.Set();
+        DataProducers.Set();
+        DataConsumers.Set();
     }
 
     /// <summary>
@@ -234,10 +214,10 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
 
             Closed = true;
 
-            await OnCloseAsync();
+            await OnClosingAsync();
 
             // Remove notification subscriptions.
-            //_channel.OnNotification -= OnNotificationHandle;
+            // Channel.OnNotification -= OnNotificationHandle;
 
             // Build Request
             var bufferBuilder = Channel.BufferPool.Get();
@@ -265,7 +245,7 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
         }
     }
 
-    protected abstract Task OnCloseAsync();
+    protected abstract Task OnClosingAsync();
 
     /// <summary>
     /// Router was closed.
@@ -302,10 +282,9 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
     private async Task CloseIternalAsync(bool tellRouter)
     {
         // Close every Producer.
-        await ProducersLock.WaitAsync();
-        try
+        await Producers.ModifyAsync(async x =>
         {
-            foreach (var producer in Producers.Values)
+            foreach (var producer in x.Values)
             {
                 await producer.TransportClosedAsync();
 
@@ -313,42 +292,25 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
                 this.Emit(static x => x.producerClose, producer);
             }
 
-            Producers.Clear();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "CloseIternalAsync()");
-        }
-        finally
-        {
-            ProducersLock.Set();
-        }
-
+            x.Clear();
+        });
+        
         // Close every Consumer.
-        await ConsumersLock.WaitAsync();
-        try
+        await Consumers.ModifyAsync(async x =>
         {
-            foreach (var consumer in Consumers.Values)
+            foreach (var consumer in x.Values)
             {
                 await consumer.TransportClosedAsync();
             }
 
-            Consumers.Clear();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "CloseIternalAsync()");
-        }
-        finally
-        {
-            ConsumersLock.Set();
-        }
+            x.Clear();
+        });
+
 
         // Close every DataProducer.
-        await DataProducersLock.WaitAsync();
-        try
+        await DataProducers.ModifyAsync(async x =>
         {
-            foreach (var dataProducer in DataProducers.Values)
+            foreach (var dataProducer in x.Values)
             {
                 await dataProducer.TransportClosedAsync();
 
@@ -362,36 +324,20 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
                 // been closed in fact).
             }
 
-            DataProducers.Clear();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "CloseIternalAsync()");
-        }
-        finally
-        {
-            DataProducersLock.Set();
-        }
+            x.Clear();
+        });
+
 
         // Close every DataConsumer.
-        await DataConsumersLock.WaitAsync();
-        try
+        await DataConsumers.ModifyAsync(async x =>
         {
-            foreach (var dataConsumer in DataConsumers.Values)
+            foreach (var dataConsumer in x.Values)
             {
                 await dataConsumer.TransportClosedAsync();
             }
 
-            DataConsumers.Clear();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "CloseIternalAsync()");
-        }
-        finally
-        {
-            DataConsumersLock.Set();
-        }
+            x.Clear();
+        });
     }
 
     /// <summary>
@@ -707,36 +653,18 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
             producer.On(static x => x.close,
                 async () =>
                 {
-                    await ProducersLock.WaitAsync();
-                    try
+                    await Producers.ModifyAsync(x =>
                     {
-                        Producers.Remove(producer.Id);
+                        x.Remove(producer.Id);
                         this.Emit(static x => x.producerClose, producer);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, "@close");
-                    }
-                    finally
-                    {
-                        ProducersLock.Set();
-                    }
+                    });
                 }
             );
 
-            await ProducersLock.WaitAsync();
-            try
+            await Producers.ModifyAsync(x =>
             {
-                Producers[producer.Id] = producer;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "ProduceAsync()");
-            }
-            finally
-            {
-                ProducersLock.Set();
-            }
+                x[producer.Id] = producer;
+            });
 
             this.Emit(static x => x.newProducer, producer);
 
@@ -870,49 +798,26 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
             consumer.On(static x => x.close,
                 async () =>
                 {
-                    await ConsumersLock.WaitAsync();
-                    try
+                    await Consumers.ModifyAsync(x =>
                     {
-                        Consumers.Remove(consumer.Id);
-                    }
-                    finally
-                    {
-                        ConsumersLock.Set();
-                    }
+                        x.Remove(consumer.Id);
+                    });
                 }
             );
             consumer.On(static x => x.producerClose,
                 async () =>
                 {
-                    await ConsumersLock.WaitAsync();
-                    try
+                    await Consumers.ModifyAsync(x =>
                     {
-                        Consumers.Remove(consumer.Id);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, "@producerclose");
-                    }
-                    finally
-                    {
-                        ConsumersLock.Set();
-                    }
+                        x.Remove(consumer.Id);
+                    });
                 }
             );
 
-            await ConsumersLock.WaitAsync();
-            try
+            await Consumers.ModifyAsync(x =>
             {
-                Consumers[consumer.Id] = consumer;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "ConsumeAsync()");
-            }
-            finally
-            {
-                ConsumersLock.Set();
-            }
+                x[consumer.Id] = consumer;
+            });
 
             // Emit observer event.
             Observer.SafeEmit(static x => x.NewConsumer, consumer);
@@ -1018,29 +923,19 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
                 dataProducerOptions.Paused,
                 dataProducerOptions.AppData
             );
-            
-            await DataProducersLock.WaitAsync();
-            try
+
+            await DataProducers.ModifyAsync(x =>
             {
-                DataProducers[dataProducer.Id] = dataProducer;
-            }
-            finally
-            {
-                DataProducersLock.Set();
-            }
+                x[dataProducer.Id] = dataProducer;
+            });
 
             dataProducer.On(static x => x.close,
                 async () =>
                 {
-                    await DataProducersLock.WaitAsync();
-                    try
+                    await DataProducers.ModifyAsync(x =>
                     {
-                        DataProducers.Remove(dataProducer.Id);
-                    }
-                    finally
-                    {
-                        DataProducersLock.Set();
-                    }
+                        x.Remove(dataProducer.Id);
+                    });
 
                     this.Emit(static x => x.dataProducerClose, dataProducer);
                 }
@@ -1189,24 +1084,18 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
                 data.Subchannels,
                 dataConsumerOptions.AppData
             );
-            
-            await DataConsumersLock.WaitAsync();
-            try
+
+            await DataConsumers.ModifyAsync(x =>
             {
-                DataConsumers[dataConsumer.Id] = dataConsumer;
-            }
-            finally
-            {
-                DataConsumersLock.Set();
-            }
+                x[dataConsumer.Id] = dataConsumer;
+            });
 
             dataConsumer.On(static x => x.close,
                 async _ =>
                 {
-                    await DataConsumersLock.WaitAsync();
-                    try
+                    await DataConsumers.ModifyAsync(x =>
                     {
-                        DataConsumers.Remove(dataConsumer.Id);
+                        x.Remove(dataConsumer.Id);
                         lock (sctpStreamIdsLock)
                         {
                             if (sctpStreamIds != null && sctpStreamId.HasValue)
@@ -1214,21 +1103,16 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
                                 sctpStreamIds[sctpStreamId.Value] = 0;
                             }
                         }
-                    }
-                    finally
-                    {
-                        DataConsumersLock.Set();
-                    }
+                    });
                 }
             );
 
             dataConsumer.On(static x => x.dataProducerClose,
                 async _ =>
                 {
-                    await DataConsumersLock.WaitAsync();
-                    try
+                    await DataConsumers.ModifyAsync(x =>
                     {
-                        DataConsumers.Remove(dataConsumer.Id);
+                        x.Remove(dataConsumer.Id);
                         lock (sctpStreamIdsLock)
                         {
                             if (sctpStreamIds != null && sctpStreamId.HasValue)
@@ -1236,15 +1120,9 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
                                 sctpStreamIds[sctpStreamId.Value] = 0;
                             }
                         }
-                    }
-                    finally
-                    {
-                        DataConsumersLock.Set();
-                    }
+                    });
                 }
             );
-
-           
 
             // Emit observer event.
             Observer.Emit(static x => x.NewDataConsumer, dataConsumer);

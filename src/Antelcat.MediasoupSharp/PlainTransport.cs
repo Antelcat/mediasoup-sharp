@@ -80,7 +80,7 @@ public class PlainTransportImpl<TPlainTransportAppData>
     /// <summary>
     /// Close the PlainTransport.
     /// </summary>
-    protected override Task OnCloseAsync()
+    protected override Task OnClosingAsync()
     {
         if (Data.SctpState.HasValue)
         {
@@ -95,7 +95,7 @@ public class PlainTransportImpl<TPlainTransportAppData>
     /// </summary>
     protected override Task OnRouterClosedAsync()
     {
-        return OnCloseAsync();
+        return OnClosingAsync();
     }
 
     /// <summary>

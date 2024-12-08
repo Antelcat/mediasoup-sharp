@@ -1,5 +1,6 @@
 ﻿using Antelcat.AutoGen.ComponentModel.Diagnostic;
 using Antelcat.MediasoupSharp.FBS.Request;
+using Antelcat.MediasoupSharp.Internals.Collections;
 using Antelcat.MediasoupSharp.Internals.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
@@ -52,9 +53,7 @@ public class WebRtcServerImpl<TWebRtcServerAppData>
     /// <summary>
     /// Transports map.
     /// </summary>
-    private readonly Dictionary<string, IWebRtcTransport> webRtcTransports = new();
-
-    private readonly AsyncReaderWriterLock webRtcTransportsLock = new(null);
+    private readonly AsyncReadWriteDictionary<string, IWebRtcTransport> webRtcTransports = new();
 
     /// <summary>
     /// Observer instance.
@@ -146,7 +145,7 @@ public class WebRtcServerImpl<TWebRtcServerAppData>
 
     private async Task CloseInternalAsync()
     {
-        await using (await webRtcTransportsLock.WriteLockAsync())
+        await using (await webRtcTransports.WriteLockAsync())
         {
             // Close every WebRtcTransport.
             foreach (var webRtcTransport in webRtcTransports.Values)
@@ -191,7 +190,7 @@ public class WebRtcServerImpl<TWebRtcServerAppData>
 
     public async Task HandleWebRtcTransportAsync(IWebRtcTransport webRtcTransport)
     {
-        await using (await webRtcTransportsLock.WriteLockAsync())
+        await using (await webRtcTransports.WriteLockAsync())
         {
             webRtcTransports[webRtcTransport.Id] = webRtcTransport;
         }
@@ -201,7 +200,7 @@ public class WebRtcServerImpl<TWebRtcServerAppData>
 
         webRtcTransport.On(static x => x.close, async () =>
         {
-            await using (await webRtcTransportsLock.WriteLockAsync()) webRtcTransports.Remove(webRtcTransport.Id);
+            await using (await webRtcTransports.WriteLockAsync()) webRtcTransports.Remove(webRtcTransport.Id);
 
             // Emit observer event.
             Observer.SafeEmit(static x => x.WebrtcTransportUnhandled, webRtcTransport);

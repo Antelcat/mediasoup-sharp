@@ -41,7 +41,7 @@ public class DirectTransportImpl<TDirectTransportAppData>
     /// <summary>
     /// Close the DirectTransport.
     /// </summary>
-    protected override Task OnCloseAsync() => Task.CompletedTask;
+    protected override Task OnClosingAsync() => Task.CompletedTask;
 
     /// <summary>
     /// Router was closed.

@@ -78,7 +78,7 @@ public class PipeTransportImpl<TPipeTransportAppData>
     /// <summary>
     /// Close the PipeTransport.
     /// </summary>
-    protected override Task OnCloseAsync()
+    protected override Task OnClosingAsync()
     {
         if (Data.SctpState.HasValue)
         {
@@ -93,7 +93,7 @@ public class PipeTransportImpl<TPipeTransportAppData>
     /// </summary>
     protected override Task OnRouterClosedAsync()
     {
-        return OnCloseAsync();
+        return OnClosingAsync();
     }
 
     /// <summary>
@@ -105,7 +105,10 @@ public class PipeTransportImpl<TPipeTransportAppData>
         var bufferBuilder = Channel.BufferPool.Get();
 
         var response =
-            await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_DUMP, null, null, Internal.TransportId);
+            await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_DUMP, 
+                null, 
+                null, 
+                Internal.TransportId);
         var data = response.NotNull().BodyAsPipeTransport_DumpResponse().UnPack();
 
         return data;
@@ -231,42 +234,28 @@ public class PipeTransportImpl<TPipeTransportAppData>
             responseData.PreferredLayers
         );
 
-        await ConsumersLock.WaitAsync();
-        try
+        await Consumers.ModifyAsync(x =>
         {
-            Consumers[consumer.Id] = consumer;
-        }
-        finally
-        {
-            ConsumersLock.Set();
-        }
+            x[consumer.Id] = consumer;
+        });
+ 
         
         consumer.On(static x => x.close,
             async () =>
             {
-                await ConsumersLock.WaitAsync();
-                try
+                await Consumers.ModifyAsync(x =>
                 {
-                    Consumers.Remove(consumer.Id);
-                }
-                finally
-                {
-                    ConsumersLock.Set();
-                }
+                    x.Remove(consumer.Id);
+                });
             }
         );
         consumer.On(static x => x.producerClose,
             async () =>
             {
-                await ConsumersLock.WaitAsync();
-                try
+                await Consumers.ModifyAsync(x =>
                 {
-                    Consumers.Remove(consumer.Id);
-                }
-                finally
-                {
-                    ConsumersLock.Set();
-                }
+                    x.Remove(consumer.Id);
+                });
             }
         );
 
