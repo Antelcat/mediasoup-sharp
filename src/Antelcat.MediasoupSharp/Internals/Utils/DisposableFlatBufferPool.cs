@@ -2,7 +2,7 @@
 
 namespace Antelcat.MediasoupSharp.Internals.Utils;
 
-public class DisposableFlatBufferPool : ObjectPool<DisposableFlatBufferBuilder>
+internal class DisposableFlatBufferPool : ObjectPool<DisposableFlatBufferBuilder>
 {
     public DisposableFlatBufferPool(int size = 1024)
     {

@@ -12,7 +12,6 @@ using Antelcat.MediasoupSharp.Internals.Utils;
 using Antelcat.NodeSharp.Events;
 using Google.FlatBuffers;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.ObjectPool;
 using Microsoft.VisualStudio.Threading;
 
 namespace Antelcat.MediasoupSharp;
@@ -121,7 +120,7 @@ public class Channel : EnhancedEventEmitter, IChannel
 
     #endregion Protected Fields
 
-    public DisposableFlatBufferPool BufferPool { get; } = new();
+    private readonly DisposableFlatBufferPool bufferPool = new();
 
     #region Events
 
@@ -217,7 +216,7 @@ public class Channel : EnhancedEventEmitter, IChannel
                 throw new InvalidStateException("Channel closed");
             }
 
-            using var bufferBuilder   = BufferPool.Get(size);
+            using var bufferBuilder   = bufferPool.Get(size);
             var       bodyOffset      = consumeBuffer(bufferBuilder);
             var       handlerIdOffset = bufferBuilder.CreateString(handlerId ?? "");
 
@@ -313,7 +312,7 @@ public class Channel : EnhancedEventEmitter, IChannel
             else nextId = 1;
 
             var       id              = nextId;
-            using var bufferBuilder   = BufferPool.Get();
+            using var bufferBuilder   = bufferPool.Get();
             var       bodyOffset      = consumeBuffer(bufferBuilder);
             var       handlerIdOffset = bufferBuilder.CreateString(handlerId ?? "");
 
@@ -355,7 +354,7 @@ public class Channel : EnhancedEventEmitter, IChannel
             // Clear the buffer builder so it's reused for the next request.
             bufferBuilder.Clear();
 
-            BufferPool.Return(bufferBuilder);
+            bufferPool.Return(bufferBuilder);
 
             if (buffer.Count > MessageMaxLen)
             {
