@@ -109,9 +109,6 @@ public class WebRtcTransportImpl<TWebRtcTransportAppData> :
     /// </summary>
     protected override async Task<object> OnDumpAsync()
     {
-        // Build Request
-        var bufferBuilder = Channel.BufferPool.Get();
-
         var response =
             await Channel.RequestAsync(static _ => null,
                 Method.TRANSPORT_DUMP,
