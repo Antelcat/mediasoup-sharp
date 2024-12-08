@@ -110,7 +110,7 @@ public class RouterImpl<TRouterAppData>
         Data           = data;
         this.channel   = channel;
         AppData        = appData ?? new();
-        
+
         HandleListenerError();
     }
 
@@ -125,26 +125,20 @@ public class RouterImpl<TRouterAppData>
             {
                 return;
             }
-            
+
             logger.LogDebug($"{nameof(CloseAsync)}() | Router:{{RouterId}}", Id);
 
             Closed = true;
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var closeRouterRequest = new Antelcat.MediasoupSharp.FBS.Worker.CloseRouterRequestT
-            {
-                RouterId = @internal.RouterId
-            };
-
-            var closeRouterRequestOffset =
-                Antelcat.MediasoupSharp.FBS.Worker.CloseRouterRequest.Pack(bufferBuilder, closeRouterRequest);
-
             // Fire and forget
-            channel.RequestAsync(bufferBuilder, Method.WORKER_CLOSE_ROUTER,
-                Body.Worker_CloseRouterRequest,
-                closeRouterRequestOffset.Value
+            channel.RequestAsync(bufferBuilder => 
+                    Antelcat.MediasoupSharp.FBS.Worker.CloseRouterRequest.Pack(bufferBuilder,
+                        new Antelcat.MediasoupSharp.FBS.Worker.CloseRouterRequestT
+                    {
+                        RouterId = @internal.RouterId
+                    }).Value, 
+                Method.WORKER_CLOSE_ROUTER,
+                Body.Worker_CloseRouterRequest
             ).ContinueWithOnFaultedHandleLog(logger);
 
             await CloseInternalAsync();
@@ -169,7 +163,7 @@ public class RouterImpl<TRouterAppData>
             }
 
             logger.LogDebug($"{nameof(WorkerClosedAsync)}() | Router:{{RouterId}}", Id);
-            
+
             Closed = true;
 
             await CloseInternalAsync();
@@ -188,16 +182,12 @@ public class RouterImpl<TRouterAppData>
     {
         logger.LogDebug($"{nameof(DumpAsync)}() | Router:{{RouterId}}", Id);
 
-        // Build Request
-        var bufferBuilder = channel.BufferPool.Get();
-
         var response =
-            await channel.RequestAsync(bufferBuilder,
+            await channel.RequestAsync(static _ => null,
                 Method.ROUTER_DUMP,
                 null,
-                null,
                 @internal.RouterId);
-        
+
         return response.NotNull().BodyAsRouter_DumpResponse().UnPack();
     }
 
@@ -221,7 +211,7 @@ public class RouterImpl<TRouterAppData>
             maxSctpMessageSize,
             sctpSendBufferSize,
             appData) = options;
-        
+
         logger.LogDebug($"{nameof(CreateWebRtcTransportAsync)}()");
 
         if (webRtcServer == null && listenInfos.IsNullOrEmpty())
@@ -319,23 +309,17 @@ public class RouterImpl<TRouterAppData>
 
             var transportId = Guid.NewGuid().ToString();
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var createWebRtcTransportRequest = new CreateWebRtcTransportRequestT
-            {
-                TransportId = transportId,
-                Options     = webRtcTransportOptions
-            };
-
-            var createWebRtcTransportRequestOffset =
-                CreateWebRtcTransportRequest.Pack(bufferBuilder, createWebRtcTransportRequest);
-
-            var response = await channel.RequestAsync(bufferBuilder, webRtcServer != null
+            var response = await channel.RequestAsync(bufferBuilder => 
+                    CreateWebRtcTransportRequest.Pack(bufferBuilder,
+                    new CreateWebRtcTransportRequestT
+                    {
+                        TransportId = transportId,
+                        Options     = webRtcTransportOptions
+                    }).Value,
+                webRtcServer != null
                     ? Method.ROUTER_CREATE_WEBRTCTRANSPORT_WITH_SERVER
                     : Method.ROUTER_CREATE_WEBRTCTRANSPORT,
                 Body.Router_CreateWebRtcTransportRequest,
-                createWebRtcTransportRequestOffset.Value,
                 @internal.RouterId);
 
             /* Decode Response. */
@@ -352,8 +336,10 @@ public class RouterImpl<TRouterAppData>
                     Channel                  = channel,
                     AppData                  = appData,
                     GetRouterRtpCapabilities = () => Data.RtpCapabilities,
-                    GetProducerById          = async producerId => await producers.ReadAsync(x=> x.GetValueOrDefault(producerId)),
-                    GetDataProducerById      = async producerId => await dataProducers.ReadAsync(x=> x.GetValueOrDefault(producerId))
+                    GetProducerById = async producerId =>
+                        await producers.ReadAsync(x => x.GetValueOrDefault(producerId)),
+                    GetDataProducerById = async producerId =>
+                        await dataProducers.ReadAsync(x => x.GetValueOrDefault(producerId))
                 });
 
             await ConfigureTransportAsync(transport, webRtcServer);
@@ -382,7 +368,8 @@ public class RouterImpl<TRouterAppData>
             // If rtcpMux is enabled, ignore rtcpListenInfo.
             if (options is { RtcpMux: true, RtcpListenInfo: not null })
             {
-                logger.LogWarning($"{nameof(CreatePlainTransportAsync)}() | ignoring rtcpMux since rtcpListenInfo is given");
+                logger.LogWarning(
+                    $"{nameof(CreatePlainTransportAsync)}() | ignoring rtcpMux since rtcpListenInfo is given");
                 options.RtcpMux = false;
             }
 
@@ -411,21 +398,15 @@ public class RouterImpl<TRouterAppData>
 
             var transportId = Guid.NewGuid().ToString();
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var createPlainTransportRequest = new CreatePlainTransportRequestT
-            {
-                TransportId = transportId,
-                Options     = plainTransportOptions
-            };
-
-            var requestOffset = CreatePlainTransportRequest.Pack(bufferBuilder, createPlainTransportRequest);
-
-            var response = await channel.RequestAsync(bufferBuilder,
+            var response = await channel.RequestAsync(bufferBuilder =>
+                    CreatePlainTransportRequest.Pack(bufferBuilder,
+                        new CreatePlainTransportRequestT
+                        {
+                            TransportId = transportId,
+                            Options     = plainTransportOptions
+                        }).Value,
                 Method.ROUTER_CREATE_PLAINTRANSPORT,
                 Body.Router_CreatePlainTransportRequest,
-                requestOffset.Value,
                 @internal.RouterId);
 
             /* Decode Response. */
@@ -441,8 +422,8 @@ public class RouterImpl<TRouterAppData>
                     },
                     Channel                  = channel,
                     GetRouterRtpCapabilities = () => Data.RtpCapabilities,
-                    GetProducerById          = async m => await producers.ReadAsync(x=> x.GetValueOrDefault(m)),
-                    GetDataProducerById      = async m => await dataProducers.ReadAsync(x => x.GetValueOrDefault(m))
+                    GetProducerById          = async producerId => await producers.ReadAsync(x => x.GetValueOrDefault(producerId)),
+                    GetDataProducerById      = async producerId => await dataProducers.ReadAsync(x => x.GetValueOrDefault(producerId))
                 }
             );
 
@@ -497,21 +478,13 @@ public class RouterImpl<TRouterAppData>
 
             var transportId = Guid.NewGuid().ToString();
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var createPipeTransportRequest = new CreatePipeTransportRequestT
-            {
-                TransportId = transportId,
-                Options     = pipeTransportOptions
-            };
-
-            var createPipeTransportRequestOffset =
-                CreatePipeTransportRequest.Pack(bufferBuilder, createPipeTransportRequest);
-
-            var response = await channel.RequestAsync(bufferBuilder, Method.ROUTER_CREATE_PIPETRANSPORT,
+            var response = await channel.RequestAsync(bufferBuilder => 
+                    CreatePipeTransportRequest.Pack(bufferBuilder, new CreatePipeTransportRequestT
+                    {
+                        TransportId = transportId,
+                        Options     = pipeTransportOptions
+                    }).Value, Method.ROUTER_CREATE_PIPETRANSPORT,
                 Body.Router_CreatePipeTransportRequest,
-                createPipeTransportRequestOffset.Value,
                 @internal.RouterId);
 
             /* Decode Response. */
@@ -528,8 +501,8 @@ public class RouterImpl<TRouterAppData>
                     Channel                  = channel,
                     AppData                  = options.AppData,
                     GetRouterRtpCapabilities = () => Data.RtpCapabilities,
-                    GetProducerById          = async m => await producers.ReadAsync(x=> x.GetValueOrDefault(m)),
-                    GetDataProducerById      = async m => await dataProducers.ReadAsync(x => x.GetValueOrDefault(m))
+                    GetProducerById          = async producerId => await producers.ReadAsync(x => x.GetValueOrDefault(producerId)),
+                    GetDataProducerById      = async producerId => await dataProducers.ReadAsync(x => x.GetValueOrDefault(producerId))
                 });
 
             await ConfigureTransportAsync(transport);
@@ -545,7 +518,7 @@ public class RouterImpl<TRouterAppData>
         DirectTransportOptions<TDirectTransportAppData> options)
         where TDirectTransportAppData : new()
     {
-        logger.LogDebug("CreateDirectTransportAsync()");
+        logger.LogDebug($"{nameof(CreateDirectTransportAsync)}()");
 
         await using (await closeLock.ReadLockAsync())
         {
@@ -567,22 +540,15 @@ public class RouterImpl<TRouterAppData>
                 Base = baseTransportOptions
             };
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var createDirectTransportRequest = new CreateDirectTransportRequestT
-            {
-                TransportId = transportId,
-                Options     = directTransportOptions
-            };
-
-            var createDirectTransportRequestOffset =
-                CreateDirectTransportRequest.Pack(bufferBuilder, createDirectTransportRequest);
-
-            var response = await channel.RequestAsync(bufferBuilder,
+            var response = await channel.RequestAsync(bufferBuilder =>
+                    CreateDirectTransportRequest.Pack(bufferBuilder,
+                    new CreateDirectTransportRequestT
+                    {
+                        TransportId = transportId,
+                        Options     = directTransportOptions
+                    }).Value,
                 Method.ROUTER_CREATE_DIRECTTRANSPORT,
                 Body.Router_CreateDirectTransportRequest,
-                createDirectTransportRequestOffset.Value,
                 @internal.RouterId);
 
             /* Decode Response. */
@@ -599,8 +565,8 @@ public class RouterImpl<TRouterAppData>
                     Channel                  = channel,
                     AppData                  = options.AppData,
                     GetRouterRtpCapabilities = () => Data.RtpCapabilities,
-                    GetProducerById = async m => await producers.ReadAsync(x=> x.GetValueOrDefault(m)),
-                    GetDataProducerById = async m => await dataProducers.ReadAsync(x=> x.GetValueOrDefault(m))
+                    GetProducerById          = async producerId => await producers.ReadAsync(x => x.GetValueOrDefault(producerId)),
+                    GetDataProducerById      = async producerId => await dataProducers.ReadAsync(x => x.GetValueOrDefault(producerId))
                 }
             );
 
@@ -616,30 +582,17 @@ public class RouterImpl<TRouterAppData>
 
         await transports.WriteAsync(x => x[transport.Id] = transport);
 
-        trans.On(static x => x.close, async () =>
-        {
-            await transports.WriteAsync(x => x.Remove(transport.Id));
-        });
-        trans.On(static x => x.listenServerClose, async () =>
-        {
-            await transports.WriteAsync(x => x.Remove(transport.Id));
-        });
-        trans.On(static x => x.newProducer, async producer =>
-        {
-            await producers.WriteAsync(x => x[producer.Id] = producer);
-        });
-        trans.On(static x => x.producerClose, async producer =>
-        {
-            await producers.WriteAsync(x => x.Remove(producer.Id));
-        });
-        trans.On(static x => x.newDataProducer, async dataProducer =>
-        {
-            await dataProducers.WriteAsync(x => x[dataProducer.Id] = dataProducer);
-        });
-        trans.On(static x => x.dataProducerClose, async dataProducer =>
-        {
-            await dataProducers.WriteAsync(x => x.Remove(dataProducer.Id));
-        });
+        trans.On(static x => x.close, async () => { await transports.WriteAsync(x => x.Remove(transport.Id)); });
+        trans.On(static x => x.listenServerClose,
+            async () => { await transports.WriteAsync(x => x.Remove(transport.Id)); });
+        trans.On(static x => x.newProducer,
+            async producer => { await producers.WriteAsync(x => x[producer.Id] = producer); });
+        trans.On(static x => x.producerClose,
+            async producer => { await producers.WriteAsync(x => x.Remove(producer.Id)); });
+        trans.On(static x => x.newDataProducer,
+            async dataProducer => { await dataProducers.WriteAsync(x => x[dataProducer.Id] = dataProducer); });
+        trans.On(static x => x.dataProducerClose,
+            async dataProducer => { await dataProducers.WriteAsync(x => x.Remove(dataProducer.Id)); });
 
         // Emit observer event.
         Observer.SafeEmit(static x => x.NewTransport, transport);
@@ -695,7 +648,7 @@ public class RouterImpl<TRouterAppData>
 
             if (!pipeToRouterOptions.ProducerId.IsNullOrWhiteSpace())
             {
-                await producers.ReadAsync(x=>
+                await producers.ReadAsync(x =>
                 {
                     if (!x.TryGetValue(pipeToRouterOptions.ProducerId, out producer))
                     {
@@ -710,7 +663,7 @@ public class RouterImpl<TRouterAppData>
                     if (!x.TryGetValue(pipeToRouterOptions.DataProducerId, out dataProducer))
                     {
                         throw new Exception("DataProducer not found");
-                    };
+                    }
                 });
             }
 
@@ -776,19 +729,13 @@ public class RouterImpl<TRouterAppData>
                         localPipeTransport.Observer.On(static x => x.Close, async () =>
                         {
                             await remotePipeTransport.CloseAsync();
-                            await mapRouterPipeTransports.WriteAsync(m =>
-                            {
-                                m.Remove(pipeToRouterOptions.Router);
-                            });
+                            await mapRouterPipeTransports.WriteAsync(m => m.Remove(pipeToRouterOptions.Router));
                         });
 
                         remotePipeTransport.Observer.On(static x => x.Close, async () =>
                         {
                             await localPipeTransport.CloseAsync();
-                            await mapRouterPipeTransports.WriteAsync(m =>
-                            {
-                                m.Remove(pipeToRouterOptions.Router);
-                            });
+                            await mapRouterPipeTransports.WriteAsync(m => m.Remove(pipeToRouterOptions.Router));
                         });
 
                         x[pipeToRouterOptions.Router] =
@@ -886,10 +833,11 @@ public class RouterImpl<TRouterAppData>
 
                 try
                 {
-                    pipeDataConsumer = await localPipeTransport.NotNull().ConsumeDataAsync(new DataConsumerOptions<TRouterAppData>
-                    {
-                        DataProducerId = pipeToRouterOptions.DataProducerId!
-                    });
+                    pipeDataConsumer = await localPipeTransport.NotNull().ConsumeDataAsync(
+                        new DataConsumerOptions<TRouterAppData>
+                        {
+                            DataProducerId = pipeToRouterOptions.DataProducerId!
+                        });
 
                     pipeDataProducer = await remotePipeTransport.NotNull().ProduceDataAsync(
                         new DataProducerOptions<TRouterAppData>
@@ -939,8 +887,8 @@ public class RouterImpl<TRouterAppData>
     /// <summary>
     /// Create an ActiveSpeakerObserver
     /// </summary>
-    public async Task<ActiveSpeakerObserverImpl<TActiveSpeakerObserverAppData>> CreateActiveSpeakerObserverAsync<
-        TActiveSpeakerObserverAppData>(
+    public async Task<ActiveSpeakerObserverImpl<TActiveSpeakerObserverAppData>> 
+        CreateActiveSpeakerObserverAsync<TActiveSpeakerObserverAppData>(
         ActiveSpeakerObserverOptions<TActiveSpeakerObserverAppData> activeSpeakerObserverOptions)
         where TActiveSpeakerObserverAppData : new()
     {
@@ -955,25 +903,17 @@ public class RouterImpl<TRouterAppData>
 
             var rtpObserverId = Guid.NewGuid().ToString();
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var createActiveSpeakerObserverRequest = new CreateActiveSpeakerObserverRequestT
-            {
-                RtpObserverId = rtpObserverId,
-                Options = new Antelcat.MediasoupSharp.FBS.ActiveSpeakerObserver.ActiveSpeakerObserverOptionsT
-                {
-                    Interval = activeSpeakerObserverOptions.Interval
-                }
-            };
-
-            var createActiveSpeakerObserverRequestOffset =
-                CreateActiveSpeakerObserverRequest.Pack(bufferBuilder, createActiveSpeakerObserverRequest);
-
             // Fire and forget
-            channel.RequestAsync(bufferBuilder, Method.ROUTER_CREATE_ACTIVESPEAKEROBSERVER,
+            channel.RequestAsync(bufferBuilder => CreateActiveSpeakerObserverRequest.Pack(bufferBuilder,
+                    new CreateActiveSpeakerObserverRequestT
+                    {
+                        RtpObserverId = rtpObserverId,
+                        Options = new Antelcat.MediasoupSharp.FBS.ActiveSpeakerObserver.ActiveSpeakerObserverOptionsT
+                        {
+                            Interval = activeSpeakerObserverOptions.Interval
+                        }
+                    }).Value, Method.ROUTER_CREATE_ACTIVESPEAKEROBSERVER,
                 Body.Router_CreateActiveSpeakerObserverRequest,
-                createActiveSpeakerObserverRequestOffset.Value,
                 @internal.RouterId
             ).ContinueWithOnFaultedHandleLog(logger);
 
@@ -985,22 +925,22 @@ public class RouterImpl<TRouterAppData>
                         RouterId      = @internal.RouterId,
                         RtpObserverId = rtpObserverId
                     },
-                    Channel = channel,
-                    AppData = activeSpeakerObserverOptions.AppData,
-                    GetProducerById = async m => await producers.ReadAsync(x=> x.GetValueOrDefault(m))
+                    Channel         = channel,
+                    AppData         = activeSpeakerObserverOptions.AppData,
+                    GetProducerById = async producerId => await producers.ReadAsync(x => x.GetValueOrDefault(producerId))
                 });
 
             rtpObservers.Raw[activeSpeakerObserver.Internal.RtpObserverId] = activeSpeakerObserver;
-            
+
             activeSpeakerObserver.On(static x => x.close,
                 async () =>
                 {
-                    await rtpObservers.WriteAsync(x =>
-                        x.Remove(activeSpeakerObserver.Internal.RtpObserverId));
+                    await rtpObservers.WriteAsync(x => x.Remove(activeSpeakerObserver.Id));
                 });
 
             // Emit observer event.
             Observer.SafeEmit(static x => x.NewRtpObserver, activeSpeakerObserver);
+            
             return activeSpeakerObserver;
         }
     }
@@ -1008,8 +948,8 @@ public class RouterImpl<TRouterAppData>
     /// <summary>
     /// Create an AudioLevelObserver.
     /// </summary>
-    public async Task<AudioLevelObserver<TAudioLevelObserverAppData>> CreateAudioLevelObserverAsync<
-        TAudioLevelObserverAppData>(
+    public async Task<AudioLevelObserver<TAudioLevelObserverAppData>> 
+        CreateAudioLevelObserverAsync<TAudioLevelObserverAppData>(
         AudioLevelObserverOptions<TAudioLevelObserverAppData> audioLevelObserverOptions)
         where TAudioLevelObserverAppData : new()
     {
@@ -1024,27 +964,20 @@ public class RouterImpl<TRouterAppData>
 
             var rtpObserverId = Guid.NewGuid().ToString();
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var createAudioLevelObserverRequest = new CreateAudioLevelObserverRequestT
-            {
-                RtpObserverId = rtpObserverId,
-                Options = new Antelcat.MediasoupSharp.FBS.AudioLevelObserver.AudioLevelObserverOptionsT
-                {
-                    MaxEntries = audioLevelObserverOptions.MaxEntries,
-                    Threshold  = audioLevelObserverOptions.Threshold,
-                    Interval   = audioLevelObserverOptions.Interval
-                }
-            };
-
-            var createAudioLevelObserverRequestOffset =
-                CreateAudioLevelObserverRequest.Pack(bufferBuilder, createAudioLevelObserverRequest);
-
             // Fire and forget
-            channel.RequestAsync(bufferBuilder, Method.ROUTER_CREATE_AUDIOLEVELOBSERVER,
+            channel.RequestAsync(bufferBuilder => CreateAudioLevelObserverRequest.Pack(bufferBuilder,
+                    new CreateAudioLevelObserverRequestT
+                    {
+                        RtpObserverId = rtpObserverId,
+                        Options = new Antelcat.MediasoupSharp.FBS.AudioLevelObserver.AudioLevelObserverOptionsT
+                        {
+                            MaxEntries = audioLevelObserverOptions.MaxEntries,
+                            Threshold  = audioLevelObserverOptions.Threshold,
+                            Interval   = audioLevelObserverOptions.Interval
+                        }
+                    }).Value,
+                Method.ROUTER_CREATE_AUDIOLEVELOBSERVER,
                 Body.Router_CreateAudioLevelObserverRequest,
-                createAudioLevelObserverRequestOffset.Value,
                 @internal.RouterId
             ).ContinueWithOnFaultedHandleLog(logger);
 
@@ -1056,13 +989,13 @@ public class RouterImpl<TRouterAppData>
                         RouterId      = @internal.RouterId,
                         RtpObserverId = rtpObserverId
                     },
-                    Channel = channel,
-                    AppData = audioLevelObserverOptions.AppData,
-                    GetProducerById = async m => await producers.ReadAsync(x=> x.GetValueOrDefault(m))
+                    Channel         = channel,
+                    AppData         = audioLevelObserverOptions.AppData,
+                    GetProducerById = async producerId => await producers.ReadAsync(x => x.GetValueOrDefault(producerId))
                 });
 
             rtpObservers.Raw[audioLevelObserver.Internal.RtpObserverId] = audioLevelObserver;
-            
+
             audioLevelObserver.On(static x => x.close,
                 async () =>
                 {
@@ -1072,7 +1005,7 @@ public class RouterImpl<TRouterAppData>
 
             // Emit observer event.
             Observer.SafeEmit(static x => x.NewRtpObserver, audioLevelObserver);
-            
+
             return audioLevelObserver;
         }
     }
@@ -1086,7 +1019,7 @@ public class RouterImpl<TRouterAppData>
         {
             if (!x.TryGetValue(producerId, out var producer))
             {
-                logger.LogError("CanConsume() | Producer with id producerId:{ProducerId} not found", producerId);
+                logger.LogError($"{nameof(CanConsumeAsync)}() | Producer with id producerId:{{ProducerId}} not found", producerId);
                 return false;
             }
 
@@ -1096,7 +1029,7 @@ public class RouterImpl<TRouterAppData>
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "CanConsume() | Unexpected error");
+                logger.LogError(ex, $"{nameof(CanConsumeAsync)}() | Unexpected error");
                 return false;
             }
         });
@@ -1162,13 +1095,13 @@ public class RouterImpl<TRouterAppData>
             x.Clear();
         });
 
-        await mapRouterPipeTransports.WriteAsync(x=>
+        await mapRouterPipeTransports.WriteAsync(x =>
         {
             // Clear map of Router/PipeTransports.
             x.Clear();
         });
     }
-    
+
     private void HandleListenerError() =>
         this.On(static x => x.ListenerError, tuple =>
         {

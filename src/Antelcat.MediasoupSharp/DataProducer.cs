@@ -133,21 +133,14 @@ public class DataProducerImpl<TDataProducerAppData>
             // Remove notification subscriptions.
             //_channel.OnNotification -= OnNotificationHandle;
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var closeDataProducerRequest = new Antelcat.MediasoupSharp.FBS.Transport.CloseDataProducerRequestT
-            {
-                DataProducerId = @internal.DataProducerId
-            };
-
-            var closeDataProducerRequestOffset =
-                Antelcat.MediasoupSharp.FBS.Transport.CloseDataProducerRequest.Pack(bufferBuilder, closeDataProducerRequest);
-
             // Fire and forget
-            channel.RequestAsync(bufferBuilder, Method.TRANSPORT_CLOSE_DATAPRODUCER,
+            channel.RequestAsync(bufferBuilder => Antelcat.MediasoupSharp.FBS.Transport.CloseDataProducerRequest
+                    .Pack(bufferBuilder, new Antelcat.MediasoupSharp.FBS.Transport.CloseDataProducerRequestT
+                    {
+                        DataProducerId = @internal.DataProducerId
+                    }).Value, 
+                Method.TRANSPORT_CLOSE_DATAPRODUCER,
                 Antelcat.MediasoupSharp.FBS.Request.Body.Transport_CloseDataProducerRequest,
-                closeDataProducerRequestOffset.Value,
                 @internal.TransportId
             ).ContinueWithOnFaultedHandleLog(logger);
 
@@ -198,11 +191,8 @@ public class DataProducerImpl<TDataProducerAppData>
                 throw new InvalidStateException("DataProducer closed");
             }
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var response = await channel.RequestAsync(bufferBuilder, Method.DATAPRODUCER_DUMP,
-                null,
+            var response = await channel.RequestAsync(static _ => null, 
+                Method.DATAPRODUCER_DUMP,
                 null,
                 @internal.DataProducerId);
 
@@ -226,11 +216,8 @@ public class DataProducerImpl<TDataProducerAppData>
                 throw new InvalidStateException("DataProducer closed");
             }
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var response = await channel.RequestAsync(bufferBuilder, Method.DATAPRODUCER_GET_STATS,
-                null,
+            var response = await channel.RequestAsync(static _ => null, 
+                Method.DATAPRODUCER_GET_STATS,
                 null,
                 @internal.DataProducerId);
 
@@ -254,11 +241,8 @@ public class DataProducerImpl<TDataProducerAppData>
                 throw new InvalidStateException("DataProducer closed");
             }
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            await channel.RequestAsync(bufferBuilder, Method.DATACONSUMER_PAUSE,
-                null,
+            await channel.RequestAsync(static _ => null,
+                Method.DATACONSUMER_PAUSE,
                 null,
                 @internal.DataProducerId);
 
@@ -288,11 +272,8 @@ public class DataProducerImpl<TDataProducerAppData>
                 throw new InvalidStateException("DataConsumer closed");
             }
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            await channel.RequestAsync(bufferBuilder, Method.DATACONSUMER_RESUME,
-                null,
+            await channel.RequestAsync(static _ => null, 
+                Method.DATACONSUMER_RESUME,
                 null,
                 @internal.DataProducerId);
 
@@ -372,9 +353,6 @@ public class DataProducerImpl<TDataProducerAppData>
                 throw new InvalidStateException("DataProducer closed");
             }
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
             var sendNotification = new SendNotificationT
             {
                 Ppid               = ppid,
@@ -383,12 +361,11 @@ public class DataProducerImpl<TDataProducerAppData>
                 RequiredSubchannel = requiredSubchannel
             };
 
-            var sendNotificationOffset = SendNotification.Pack(bufferBuilder, sendNotification);
-
             // Fire and forget
-            channel.NotifyAsync(bufferBuilder, Event.PRODUCER_SEND,
+            channel.NotifyAsync(
+                bufferBuilder => SendNotification.Pack(bufferBuilder, sendNotification).Value,
+                Event.PRODUCER_SEND,
                 Antelcat.MediasoupSharp.FBS.Notification.Body.DataProducer_SendNotification,
-                sendNotificationOffset.Value,
                 @internal.DataProducerId
             ).ContinueWithOnFaultedHandleLog(logger);
         }

@@ -6,13 +6,14 @@ namespace Antelcat.MediasoupSharp.Internals.Collections;
 
 public class AsyncConcurrentDictionary<TKey, TValue> : IReadOnlyDictionary<TKey, TValue> where TKey : class
 {
+    public AsyncConcurrentDictionary(int concurrency = 1)
+    {
+        while (concurrency-- > 0) locker.Set();
+    }
+    
     private readonly Dictionary<TKey, TValue> dictionary = [];
-    private readonly AsyncAutoResetEvent      locker     = new();
-
-    /// <summary>
-    /// <see cref="AsyncAutoResetEvent.Set"/>
-    /// </summary>
-    public void Set() => locker.Set();
+    private readonly AsyncAutoResetEvent      locker     = new(true);
+    
     public async Task ModifyAsync(Action<Dictionary<TKey, TValue>> action)
     {
         await locker.WaitAsync();

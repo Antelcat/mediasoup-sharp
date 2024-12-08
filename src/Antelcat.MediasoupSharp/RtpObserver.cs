@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices.ComTypes;
 using Antelcat.AutoGen.ComponentModel.Diagnostic;
 using Antelcat.MediasoupSharp.FBS.Notification;
 using Antelcat.MediasoupSharp.FBS.Request;
@@ -105,21 +106,14 @@ public abstract class RtpObserverImpl<TRtpObserverAppData, TEvents, TObserver>
             // Remove notification subscriptions.
             Channel.OnNotification -= OnNotificationHandle;
 
-            // Build Request
-            var bufferBuilder = Channel.BufferPool.Get();
-
-            var closeRtpObserverRequest = new Antelcat.MediasoupSharp.FBS.Router.CloseRtpObserverRequestT
-            {
-                RtpObserverId = Internal.RtpObserverId
-            };
-
-            var closeRtpObserverRequestOffset =
-                Antelcat.MediasoupSharp.FBS.Router.CloseRtpObserverRequest.Pack(bufferBuilder, closeRtpObserverRequest);
-
             // Fire and forget
-            Channel.RequestAsync(bufferBuilder, Method.ROUTER_CLOSE_RTPOBSERVER,
+            Channel.RequestAsync(bufferBuilder => Antelcat.MediasoupSharp.FBS.Router.CloseRtpObserverRequest.Pack(
+                    bufferBuilder, new Antelcat.MediasoupSharp.FBS.Router.CloseRtpObserverRequestT
+                    {
+                        RtpObserverId = Internal.RtpObserverId
+                    }).Value,
+                Method.ROUTER_CLOSE_RTPOBSERVER,
                 Antelcat.MediasoupSharp.FBS.Request.Body.Router_CloseRtpObserverRequest,
-                closeRtpObserverRequestOffset.Value,
                 Internal.RouterId
             ).ContinueWithOnFaultedHandleLog(logger);
 
@@ -175,12 +169,9 @@ public abstract class RtpObserverImpl<TRtpObserverAppData, TEvents, TObserver>
             {
                 var wasPaused = paused;
 
-                // Build Request
-                var bufferBuilder = Channel.BufferPool.Get();
-
                 // Fire and forget
-                Channel.RequestAsync(bufferBuilder, Method.RTPOBSERVER_PAUSE,
-                    null,
+                Channel.RequestAsync(static _ => null, 
+                    Method.RTPOBSERVER_PAUSE,
                     null,
                     Internal.RtpObserverId
                 ).ContinueWithOnFaultedHandleLog(logger);
@@ -223,12 +214,8 @@ public abstract class RtpObserverImpl<TRtpObserverAppData, TEvents, TObserver>
             {
                 var wasPaused = paused;
 
-                // Build Request
-                var bufferBuilder = Channel.BufferPool.Get();
-
                 // Fire and forget
-                Channel.RequestAsync(bufferBuilder, Method.RTPOBSERVER_RESUME,
-                    null,
+                Channel.RequestAsync(static _ => null, Method.RTPOBSERVER_RESUME,
                     null,
                     Internal.RtpObserverId
                 ).ContinueWithOnFaultedHandleLog(logger);
@@ -273,20 +260,15 @@ public abstract class RtpObserverImpl<TRtpObserverAppData, TEvents, TObserver>
                 return;
             }
 
-            // Build Request
-            var bufferBuilder = Channel.BufferPool.Get();
-
-            var addProducerRequest = new Antelcat.MediasoupSharp.FBS.RtpObserver.AddProducerRequestT
-            {
-                ProducerId = rtpObserverAddRemoveProducerOptions.ProducerId
-            };
-
-            var addProducerRequestOffset = Antelcat.MediasoupSharp.FBS.RtpObserver.AddProducerRequest.Pack(bufferBuilder, addProducerRequest);
-
             // Fire and forget
-            Channel.RequestAsync(bufferBuilder, Method.RTPOBSERVER_ADD_PRODUCER,
+            Channel.RequestAsync(bufferBuilder => 
+                    Antelcat.MediasoupSharp.FBS.RtpObserver.AddProducerRequest
+                    .Pack(bufferBuilder, new Antelcat.MediasoupSharp.FBS.RtpObserver.AddProducerRequestT
+                    {
+                        ProducerId = rtpObserverAddRemoveProducerOptions.ProducerId
+                    }).Value,
+                Method.RTPOBSERVER_ADD_PRODUCER,
                 Antelcat.MediasoupSharp.FBS.Request.Body.RtpObserver_AddProducerRequest,
-                addProducerRequestOffset.Value,
                 Internal.RtpObserverId
             ).ContinueWithOnFaultedHandleLog(logger);
 
@@ -315,21 +297,14 @@ public abstract class RtpObserverImpl<TRtpObserverAppData, TEvents, TObserver>
                 return;
             }
 
-            // Build Request
-            var bufferBuilder = Channel.BufferPool.Get();
-
-            var removeProducerRequest = new Antelcat.MediasoupSharp.FBS.RtpObserver.RemoveProducerRequestT
-            {
-                ProducerId = rtpObserverAddRemoveProducerOptions.ProducerId
-            };
-
-            var removeProducerRequestOffset =
-                Antelcat.MediasoupSharp.FBS.RtpObserver.RemoveProducerRequest.Pack(bufferBuilder, removeProducerRequest);
-
             // Fire and forget
-            Channel.RequestAsync(bufferBuilder, Method.RTPOBSERVER_REMOVE_PRODUCER,
+            Channel.RequestAsync(bufferBuilder =>
+                    Antelcat.MediasoupSharp.FBS.RtpObserver.RemoveProducerRequest.Pack(bufferBuilder,
+                        new Antelcat.MediasoupSharp.FBS.RtpObserver.RemoveProducerRequestT
+                        {
+                            ProducerId = rtpObserverAddRemoveProducerOptions.ProducerId
+                        }).Value, Method.RTPOBSERVER_REMOVE_PRODUCER,
                 Antelcat.MediasoupSharp.FBS.Request.Body.RtpObserver_RemoveProducerRequest,
-                removeProducerRequestOffset.Value,
                 Internal.RtpObserverId
             ).ContinueWithOnFaultedHandleLog(logger);
 

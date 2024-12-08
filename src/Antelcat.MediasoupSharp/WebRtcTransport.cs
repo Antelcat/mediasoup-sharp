@@ -113,7 +113,10 @@ public class WebRtcTransportImpl<TWebRtcTransportAppData> :
         var bufferBuilder = Channel.BufferPool.Get();
 
         var response =
-            await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_DUMP, null, null, Internal.TransportId);
+            await Channel.RequestAsync(static _ => null,
+                Method.TRANSPORT_DUMP,
+                null,
+                Internal.TransportId);
         var data = response.NotNull().BodyAsWebRtcTransport_DumpResponse().UnPack();
 
         return data;
@@ -124,11 +127,11 @@ public class WebRtcTransportImpl<TWebRtcTransportAppData> :
     /// </summary>
     protected override async Task<object[]> OnGetStatsAsync()
     {
-        // Build Request
-        var bufferBuilder = Channel.BufferPool.Get();
-
         var response =
-            await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_GET_STATS, null, null, Internal.TransportId);
+            await Channel.RequestAsync(static _ => null,
+                Method.TRANSPORT_GET_STATS, 
+                null, 
+                Internal.TransportId);
         var data = response.NotNull().BodyAsWebRtcTransport_GetStatsResponse().UnPack();
 
         return [data];
@@ -146,14 +149,10 @@ public class WebRtcTransportImpl<TWebRtcTransportAppData> :
             throw new Exception($"{nameof(parameters)} type is not Antelcat.MediasoupSharp.FBS.WebRtcTransport.ConnectRequestT");
         }
 
-        // Build Request
-        var bufferBuilder = Channel.BufferPool.Get();
-
-        var connectRequestOffset = ConnectRequest.Pack(bufferBuilder, connectRequestT);
-
-        var response = await Channel.RequestAsync(bufferBuilder, Method.WEBRTCTRANSPORT_CONNECT,
+        var response = await Channel.RequestAsync(
+            bufferBuilder => ConnectRequest.Pack(bufferBuilder, connectRequestT).Value,
+            Method.WEBRTCTRANSPORT_CONNECT,
             Antelcat.MediasoupSharp.FBS.Request.Body.WebRtcTransport_ConnectRequest,
-            connectRequestOffset.Value,
             Internal.TransportId);
 
         /* Decode Response. */
@@ -177,11 +176,8 @@ public class WebRtcTransportImpl<TWebRtcTransportAppData> :
                 throw new InvalidStateException("Transport closed");
             }
 
-            // Build Request
-            var bufferBuilder = Channel.BufferPool.Get();
-
-            var response = await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_RESTART_ICE,
-                null,
+            var response = await Channel.RequestAsync(static _ => null,
+                Method.TRANSPORT_RESTART_ICE,
                 null,
                 Internal.TransportId);
 

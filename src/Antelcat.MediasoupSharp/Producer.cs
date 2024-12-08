@@ -4,6 +4,7 @@ using Antelcat.MediasoupSharp.FBS.Producer;
 using Antelcat.MediasoupSharp.FBS.Request;
 using Antelcat.MediasoupSharp.FBS.RtpParameters;
 using Antelcat.MediasoupSharp.Internals.Extensions;
+using Antelcat.MediasoupSharp.Internals.Utils;
 using Google.FlatBuffers;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Threading;
@@ -185,19 +186,14 @@ public class ProducerImpl<TProducerAppData>
         // Remove notification subscriptions.
         channel.OnNotification -= OnNotificationHandle;
 
-        // Build Request
-        var bufferBuilder = channel.BufferPool.Get();
-
-        var requestOffset = Antelcat.MediasoupSharp.FBS.Transport.CloseProducerRequest.Pack(bufferBuilder,
-            new Antelcat.MediasoupSharp.FBS.Transport.CloseProducerRequestT
-            {
-                ProducerId = @internal.ProducerId
-            });
-
         // Fire and forget
-        channel.RequestAsync(bufferBuilder, Method.TRANSPORT_CLOSE_CONSUMER,
+        channel.RequestAsync(bufferBuilder => 
+                    Antelcat.MediasoupSharp.FBS.Transport.CloseProducerRequest.Pack(bufferBuilder,
+                    new Antelcat.MediasoupSharp.FBS.Transport.CloseProducerRequestT
+                    {
+                        ProducerId = @internal.ProducerId
+                    }).Value, Method.TRANSPORT_CLOSE_CONSUMER,
                 Antelcat.MediasoupSharp.FBS.Request.Body.Transport_CloseConsumerRequest,
-                requestOffset.Value,
                 @internal.TransportId
             )
             .ContinueWithOnFaultedHandleLog(logger);
@@ -244,11 +240,11 @@ public class ProducerImpl<TProducerAppData>
         {
             if (Closed) throw new InvalidStateException("Producer closed");
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
             var response =
-                await channel.RequestAsync(bufferBuilder, Method.PRODUCER_DUMP, null, null, @internal.ProducerId);
+                await channel.RequestAsync(static _ => null,
+                    Method.PRODUCER_DUMP, 
+                    null, 
+                    @internal.ProducerId);
             var data = response.NotNull().BodyAsProducer_DumpResponse().UnPack();
 
             return data;
@@ -266,10 +262,9 @@ public class ProducerImpl<TProducerAppData>
         {
             if (Closed) throw new InvalidStateException("Producer closed");
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var response = await channel.RequestAsync(bufferBuilder, Method.PRODUCER_GET_STATS, null, null,
+            var response = await channel.RequestAsync(static _ => null,
+                Method.PRODUCER_GET_STATS,
+                null,
                 @internal.ProducerId);
             var stats = response.NotNull().BodyAsProducer_GetStatsResponse().UnPack().Stats;
 
@@ -294,12 +289,8 @@ public class ProducerImpl<TProducerAppData>
             await pauseLock.WaitAsync();
             try
             {
-                // Build Request
-                var bufferBuilder = channel.BufferPool.Get();
-
-                await channel.RequestAsync(bufferBuilder, 
+                await channel.RequestAsync(static _ => null,
                     Method.PRODUCER_PAUSE, 
-                    null, 
                     null,
                     @internal.ProducerId);
                 
@@ -341,10 +332,10 @@ public class ProducerImpl<TProducerAppData>
             await pauseLock.WaitAsync();
             try
             {
-                // Build Request
-                var bufferBuilder = channel.BufferPool.Get();
-
-                await channel.RequestAsync(bufferBuilder, Method.PRODUCER_RESUME, null, null, @internal.ProducerId);
+                await channel.RequestAsync(static _ => null,
+                    Method.PRODUCER_RESUME,
+                    null,
+                    @internal.ProducerId);
                 
                 var wasPaused = Paused;
 
@@ -381,18 +372,14 @@ public class ProducerImpl<TProducerAppData>
                 throw new InvalidStateException("Producer closed");
             }
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var requestOffset = EnableTraceEventRequest.Pack(bufferBuilder, new EnableTraceEventRequestT
-            {
-                Events = types ?? []
-            });
-
             // Fire and forget
-            channel.RequestAsync(bufferBuilder, Method.CONSUMER_ENABLE_TRACE_EVENT,
+            channel.RequestAsync(bufferBuilder => EnableTraceEventRequest.Pack(bufferBuilder,
+                        new EnableTraceEventRequestT
+                        {
+                            Events = types ?? []
+                        }).Value,
+                    Method.CONSUMER_ENABLE_TRACE_EVENT,
                     Antelcat.MediasoupSharp.FBS.Request.Body.Consumer_EnableTraceEventRequest,
-                    requestOffset.Value,
                     @internal.ProducerId)
                 .ContinueWithOnFaultedHandleLog(logger);
         }
@@ -410,21 +397,14 @@ public class ProducerImpl<TProducerAppData>
                 throw new InvalidStateException("Producer closed");
             }
 
-            // Build Request
-            var bufferBuilder = new FlatBufferBuilder(1024 + rtpPacket.Length);
-
-            var dataOffset = SendNotification.CreateDataVectorBlock(
-                bufferBuilder,
-                rtpPacket
-            );
-
-            var notificationOffset = SendNotification.CreateSendNotification(bufferBuilder, dataOffset);
-
             // Fire and forget
-            channel.NotifyAsync(bufferBuilder, Event.PRODUCER_SEND,
+            channel.NotifyAsync(bufferBuilder => 
+                    SendNotification.CreateSendNotification(bufferBuilder,
+                    SendNotification.CreateDataVectorBlock(bufferBuilder, rtpPacket)
+                    ).Value, Event.PRODUCER_SEND,
                 Antelcat.MediasoupSharp.FBS.Notification.Body.Producer_SendNotification,
-                notificationOffset.Value,
-                @internal.ProducerId
+                @internal.ProducerId,
+                1024 + rtpPacket.Length
             ).ContinueWithOnFaultedHandleLog(logger);
         }
     }

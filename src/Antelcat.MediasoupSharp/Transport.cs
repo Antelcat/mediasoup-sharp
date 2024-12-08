@@ -168,10 +168,10 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
 
     private readonly object sctpStreamIdsLock = new();
 
-    /// <summary>m
+    /// <summary>
     /// Next SCTP stream id.
     /// </summary>
-    private int nextSctpStreamId;
+    private volatile int nextSctpStreamId;
 
     /// <summary>
     /// Observer instance.
@@ -192,10 +192,6 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
         GetProducerById          = options.GetProducerById;
         GetDataProducerById      = options.GetDataProducerById;
         Observer                 = observer;
-        Producers.Set();
-        Consumers.Set();
-        DataProducers.Set();
-        DataConsumers.Set();
     }
 
     /// <summary>
@@ -219,19 +215,14 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
             // Remove notification subscriptions.
             // Channel.OnNotification -= OnNotificationHandle;
 
-            // Build Request
-            var bufferBuilder = Channel.BufferPool.Get();
-
-            var requestOffset = Antelcat.MediasoupSharp.FBS.Router.CloseTransportRequest.Pack(bufferBuilder,
-                new Antelcat.MediasoupSharp.FBS.Router.CloseTransportRequestT
-                {
-                    TransportId = Internal.TransportId
-                });
-
             // Fire and forget
-            Channel.RequestAsync(bufferBuilder, Method.ROUTER_CLOSE_TRANSPORT,
+            Channel.RequestAsync(bufferBuilder => Antelcat.MediasoupSharp.FBS.Router.CloseTransportRequest.Pack(
+                        bufferBuilder,
+                        new Antelcat.MediasoupSharp.FBS.Router.CloseTransportRequestT
+                        {
+                            TransportId = Internal.TransportId
+                        }).Value, Method.ROUTER_CLOSE_TRANSPORT,
                     Body.Router_CloseTransportRequest,
-                    requestOffset.Value,
                     Internal.RouterId
                 )
                 .ContinueWithOnFaultedHandleLog(logger);
@@ -448,21 +439,14 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
                 throw new InvalidStateException("Transport closed");
             }
 
-            // Build Request
-            var bufferBuilder = Channel.BufferPool.Get();
-
-            var setMaxIncomingBitrateRequest = new SetMaxIncomingBitrateRequestT
-            {
-                MaxIncomingBitrate = bitrate
-            };
-
-            var setMaxIncomingBitrateRequestOffset =
-                SetMaxIncomingBitrateRequest.Pack(bufferBuilder, setMaxIncomingBitrateRequest);
-
             // Fire and forget
-            Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_SET_MAX_INCOMING_BITRATE,
+            Channel.RequestAsync(bufferBuilder => 
+                    SetMaxIncomingBitrateRequest.Pack(bufferBuilder,
+                    new SetMaxIncomingBitrateRequestT
+                    {
+                        MaxIncomingBitrate = bitrate
+                    }).Value, Method.TRANSPORT_SET_MAX_INCOMING_BITRATE,
                 Body.Transport_SetMaxIncomingBitrateRequest,
-                setMaxIncomingBitrateRequestOffset.Value,
                 Internal.TransportId
             ).ContinueWithOnFaultedHandleLog(logger);
         }
@@ -482,21 +466,13 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
                 throw new InvalidStateException("Transport closed");
             }
 
-            // Build Request
-            var bufferBuilder = Channel.BufferPool.Get();
-
-            var setMaxOutgoingBitrateRequest = new SetMaxOutgoingBitrateRequestT
-            {
-                MaxOutgoingBitrate = bitrate
-            };
-
-            var setMaxOutgoingBitrateRequestOffset =
-                SetMaxOutgoingBitrateRequest.Pack(bufferBuilder, setMaxOutgoingBitrateRequest);
-
             // Fire and forget
-            Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_SET_MAX_OUTGOING_BITRATE,
+            Channel.RequestAsync(bufferBuilder => SetMaxOutgoingBitrateRequest.Pack(bufferBuilder,
+                    new SetMaxOutgoingBitrateRequestT
+                    {
+                        MaxOutgoingBitrate = bitrate
+                    }).Value, Method.TRANSPORT_SET_MAX_OUTGOING_BITRATE,
                 Body.Transport_SetMaxOutgoingBitrateRequest,
-                setMaxOutgoingBitrateRequestOffset.Value,
                 Internal.TransportId
             ).ContinueWithOnFaultedHandleLog(logger);
         }
@@ -516,21 +492,13 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
                 throw new InvalidStateException("Transport closed");
             }
 
-            // Build Request
-            var bufferBuilder = Channel.BufferPool.Get();
-
-            var setMinOutgoingBitrateRequest = new SetMinOutgoingBitrateRequestT
-            {
-                MinOutgoingBitrate = bitrate
-            };
-
-            var setMinOutgoingBitrateRequestOffset =
-                SetMinOutgoingBitrateRequest.Pack(bufferBuilder, setMinOutgoingBitrateRequest);
-
             // Fire and forget
-            Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_SET_MIN_OUTGOING_BITRATE,
+            Channel.RequestAsync(bufferBuilder => SetMinOutgoingBitrateRequest.Pack(bufferBuilder,
+                    new SetMinOutgoingBitrateRequestT
+                    {
+                        MinOutgoingBitrate = bitrate
+                    }).Value, Method.TRANSPORT_SET_MIN_OUTGOING_BITRATE,
                 Body.Transport_SetMinOutgoingBitrateRequest,
-                setMinOutgoingBitrateRequestOffset.Value,
                 Internal.TransportId
             ).ContinueWithOnFaultedHandleLog(logger);
         }
@@ -607,24 +575,18 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
 
             var producerId = producerOptions.Id.NullOrWhiteSpaceThen(Guid.NewGuid().ToString());
 
-            // Build Request
-            var bufferBuilder = Channel.BufferPool.Get();
-
-            var produceRequest = new ProduceRequestT
-            {
-                ProducerId           = producerId,
-                Kind                 = producerOptions.Kind,
-                RtpParameters        = producerOptions.RtpParameters.SerializeRtpParameters(),
-                RtpMapping           = rtpMapping,
-                KeyFrameRequestDelay = producerOptions.KeyFrameRequestDelay,
-                Paused               = producerOptions.Paused
-            };
-
-            var produceRequestOffset = ProduceRequest.Pack(bufferBuilder, produceRequest);
-
-            var response = await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_PRODUCE,
+            var response = await Channel.RequestAsync(bufferBuilder => 
+                    ProduceRequest.Pack(bufferBuilder,
+                    new ProduceRequestT
+                    {
+                        ProducerId           = producerId,
+                        Kind                 = producerOptions.Kind,
+                        RtpParameters        = producerOptions.RtpParameters.SerializeRtpParameters(),
+                        RtpMapping           = rtpMapping,
+                        KeyFrameRequestDelay = producerOptions.KeyFrameRequestDelay,
+                        Paused               = producerOptions.Paused
+                    }).Value, Method.TRANSPORT_PRODUCE,
                 Body.Transport_ProduceRequest,
-                produceRequestOffset.Value,
                 Internal.TransportId);
 
             var data = response.NotNull().BodyAsTransport_ProduceResponse().UnPack();
@@ -746,27 +708,23 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
 
             var consumerId = Guid.NewGuid().ToString();
 
-            // Build Request
-            var bufferBuilder = Channel.BufferPool.Get();
-
-            var consumeRequest = new ConsumeRequestT
-            {
-                ConsumerId             = consumerId,
-                ProducerId             = consumerOptions.ProducerId,
-                Kind                   = producer.Data.Kind,
-                RtpParameters          = rtpParameters.SerializeRtpParameters(),
-                Type                   = consumerOptions.Pipe ? Antelcat.MediasoupSharp.FBS.RtpParameters.Type.PIPE : producer.Data.Type,
-                ConsumableRtpEncodings = producer.Data.ConsumableRtpParameters.Encodings,
-                Paused                 = consumerOptions.Paused,
-                PreferredLayers        = consumerOptions.PreferredLayers,
-                IgnoreDtx              = consumerOptions.IgnoreDtx
-            };
-
-            var consumeRequestOffset = ConsumeRequest.Pack(bufferBuilder, consumeRequest);
-
-            var response = await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_CONSUME,
+            var response = await Channel.RequestAsync(bufferBuilder =>
+                    ConsumeRequest.Pack(bufferBuilder, new ConsumeRequestT
+                    {
+                        ConsumerId    = consumerId,
+                        ProducerId    = consumerOptions.ProducerId,
+                        Kind          = producer.Data.Kind,
+                        RtpParameters = rtpParameters.SerializeRtpParameters(),
+                        Type = consumerOptions.Pipe
+                            ? Antelcat.MediasoupSharp.FBS.RtpParameters.Type.PIPE
+                            : producer.Data.Type,
+                        ConsumableRtpEncodings = producer.Data.ConsumableRtpParameters.Encodings,
+                        Paused                 = consumerOptions.Paused,
+                        PreferredLayers        = consumerOptions.PreferredLayers,
+                        IgnoreDtx              = consumerOptions.IgnoreDtx
+                    }).Value,
+                Method.TRANSPORT_CONSUME,
                 Body.Transport_ConsumeRequest,
-                consumeRequestOffset.Value,
                 Internal.TransportId);
 
             var data = response.NotNull().BodyAsTransport_ConsumeResponse().UnPack();
@@ -881,24 +839,17 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
 
             var dataProducerId = dataProducerOptions.Id.NullOrWhiteSpaceThen(Guid.NewGuid().ToString());
 
-            // Build Request
-            var bufferBuilder = Channel.BufferPool.Get();
-
-            var dataProduceRequest = new ProduceDataRequestT
-            {
-                DataProducerId       = dataProducerId,
-                Type                 = type,
-                SctpStreamParameters = dataProducerOptions.SctpStreamParameters,
-                Protocol             = dataProducerOptions.Protocol,
-                Label                = dataProducerOptions.Label,
-                Paused               = dataProducerOptions.Paused
-            };
-
-            var dataProduceRequestOffset = ProduceDataRequest.Pack(bufferBuilder, dataProduceRequest);
-
-            var response = await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_PRODUCE_DATA,
+            var response = await Channel.RequestAsync(bufferBuilder => 
+                    ProduceDataRequest.Pack(bufferBuilder, new ProduceDataRequestT
+                    {
+                        DataProducerId       = dataProducerId,
+                        Type                 = type,
+                        SctpStreamParameters = dataProducerOptions.SctpStreamParameters,
+                        Protocol             = dataProducerOptions.Protocol,
+                        Label                = dataProducerOptions.Label,
+                        Paused               = dataProducerOptions.Paused
+                    }).Value, Method.TRANSPORT_PRODUCE_DATA,
                 Body.Transport_ProduceDataRequest,
-                dataProduceRequestOffset.Value,
                 Internal.TransportId);
 
             var data = response.NotNull().BodyAsDataProducer_DumpResponse().UnPack();
@@ -1036,26 +987,21 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
 
             var dataConsumerId = Guid.NewGuid().ToString();
 
-            // Build Request
-            var bufferBuilder = Channel.BufferPool.Get();
-
-            var consumeDataRequest = new ConsumeDataRequestT
-            {
-                DataConsumerId       = dataConsumerId,
-                DataProducerId       = dataConsumerOptions.DataProducerId,
-                Type                 = type,
-                SctpStreamParameters = sctpStreamParameters,
-                Label                = dataProducer.Data.Label,
-                Protocol             = dataProducer.Data.Protocol,
-                Paused               = dataConsumerOptions.Paused,
-                Subchannels          = dataConsumerOptions.Subchannels
-            };
-
-            var consumeDataRequestOffset = ConsumeDataRequest.Pack(bufferBuilder, consumeDataRequest);
-
-            var response = await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_CONSUME_DATA,
+            var response = await Channel.RequestAsync(bufferBuilder =>
+                    ConsumeDataRequest.Pack(bufferBuilder,
+                    new ConsumeDataRequestT
+                    {
+                        DataConsumerId       = dataConsumerId,
+                        DataProducerId       = dataConsumerOptions.DataProducerId,
+                        Type                 = type,
+                        SctpStreamParameters = sctpStreamParameters,
+                        Label                = dataProducer.Data.Label,
+                        Protocol             = dataProducer.Data.Protocol,
+                        Paused               = dataConsumerOptions.Paused,
+                        Subchannels          = dataConsumerOptions.Subchannels
+                    }).Value,
+                Method.TRANSPORT_CONSUME_DATA,
                 Body.Transport_ConsumeDataRequest,
-                consumeDataRequestOffset.Value,
                 Internal.TransportId);
 
             var data = response.NotNull().BodyAsDataConsumer_DumpResponse().UnPack();
@@ -1145,20 +1091,13 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
                 throw new InvalidStateException("Transport closed");
             }
 
-            // Build Request
-            var bufferBuilder = Channel.BufferPool.Get();
-
-            var enableTraceEventRequest = new EnableTraceEventRequestT
-            {
-                Events = types ?? []
-            };
-
-            var requestOffset = EnableTraceEventRequest.Pack(bufferBuilder, enableTraceEventRequest);
-
             // Fire and forget
-            Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_ENABLE_TRACE_EVENT,
+            Channel.RequestAsync(bufferBuilder => EnableTraceEventRequest.Pack(bufferBuilder,
+                        new EnableTraceEventRequestT
+                        {
+                            Events = types ?? []
+                        }).Value, Method.TRANSPORT_ENABLE_TRACE_EVENT,
                     Body.Transport_EnableTraceEventRequest,
-                    requestOffset.Value,
                     Internal.TransportId)
                 .ContinueWithOnFaultedHandleLog(logger);
         }

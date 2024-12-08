@@ -153,23 +153,15 @@ public class DataConsumerImpl<TDataConsumerAppData>
             // Remove notification subscriptions.
             channel.OnNotification -= OnNotificationHandle;
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var closeDataConsumerRequest = new Antelcat.MediasoupSharp.FBS.Transport.CloseDataConsumerRequestT
-            {
-                DataConsumerId = @internal.DataConsumerId
-            };
-
-            var closeDataConsumerRequestOffset =
-                Antelcat.MediasoupSharp.FBS.Transport.CloseDataConsumerRequest.Pack(bufferBuilder, closeDataConsumerRequest);
-
             // Fire and forget
             channel.RequestAsync(
-                bufferBuilder,
+                bufferBuilder => Antelcat.MediasoupSharp.FBS.Transport.CloseDataConsumerRequest
+                    .Pack(bufferBuilder, new Antelcat.MediasoupSharp.FBS.Transport.CloseDataConsumerRequestT
+                    {
+                        DataConsumerId = @internal.DataConsumerId
+                    }).Value,
                 Method.TRANSPORT_CLOSE_DATACONSUMER,
                 Antelcat.MediasoupSharp.FBS.Request.Body.Transport_CloseDataConsumerRequest,
-                closeDataConsumerRequestOffset.Value,
                 @internal.TransportId
             ).ContinueWithOnFaultedHandleLog(logger);
 
@@ -220,11 +212,8 @@ public class DataConsumerImpl<TDataConsumerAppData>
                 throw new InvalidStateException("DataConsumer closed");
             }
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var response = await channel.RequestAsync(bufferBuilder, Method.DATACONSUMER_DUMP,
-                null,
+            var response = await channel.RequestAsync(static _ => null, 
+                Method.DATACONSUMER_DUMP,
                 null,
                 @internal.DataConsumerId);
 
@@ -248,11 +237,8 @@ public class DataConsumerImpl<TDataConsumerAppData>
                 throw new InvalidStateException("DataConsumer closed");
             }
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var response = await channel.RequestAsync(bufferBuilder, Method.DATACONSUMER_GET_STATS,
-                null,
+            var response = await channel.RequestAsync(static _ => null,
+                Method.DATACONSUMER_GET_STATS,
                 null,
                 @internal.DataConsumerId);
 
@@ -277,12 +263,9 @@ public class DataConsumerImpl<TDataConsumerAppData>
                 throw new InvalidStateException("DataConsumer closed");
             }
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
             /* Ignore Response. */
-            _ = await channel.RequestAsync(bufferBuilder, Method.DATACONSUMER_PAUSE,
-                null,
+            _ = await channel.RequestAsync(static _ => null,
+                Method.DATACONSUMER_PAUSE,
                 null,
                 @internal.DataConsumerId);
 
@@ -312,11 +295,8 @@ public class DataConsumerImpl<TDataConsumerAppData>
                 throw new InvalidStateException("DataConsumer closed");
             }
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            await channel.RequestAsync(bufferBuilder, Method.DATACONSUMER_PAUSE,
-                null,
+            await channel.RequestAsync(static _ => null,
+                Method.DATACONSUMER_PAUSE,
                 null,
                 @internal.DataConsumerId);
 
@@ -346,23 +326,15 @@ public class DataConsumerImpl<TDataConsumerAppData>
                 throw new InvalidStateException("DataConsumer closed");
             }
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var setBufferedAmountLowThresholdRequest = new SetBufferedAmountLowThresholdRequestT
-            {
-                Threshold = threshold
-            };
-
-            var setBufferedAmountLowThresholdRequestOffset =
-                SetBufferedAmountLowThresholdRequest.Pack(bufferBuilder, setBufferedAmountLowThresholdRequest);
-
             // Fire and forget
             channel.RequestAsync(
-                bufferBuilder,
+                bufferBuilder => SetBufferedAmountLowThresholdRequest.Pack(bufferBuilder,
+                    new SetBufferedAmountLowThresholdRequestT
+                    {
+                        Threshold = threshold
+                    }).Value,
                 Method.DATACONSUMER_SET_BUFFERED_AMOUNT_LOW_THRESHOLD,
                 Antelcat.MediasoupSharp.FBS.Request.Body.DataConsumer_SetBufferedAmountLowThresholdRequest,
-                setBufferedAmountLowThresholdRequestOffset.Value,
                 @internal.DataConsumerId
             ).ContinueWithOnFaultedHandleLog(logger);
         }
@@ -429,21 +401,14 @@ public class DataConsumerImpl<TDataConsumerAppData>
                 throw new InvalidStateException("DataConsumer closed");
             }
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var sendRequest = new SendRequestT
-            {
-                Ppid = ppid,
-                Data = data.ToList()
-            };
-
-            var sendRequestOffset = SendRequest.Pack(bufferBuilder, sendRequest);
-
             // Fire and forget
-            channel.RequestAsync(bufferBuilder, Method.DATACONSUMER_SEND,
+            channel.RequestAsync(bufferBuilder => SendRequest.Pack(bufferBuilder, new SendRequestT
+                {
+                    Ppid = ppid,
+                    Data = data.ToList()
+                }).Value,
+                Method.DATACONSUMER_SEND,
                 Antelcat.MediasoupSharp.FBS.Request.Body.DataConsumer_SendRequest,
-                sendRequestOffset.Value,
                 @internal.DataConsumerId
             ).ContinueWithOnFaultedHandleLog(logger);
         }
@@ -463,11 +428,8 @@ public class DataConsumerImpl<TDataConsumerAppData>
                 throw new InvalidStateException("DataConsumer closed");
             }
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var response = await channel.RequestAsync(bufferBuilder, Method.DATACONSUMER_GET_BUFFERED_AMOUNT,
-                null,
+            var response = await channel.RequestAsync(static _ => null,
+                Method.DATACONSUMER_GET_BUFFERED_AMOUNT,
                 null,
                 @internal.DataConsumerId);
 
@@ -491,19 +453,13 @@ public class DataConsumerImpl<TDataConsumerAppData>
                 throw new InvalidStateException("DataConsumer closed");
             }
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var setSubchannelsRequest = new SetSubchannelsRequestT
-            {
-                Subchannels = subchannels
-            };
-
-            var setSubchannelsRequestOffset = SetSubchannelsRequest.Pack(bufferBuilder, setSubchannelsRequest);
-
-            var response = await channel.RequestAsync(bufferBuilder, Method.DATACONSUMER_SET_SUBCHANNELS,
+            var response = await channel.RequestAsync(bufferBuilder => SetSubchannelsRequest.Pack(bufferBuilder,
+                    new SetSubchannelsRequestT
+                    {
+                        Subchannels = subchannels
+                    }).Value,
+                Method.DATACONSUMER_SET_SUBCHANNELS,
                 Antelcat.MediasoupSharp.FBS.Request.Body.DataConsumer_SetSubchannelsRequest,
-                setSubchannelsRequestOffset.Value,
                 @internal.DataConsumerId);
 
             /* Decode Response. */
@@ -527,19 +483,12 @@ public class DataConsumerImpl<TDataConsumerAppData>
                 throw new InvalidStateException("DataConsumer closed");
             }
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var addSubchannelsRequest = new AddSubchannelRequestT
-            {
-                Subchannel = subchannel
-            };
-
-            var addSubchannelRequestOffset = AddSubchannelRequest.Pack(bufferBuilder, addSubchannelsRequest);
-
-            var response = await channel.RequestAsync(bufferBuilder, Method.DATACONSUMER_ADD_SUBCHANNEL,
+            var response = await channel.RequestAsync(bufferBuilder => AddSubchannelRequest.Pack(bufferBuilder,
+                    new AddSubchannelRequestT
+                    {
+                        Subchannel = subchannel
+                    }).Value, Method.DATACONSUMER_ADD_SUBCHANNEL,
                 Antelcat.MediasoupSharp.FBS.Request.Body.DataConsumer_AddSubchannelRequest,
-                addSubchannelRequestOffset.Value,
                 @internal.DataConsumerId);
 
             /* Decode Response. */
@@ -563,19 +512,13 @@ public class DataConsumerImpl<TDataConsumerAppData>
                 throw new InvalidStateException("DataConsumer closed");
             }
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var removeSubchannelsRequest = new RemoveSubchannelRequestT
-            {
-                Subchannel = subchannel
-            };
-
-            var removeSubchannelRequestOffset = RemoveSubchannelRequest.Pack(bufferBuilder, removeSubchannelsRequest);
-
-            var response = await channel.RequestAsync(bufferBuilder, Method.DATACONSUMER_REMOVE_SUBCHANNEL,
+            var response = await channel.RequestAsync(bufferBuilder => RemoveSubchannelRequest.Pack(bufferBuilder,
+                    new RemoveSubchannelRequestT
+                    {
+                        Subchannel = subchannel
+                    }).Value,
+                Method.DATACONSUMER_REMOVE_SUBCHANNEL,
                 Antelcat.MediasoupSharp.FBS.Request.Body.DataConsumer_RemoveSubchannelRequest,
-                removeSubchannelRequestOffset.Value,
                 @internal.DataConsumerId);
 
             /* Decode Response. */

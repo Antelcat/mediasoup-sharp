@@ -101,13 +101,10 @@ public class PipeTransportImpl<TPipeTransportAppData>
     /// </summary>
     protected override async Task<object> OnDumpAsync()
     {
-        // Build Request
-        var bufferBuilder = Channel.BufferPool.Get();
-
         var response =
-            await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_DUMP, 
-                null, 
-                null, 
+            await Channel.RequestAsync(static _ => null,
+                Method.TRANSPORT_DUMP,
+                null,
                 Internal.TransportId);
         var data = response.NotNull().BodyAsPipeTransport_DumpResponse().UnPack();
 
@@ -119,11 +116,11 @@ public class PipeTransportImpl<TPipeTransportAppData>
     /// </summary>
     protected override async Task<object[]> OnGetStatsAsync()
     {
-        // Build Request
-        var bufferBuilder = Channel.BufferPool.Get();
-
         var response =
-            await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_GET_STATS, null, null, Internal.TransportId);
+            await Channel.RequestAsync(static _ => null,
+                Method.TRANSPORT_GET_STATS, 
+                null, 
+                Internal.TransportId);
         var data = response.NotNull().BodyAsPipeTransport_GetStatsResponse().UnPack();
 
         return [data];
@@ -141,14 +138,10 @@ public class PipeTransportImpl<TPipeTransportAppData>
             throw new Exception($"{nameof(parameters)} type is not Antelcat.MediasoupSharp.FBS.PipeTransport.ConnectRequestT");
         }
 
-        // Build Request
-        var bufferBuilder = Channel.BufferPool.Get();
-
-        var connectRequestOffset = ConnectRequest.Pack(bufferBuilder, connectRequestT);
-
-        var response = await Channel.RequestAsync(bufferBuilder, Method.PIPETRANSPORT_CONNECT,
+        var response = await Channel.RequestAsync(
+            bufferBuilder => ConnectRequest.Pack(bufferBuilder, connectRequestT).Value, 
+            Method.PIPETRANSPORT_CONNECT,
             Antelcat.MediasoupSharp.FBS.Request.Body.PipeTransport_ConnectRequest,
-            connectRequestOffset.Value,
             Internal.TransportId);
 
         /* Decode Response. */
@@ -180,24 +173,18 @@ public class PipeTransportImpl<TPipeTransportAppData>
 
         var consumerId = Guid.NewGuid().ToString();
 
-        // Build Request
-        var bufferBuilder = Channel.BufferPool.Get();
-
-        var consumeRequest = new ConsumeRequestT
-        {
-            ProducerId             = consumerOptions.ProducerId,
-            ConsumerId             = consumerId,
-            Kind                   = producer.Data.Kind,
-            RtpParameters          = rtpParameters.SerializeRtpParameters(),
-            Type                   = Antelcat.MediasoupSharp.FBS.RtpParameters.Type.PIPE,
-            ConsumableRtpEncodings = producer.Data.ConsumableRtpParameters.Encodings
-        };
-
-        var consumeRequestOffset = ConsumeRequest.Pack(bufferBuilder, consumeRequest);
-
-        var response = await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_CONSUME,
+        var response = await Channel.RequestAsync(bufferBuilder => ConsumeRequest.Pack(bufferBuilder,
+                new ConsumeRequestT
+                {
+                    ProducerId             = consumerOptions.ProducerId,
+                    ConsumerId             = consumerId,
+                    Kind                   = producer.Data.Kind,
+                    RtpParameters          = rtpParameters.SerializeRtpParameters(),
+                    Type                   = Antelcat.MediasoupSharp.FBS.RtpParameters.Type.PIPE,
+                    ConsumableRtpEncodings = producer.Data.ConsumableRtpParameters.Encodings
+                }).Value, 
+            Method.TRANSPORT_CONSUME,
             Antelcat.MediasoupSharp.FBS.Request.Body.Transport_ConsumeRequest,
-            consumeRequestOffset.Value,
             Internal.TransportId);
 
         /* Decode Response. */

@@ -92,21 +92,15 @@ public class WebRtcServerImpl<TWebRtcServerAppData>
 
             closed = true;
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var closeWebRtcServerRequest = new Antelcat.MediasoupSharp.FBS.Worker.CloseWebRtcServerRequestT
-            {
-                WebRtcServerId = @internal.WebRtcServerId
-            };
-
-            var closeWebRtcServerRequestOffset =
-                Antelcat.MediasoupSharp.FBS.Worker.CloseWebRtcServerRequest.Pack(bufferBuilder, closeWebRtcServerRequest);
-
             // Fire and forget
-            channel.RequestAsync(bufferBuilder, Method.WORKER_WEBRTCSERVER_CLOSE,
-                Body.Worker_CloseWebRtcServerRequest,
-                closeWebRtcServerRequestOffset.Value
+            channel.RequestAsync(bufferBuilder => 
+                    Antelcat.MediasoupSharp.FBS.Worker.CloseWebRtcServerRequest.Pack(
+                    bufferBuilder, new Antelcat.MediasoupSharp.FBS.Worker.CloseWebRtcServerRequestT
+                    {
+                        WebRtcServerId = @internal.WebRtcServerId
+                    }).Value,
+                Method.WORKER_WEBRTCSERVER_CLOSE,
+                Body.Worker_CloseWebRtcServerRequest
             ).ContinueWithOnFaultedHandleLog(logger);
 
             await CloseInternalAsync();
@@ -174,11 +168,8 @@ public class WebRtcServerImpl<TWebRtcServerAppData>
                 throw new InvalidStateException("WebRtcServer closed");
             }
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var response = await channel.RequestAsync(bufferBuilder, Method.WEBRTCSERVER_DUMP,
-                null,
+            var response = await channel.RequestAsync(static _ => null,
+                Method.WEBRTCSERVER_DUMP,
                 null,
                 @internal.WebRtcServerId);
 

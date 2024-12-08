@@ -181,21 +181,16 @@ public class ConsumerImpl<TConsumerAppData>
             // Remove notification subscriptions.
             channel.OnNotification -= OnNotificationHandle;
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var requestOffset = Antelcat.MediasoupSharp.FBS.Transport.CloseConsumerRequest.Pack(bufferBuilder,
-                new Antelcat.MediasoupSharp.FBS.Transport.CloseConsumerRequestT
-                {
-                    ConsumerId = @internal.ConsumerId
-                });
-
             // Fire and forget
             channel.RequestAsync(
-                    bufferBuilder,
+                    bufferBuilder => 
+                        Antelcat.MediasoupSharp.FBS.Transport.CloseConsumerRequest.Pack(bufferBuilder,
+                        new Antelcat.MediasoupSharp.FBS.Transport.CloseConsumerRequestT
+                        {
+                            ConsumerId = @internal.ConsumerId
+                        }).Value,
                     Method.TRANSPORT_CLOSE_CONSUMER,
                     Antelcat.MediasoupSharp.FBS.Request.Body.Transport_CloseConsumerRequest,
-                    requestOffset.Value,
                     @internal.TransportId
                 )
                 .ContinueWithOnFaultedHandleLog(logger);
@@ -247,9 +242,10 @@ public class ConsumerImpl<TConsumerAppData>
                 throw new InvalidStateException("Consumer closed");
             }
 
-            var bufferBuilder = channel.BufferPool.Get();
-            var response =
-                await channel.RequestAsync(bufferBuilder, Method.CONSUMER_DUMP, null, null, @internal.ConsumerId);
+            var response = await channel.RequestAsync(static _ => null,
+                    Method.CONSUMER_DUMP,
+                    null,
+                    @internal.ConsumerId);
             var data = response.NotNull().BodyAsConsumer_DumpResponse().UnPack();
             return data;
         }
@@ -268,9 +264,10 @@ public class ConsumerImpl<TConsumerAppData>
             {
                 throw new InvalidStateException("Consumer closed");
             }
-
-            var bufferBuilder = channel.BufferPool.Get();
-            var response = await channel.RequestAsync(bufferBuilder, Method.CONSUMER_GET_STATS, null, null,
+            
+            var response = await channel.RequestAsync(static _ => null,
+                Method.CONSUMER_GET_STATS,
+                null,
                 @internal.ConsumerId);
             var stats = response.NotNull().BodyAsConsumer_GetStatsResponse().UnPack().Stats;
             return stats;
@@ -294,13 +291,10 @@ public class ConsumerImpl<TConsumerAppData>
             await pauseLock.WaitAsync();
             try
             {
-                var bufferBuilder = channel.BufferPool.Get();
-
                 // Fire and forget
-                channel.RequestAsync(bufferBuilder, 
-                        Method.CONSUMER_PAUSE, 
-                        null, 
-                        null, 
+                channel.RequestAsync(static _ => null,
+                        Method.CONSUMER_PAUSE,
+                        null,
                         @internal.ConsumerId)
                     .ContinueWithOnFaultedHandleLog(logger);
 
@@ -338,14 +332,11 @@ public class ConsumerImpl<TConsumerAppData>
             await pauseLock.WaitAsync();
             try
             {
-                var bufferBuilder = channel.BufferPool.Get();
-
                 // Fire and forget
-                await channel.RequestAsync(bufferBuilder, 
-                        Method.CONSUMER_RESUME, 
-                        null, 
-                        null, 
-                        @internal.ConsumerId);
+                await channel.RequestAsync(static _ => null,
+                    Method.CONSUMER_RESUME,
+                    null,
+                    @internal.ConsumerId);
 
                 var wasPaused = paused;
 
@@ -380,17 +371,10 @@ public class ConsumerImpl<TConsumerAppData>
                 throw new InvalidStateException("Consumer closed");
             }
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var setPreferredLayersRequestOffset =
-                SetPreferredLayersRequest.Pack(bufferBuilder, setPreferredLayersRequest);
-
             var response = await channel.RequestAsync(
-                bufferBuilder,
+                bufferBuilder => SetPreferredLayersRequest.Pack(bufferBuilder, setPreferredLayersRequest).Value,
                 Method.CONSUMER_SET_PREFERRED_LAYERS,
                 Antelcat.MediasoupSharp.FBS.Request.Body.Consumer_SetPreferredLayersRequest,
-                setPreferredLayersRequestOffset.Value,
                 @internal.ConsumerId);
             
             var preferredLayers = response?.BodyAsConsumer_SetPreferredLayersResponse().UnPack().PreferredLayers;
@@ -413,18 +397,13 @@ public class ConsumerImpl<TConsumerAppData>
                 throw new InvalidStateException("Consumer closed");
             }
 
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var setPriorityRequestOffset = SetPriorityRequest.Pack(bufferBuilder, new SetPriorityRequestT
-            {
-                Priority = priority
-            });
-
             var response = await channel.RequestAsync(
-                bufferBuilder,
+                bufferBuilder => SetPriorityRequest.Pack(bufferBuilder, new SetPriorityRequestT
+                {
+                    Priority = priority
+                }).Value,
                 Method.CONSUMER_SET_PRIORITY,
                 Antelcat.MediasoupSharp.FBS.Request.Body.Consumer_SetPriorityRequest,
-                setPriorityRequestOffset.Value,
                 @internal.ConsumerId);
 
             var priorityResponse = response.NotNull().BodyAsConsumer_SetPriorityResponse().UnPack().Priority;
@@ -457,11 +436,8 @@ public class ConsumerImpl<TConsumerAppData>
                 throw new InvalidStateException("Consumer closed");
             }
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            await channel.RequestAsync(bufferBuilder, Method.CONSUMER_REQUEST_KEY_FRAME,
-                null,
+            await channel.RequestAsync(static _ => null,
+                Method.CONSUMER_REQUEST_KEY_FRAME,
                 null,
                 @internal.ConsumerId);
         }
@@ -481,22 +457,16 @@ public class ConsumerImpl<TConsumerAppData>
                 throw new InvalidStateException("Consumer closed");
             }
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
             var request = new EnableTraceEventRequestT
             {
                 Events = types ?? []
             };
 
-            var requestOffset = EnableTraceEventRequest.Pack(bufferBuilder, request);
-
             // Fire and forget
             channel.RequestAsync(
-                    bufferBuilder,
+                    bufferBuilder => EnableTraceEventRequest.Pack(bufferBuilder, request).Value,
                     Method.CONSUMER_ENABLE_TRACE_EVENT,
                     Antelcat.MediasoupSharp.FBS.Request.Body.Consumer_EnableTraceEventRequest,
-                    requestOffset.Value,
                     @internal.ConsumerId)
                 .ContinueWithOnFaultedHandleLog(logger);
         }

@@ -103,11 +103,11 @@ public class PlainTransportImpl<TPlainTransportAppData>
     /// </summary>
     protected override async Task<object> OnDumpAsync()
     {
-        // Build Request
-        var bufferBuilder = Channel.BufferPool.Get();
-
         var response =
-            await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_DUMP, null, null, Internal.TransportId);
+            await Channel.RequestAsync(static _ => null,
+                Method.TRANSPORT_DUMP,
+                null,
+                Internal.TransportId);
         var data = response.NotNull().BodyAsPlainTransport_DumpResponse().UnPack();
 
         return data;
@@ -118,11 +118,11 @@ public class PlainTransportImpl<TPlainTransportAppData>
     /// </summary>
     protected override async Task<object[]> OnGetStatsAsync()
     {
-        // Build Request
-        var bufferBuilder = Channel.BufferPool.Get();
-
         var response =
-            await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_GET_STATS, null, null, Internal.TransportId);
+            await Channel.RequestAsync(static _ => null,
+                Method.TRANSPORT_GET_STATS,
+                null,
+                Internal.TransportId);
         var data = response.NotNull().BodyAsPlainTransport_GetStatsResponse().UnPack();
 
         return [data];
@@ -140,14 +140,10 @@ public class PlainTransportImpl<TPlainTransportAppData>
             throw new Exception($"{nameof(parameters)} type is not Antelcat.MediasoupSharp.FBS.PlainTransport.ConnectRequestT");
         }
 
-        // Build Request
-        var bufferBuilder = Channel.BufferPool.Get();
-
-        var connectRequestOffset = ConnectRequest.Pack(bufferBuilder, connectRequestT);
-
-        var response = await Channel.RequestAsync(bufferBuilder, Method.PLAINTRANSPORT_CONNECT,
+        var response = await Channel.RequestAsync(
+            bufferBuilder => ConnectRequest.Pack(bufferBuilder, connectRequestT).Value,
+            Method.PLAINTRANSPORT_CONNECT,
             Antelcat.MediasoupSharp.FBS.Request.Body.PlainTransport_ConnectRequest,
-            connectRequestOffset.Value,
             Internal.TransportId);
 
         /* Decode Response. */

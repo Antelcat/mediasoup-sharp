@@ -53,11 +53,10 @@ public class DirectTransportImpl<TDirectTransportAppData>
     /// </summary>
     protected override async Task<object> OnDumpAsync()
     {
-        // Build Request
-        var bufferBuilder = Channel.BufferPool.Get();
-
-        var response =
-            await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_DUMP, null, null, Internal.TransportId);
+        var response = await Channel.RequestAsync(static _ => null,
+            Method.TRANSPORT_DUMP,
+            null,
+            Internal.TransportId);
         var data = response.NotNull().BodyAsDirectTransport_DumpResponse().UnPack();
 
         return data;
@@ -68,11 +67,10 @@ public class DirectTransportImpl<TDirectTransportAppData>
     /// </summary>
     protected override async Task<object[]> OnGetStatsAsync()
     {
-        // Build Request
-        var bufferBuilder = Channel.BufferPool.Get();
-
-        var response =
-            await Channel.RequestAsync(bufferBuilder, Method.TRANSPORT_GET_STATS, null, null, Internal.TransportId);
+        var response = await Channel.RequestAsync(static _ => null,
+                Method.TRANSPORT_GET_STATS,
+                null,
+                Internal.TransportId);
         var data = response.NotNull().BodyAsDirectTransport_GetStatsResponse().UnPack();
         return [data];
     }
@@ -130,20 +128,16 @@ public class DirectTransportImpl<TDirectTransportAppData>
                 throw new InvalidStateException("Transport closed");
             }
 
-            // Build Request
-            var bufferBuilder = Channel.BufferPool.Get();
-
             var sendRtcpNotification = new SendRtcpNotificationT
             {
                 Data = rtcpPacket.ToList()
             };
 
-            var sendRtcpNotificationOffset = SendRtcpNotification.Pack(bufferBuilder, sendRtcpNotification);
 
             // Fire and forget
-            Channel.NotifyAsync(bufferBuilder, Event.TRANSPORT_SEND_RTCP,
+            Channel.NotifyAsync(bufferBuilder => SendRtcpNotification.Pack(bufferBuilder, sendRtcpNotification).Value
+                , Event.TRANSPORT_SEND_RTCP,
                 Antelcat.MediasoupSharp.FBS.Notification.Body.Transport_SendRtcpNotification,
-                sendRtcpNotificationOffset.Value,
                 Internal.TransportId
             ).ContinueWithOnFaultedHandleLog(logger);
         }

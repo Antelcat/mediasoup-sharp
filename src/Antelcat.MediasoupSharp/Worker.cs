@@ -297,11 +297,7 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
                 throw new InvalidStateException("Worker closed");
             }
 
-
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var response = await channel.RequestAsync(bufferBuilder, Method.WORKER_DUMP);
+            var response = await channel.RequestAsync(static _ => null, Method.WORKER_DUMP);
             var data     = response.NotNull().BodyAsWorker_DumpResponse().UnPack();
             return data;
         }
@@ -321,10 +317,7 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
                 throw new InvalidStateException("Worker closed");
             }
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var response = await channel.RequestAsync(bufferBuilder, Method.WORKER_GET_RESOURCE_USAGE);
+            var response = await channel.RequestAsync(static _ => null, Method.WORKER_GET_RESOURCE_USAGE);
             var data     = response.NotNull().BodyAsWorker_ResourceUsageResponse().UnPack();
 
             return data;
@@ -401,21 +394,14 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
 
             var webRtcServerId = Guid.NewGuid().ToString();
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var createWebRtcServerRequestT = new CreateWebRtcServerRequestT
-            {
-                WebRtcServerId = webRtcServerId,
-                ListenInfos    = fbsListenInfos
-            };
-
-            var createWebRtcServerRequestOffset =
-                CreateWebRtcServerRequest.Pack(bufferBuilder, createWebRtcServerRequestT);
-
-            await channel.RequestAsync(bufferBuilder, Method.WORKER_CREATE_WEBRTCSERVER,
-                Body.Worker_CreateWebRtcServerRequest,
-                createWebRtcServerRequestOffset.Value
+            await channel.RequestAsync(bufferBuilder => 
+                    CreateWebRtcServerRequest.Pack(bufferBuilder,
+                    new CreateWebRtcServerRequestT
+                    {
+                        WebRtcServerId = webRtcServerId,
+                        ListenInfos    = fbsListenInfos
+                    }).Value, Method.WORKER_CREATE_WEBRTCSERVER,
+                Body.Worker_CreateWebRtcServerRequest
             );
 
             var webRtcServer = new WebRtcServerImpl<TWebRtcServerAppData>(
@@ -467,19 +453,14 @@ public class WorkerImpl<TWorkerAppData> : EnhancedEventEmitter<WorkerEvents>, IW
 
             var routerId = Guid.NewGuid().ToString();
 
-            // Build Request
-            var bufferBuilder = channel.BufferPool.Get();
-
-            var createRouterRequestT = new CreateRouterRequestT
-            {
-                RouterId = routerId
-            };
-
-            var createRouterRequestOffset = CreateRouterRequest.Pack(bufferBuilder, createRouterRequestT);
-
-            await channel.RequestAsync(bufferBuilder, Method.WORKER_CREATE_ROUTER,
-                Body.Worker_CreateRouterRequest,
-                createRouterRequestOffset.Value);
+            await channel.RequestAsync(bufferBuilder =>
+                    CreateRouterRequest.Pack(bufferBuilder,
+                        new CreateRouterRequestT
+                        {
+                            RouterId = routerId
+                        }).Value,
+                Method.WORKER_CREATE_ROUTER,
+                Body.Worker_CreateRouterRequest);
 
             var router = new RouterImpl<TRouterAppData>(
                 new RouterInternal
