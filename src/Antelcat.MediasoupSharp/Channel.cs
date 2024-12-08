@@ -202,9 +202,9 @@ public class Channel : EnhancedEventEmitter, IChannel
 
 
     public async Task NotifyAsync(
-        Func<DisposableFlatBufferBuilder,int?> consumeBuffer,
+        Func<DisposableFlatBufferBuilder, int?> consumeBuffer,
         Antelcat.MediasoupSharp.FBS.Notification.Event @event,
-        Antelcat.MediasoupSharp.FBS.Notification.Body? bodyType, 
+        Antelcat.MediasoupSharp.FBS.Notification.Body? bodyType,
         string? handlerId,
         int size = 1024)
     {
@@ -267,7 +267,7 @@ public class Channel : EnhancedEventEmitter, IChannel
                 HandlerId = handlerId,
                 Payload   = buffer
             };
-            
+
             Loop.Default.Sync(() =>
             {
                 try
@@ -295,7 +295,7 @@ public class Channel : EnhancedEventEmitter, IChannel
 
 
     public async Task<Antelcat.MediasoupSharp.FBS.Response.Response?> RequestAsync(
-        Func<DisposableFlatBufferBuilder,int?> consumeBuffer,
+        Func<DisposableFlatBufferBuilder, int?> consumeBuffer,
         Antelcat.MediasoupSharp.FBS.Request.Method method,
         Antelcat.MediasoupSharp.FBS.Request.Body? bodyType = null,
         string? handlerId = null)
