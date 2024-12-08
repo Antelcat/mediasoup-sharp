@@ -5,12 +5,12 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <RootNamespace>Antelcat.MediasoupSharp.Demo</RootNamespace>
-        <Version>3.14.16</Version>
+        <Version>3.15.2.1</Version>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Antelcat.AspNetCore.ProtooSharp" Version="0.1.6" />
+        <PackageReference Include="Antelcat.AspNetCore.ProtooSharp" Version="0.1.7" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.8"/>
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0"/>
         <PackageReference Include="Libuv" Version="1.10.0" />
