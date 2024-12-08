@@ -26,7 +26,7 @@ public abstract class WebRtcServerEvents
     public (string eventName, Exception error) ListenerError;
 
     // Private events.
-    public object? close;
+    internal object? close;
 }
 
 public abstract class WebRtcServerObserverEvents

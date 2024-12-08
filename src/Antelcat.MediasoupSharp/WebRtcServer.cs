@@ -145,10 +145,10 @@ public class WebRtcServerImpl<TWebRtcServerAppData>
 
     private async Task CloseInternalAsync()
     {
-        await using (await webRtcTransports.WriteLockAsync())
+        await webRtcTransports.WriteAsync(async x=>
         {
             // Close every WebRtcTransport.
-            foreach (var webRtcTransport in webRtcTransports.Values)
+            foreach (var webRtcTransport in x.Values)
             {
                 await webRtcTransport.ListenServerClosedAsync();
 
@@ -156,8 +156,8 @@ public class WebRtcServerImpl<TWebRtcServerAppData>
                 Observer.SafeEmit(static x => x.WebrtcTransportUnhandled, webRtcTransport);
             }
 
-            webRtcTransports.Clear();
-        }
+            x.Clear();
+        });
     }
 
     /// <summary>
@@ -190,17 +190,17 @@ public class WebRtcServerImpl<TWebRtcServerAppData>
 
     public async Task HandleWebRtcTransportAsync(IWebRtcTransport webRtcTransport)
     {
-        await using (await webRtcTransports.WriteLockAsync())
+        await webRtcTransports.WriteAsync(x=>
         {
-            webRtcTransports[webRtcTransport.Id] = webRtcTransport;
-        }
+            x[webRtcTransport.Id] = webRtcTransport;
+        });
 
         // Emit observer event.
         Observer.SafeEmit(static x => x.WebrtcTransportHandled, webRtcTransport);
 
         webRtcTransport.On(static x => x.close, async () =>
         {
-            await using (await webRtcTransports.WriteLockAsync()) webRtcTransports.Remove(webRtcTransport.Id);
+            await webRtcTransports.WriteAsync(x => x.Remove(webRtcTransport.Id));
 
             // Emit observer event.
             Observer.SafeEmit(static x => x.WebrtcTransportUnhandled, webRtcTransport);

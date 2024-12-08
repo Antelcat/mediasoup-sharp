@@ -45,6 +45,11 @@ public record WebRtcTransportOptionsBase<TWebRtcTransportAppData>
     /// Prefer TCP. Default false.
     /// </summary>
     public bool PreferTcp { get; set; }
+    
+    /// <summary>
+    /// ICE consent timeout (in seconds). If 0 it is disabled. Default 30.
+    /// </summary>
+    public byte IceConsentTimeout { get; set; } = 30;
 
     /// <summary>
     /// Initial available outgoing bitrate (in bps). Default 600000.
@@ -72,11 +77,6 @@ public record WebRtcTransportOptionsBase<TWebRtcTransportAppData>
     /// Default 262144.
     /// </summary>
     public uint SctpSendBufferSize { get; set; } = 262144;
-
-    /// <summary>
-    /// ICE consent timeout (in seconds). If 0 it is disabled. Default 30.
-    /// </summary>
-    public byte IceConsentTimeout { get; set; } = 30;
 
     /// <summary>
     /// Custom application data.

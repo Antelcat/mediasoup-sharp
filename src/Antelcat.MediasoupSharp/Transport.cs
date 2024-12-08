@@ -203,7 +203,7 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
     /// </summary>
     public async Task CloseAsync()
     {
-        logger.LogDebug("CloseAsync() | TransportId:{TransportId}", Id);
+        logger.LogDebug($"{nameof(CloseAsync)}() | TransportId:{{TransportId}}", Id);
 
         await using (await CloseLock.WriteLockAsync())
         {
