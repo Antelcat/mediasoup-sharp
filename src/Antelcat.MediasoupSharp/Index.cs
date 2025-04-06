@@ -6,13 +6,8 @@ using Antelcat.MediasoupSharp.Internals.Extensions;
 using Microsoft.Extensions.Logging;
 
 namespace Antelcat.MediasoupSharp;
-
 using Observer = IEnhancedEventEmitter<ObserverEvents>;
 
-public abstract class ObserverEvents
-{
-    public required IWorker NewWorker;
-}
 
 public partial class Mediasoup
 {
@@ -72,12 +67,7 @@ public partial class Mediasoup
     /// </summary>
     public static RtpCapabilities GetSupportedRtpCapabilities() => RtpCapabilities.SupportedRtpCapabilities.DeepClone();
     
-    public class LogEventListeners
-    {
-        public Action<string, string>?            OnDebug;
-        public Action<string, string>?            OnWarn;
-        public Action<string, string, Exception>? OnError;
-    }
+    
 
     public static void SetLogEventListeners(LogEventListeners? listeners)
     {
