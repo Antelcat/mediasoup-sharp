@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Antelcat.MediasoupSharp.Internals.Extensions;
 
 namespace Antelcat.MediasoupSharp.H264ProfileLevelId;
@@ -25,6 +26,26 @@ internal static class Utils
         new(0xF4, new BitPattern("00000000"), Profile.PredictiveHigh444)
     ];
 
+    private static readonly LevelConstraint[] LevelConstraints =
+    [
+        new(1485, 99, Level.L1),
+        new(1485, 99, Level.L1B),
+        new(3000, 396, Level.L11),
+        new(6000, 396, Level.L12),
+        new(11880, 396, Level.L13),
+        new(19800, 792, Level.L21),
+        new(20250, 1620, Level.L22),
+        new(40500, 1620, Level.L3),
+        new(108000, 3600, Level.L31),
+        new(216000, 5120, Level.L32),
+        new(245760, 8192, Level.L4),
+        new(245760, 8192, Level.L41),
+        new(522240, 8704, Level.L42),
+        new(589824, 22080, Level.L5),
+        new(983040, 36864, Level.L51),
+        new(2073600, 36864, Level.L52),
+    ];
+
     /// <summary>
     /// Parse profile level id that is represented as a string of 3 hex bytes.
     /// Nothing will be returned if the string is not a recognized H264 profile
@@ -39,14 +60,14 @@ internal static class Utils
         const int constraintSet3Flag = 0x10;
 
         // The string should consist of 3 bytes in hexadecimal format.
-        if(str is not { Length: 6 })
+        if (str is not { Length: 6 })
         {
             return null;
         }
 
         var profileLevelIdNumeric = Convert.ToInt32(str, 16);
 
-        if(profileLevelIdNumeric == 0) return null;
+        if (profileLevelIdNumeric == 0) return null;
 
         // Separate into three bytes.
         var levelIdc   = (Level)(profileLevelIdNumeric & 0xFF);
@@ -56,7 +77,7 @@ internal static class Utils
         // Parse level based on level_idc and constraint set 3 flag.
         Level level;
 
-        switch(levelIdc)
+        switch (levelIdc)
         {
             case Level.L11:
             {
@@ -97,9 +118,9 @@ internal static class Utils
         }
 
         // Parse profile_idc/profile_iop into a Profile enum.
-        foreach(var pattern in ProfilePatterns)
+        foreach (var pattern in ProfilePatterns)
         {
-            if(profileIdc == pattern.ProfileIdc && pattern.ProfileIop.IsMatch(profileIop))
+            if (profileIdc == pattern.ProfileIdc && pattern.ProfileIop.IsMatch(profileIop))
             {
                 return new ProfileLevelId(pattern.Profile, level);
             }
@@ -117,7 +138,7 @@ internal static class Utils
     public static string? ProfileLevelIdToString(ProfileLevelId profileLevelId)
     {
         // Handle special case level == 1b.
-        if(profileLevelId.Level == Level.L1B)
+        if (profileLevelId.Level == Level.L1B)
         {
             return profileLevelId.Profile switch
             {
@@ -130,7 +151,7 @@ internal static class Utils
 
         string profileIdcIopString;
 
-        switch(profileLevelId.Profile)
+        switch (profileLevelId.Profile)
         {
             case Profile.ConstrainedBaseline:
             {
@@ -173,7 +194,7 @@ internal static class Utils
 
         var levelStr = Convert.ToString((int)profileLevelId.Level, 16);
 
-        if(levelStr.Length == 1)
+        if (levelStr.Length == 1)
         {
             levelStr = levelStr.PadLeft(2, '0');
         }
@@ -197,7 +218,7 @@ internal static class Utils
         // Level.L1_b => 1.b
         // Level.L1 => 1
         // Level.L1_1 => 1.1
-        if(level == Level.L1B)
+        if (level == Level.L1B)
         {
             return "1b";
         }
@@ -233,6 +254,25 @@ internal static class Utils
     }
 
     /// <summary>
+    /// Returns true if the codec parameters have the same H264 profile, i.e. the
+    /// same H264 profile (Baseline, High, etc) and same level.
+    /// </summary>
+    /// <param name="params1"></param>
+    /// <param name="params2"></param>
+    /// <returns></returns>
+    public static bool IsSameProfileAndLevel(IDictionary<string, object?> params1, IDictionary<string, object?> params2)
+    {
+        var profileLevelId1 = ParseSdpProfileLevelId(params1);
+        var profileLevelId2 = ParseSdpProfileLevelId(params2);
+
+        // Compare H264 profiles, but not levels.
+        return profileLevelId1            != null
+               && profileLevelId2         != null
+               && profileLevelId1.Profile == profileLevelId2.Profile &&
+               profileLevelId1.Level      == profileLevelId2.Level;
+    }
+
+    /// <summary>
     /// <para>
     /// Generate codec parameters that will be used as answer in an SDP negotiation
     /// based on local supported parameters and remote offered parameters. Both
@@ -253,11 +293,13 @@ internal static class Utils
     /// negotiating are the level part of profile-level-id and level-asymmetry-allowed.
     /// </para>
     /// </summary>
-    public static string? GenerateProfileLevelIdForAnswer(IDictionary<string, object?> localSupportedParams, IDictionary<string, object?> remoteOfferedParams)
+    public static string? GenerateProfileLevelIdForAnswer(IDictionary<string, object?> localSupportedParams,
+                                                          IDictionary<string, object?> remoteOfferedParams)
     {
         // If both local and remote params do not contain profile-level-id, they are
         // both using the default profile. In this case, don"t return anything.
-        if(!localSupportedParams.TryGetValue("profile-level-id", out _) && !remoteOfferedParams.TryGetValue("profile-level-id", out _))
+        if (!localSupportedParams.TryGetValue("profile-level-id", out _) &&
+            !remoteOfferedParams.TryGetValue("profile-level-id", out _))
         {
             // NOTE: For testing.
             //debug("GenerateProfileLevelIdForAnswer() | No profile-level-id in local and remote params");
@@ -269,23 +311,24 @@ internal static class Utils
         var remoteProfileLevelId = ParseSdpProfileLevelId(remoteOfferedParams);
 
         // The local and remote codec must have valid and equal H264 Profiles.
-        if(localProfileLevelId == null)
+        if (localProfileLevelId == null)
         {
             throw new Exception("invalid local_profile_level_id");
         }
 
-        if(remoteProfileLevelId == null)
+        if (remoteProfileLevelId == null)
         {
             throw new Exception("invalid remote_profile_level_id");
         }
 
-        if(localProfileLevelId.Profile != remoteProfileLevelId.Profile)
+        if (localProfileLevelId.Profile != remoteProfileLevelId.Profile)
         {
             throw new Exception("H264 Profile mismatch");
         }
 
         // Parse level information.
-        var levelAsymmetryAllowed = IsLevelAsymmetryAllowed(localSupportedParams) && IsLevelAsymmetryAllowed(remoteOfferedParams);
+        var levelAsymmetryAllowed = IsLevelAsymmetryAllowed(localSupportedParams) &&
+                                    IsLevelAsymmetryAllowed(remoteOfferedParams);
 
         var localLevel  = localProfileLevelId.Level;
         var remoteLevel = remoteProfileLevelId.Level;
@@ -300,6 +343,32 @@ internal static class Utils
 
         // Return the resulting profile-level-id for the answer parameters.
         return ProfileLevelIdToString(new ProfileLevelId(localProfileLevelId.Profile, answerLevel));
+    }
+
+    /// <summary>
+    /// Given that a decoder supports up to a given frame size (in pixels) at up to
+    /// a given number of frames per second, return the highest H264 level where it
+    /// can guarantee that it will be able to support all valid encoded streams that
+    /// are within that level.
+    /// </summary>
+    /// <returns></returns>
+    public static Level? SupportLevel(int maxFramePixelCount, int maxFps)
+    {
+        const int pixelsPerMacroblock = 16 * 16;
+
+        for (var i = LevelConstraints.Length - 1; i >= 0; --i)
+        {
+            var levelConstraint = LevelConstraints[i];
+
+            if (levelConstraint.MaxMacroblockFrameSize * pixelsPerMacroblock <= maxFramePixelCount
+                && levelConstraint.MaxMacroblocksPerSecond <= maxFps * levelConstraint.MaxMacroblockFrameSize)
+            {
+                return levelConstraint.Level;
+            }
+        }
+
+        // No level supported.
+        return null;
     }
 
     #region Private Methods
