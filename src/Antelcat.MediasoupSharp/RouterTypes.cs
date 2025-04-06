@@ -84,21 +84,19 @@ public class PipeToRouterResult
     public IDataProducer? PipeDataProducer { get; set; }
 }
 
-public abstract class RouterEvents
+public abstract class RouterEvents : BuiltInEvents
 {
-    public object? WorkerClose;
-
-    public (string eventName, Exception error) ListenerError;
+    public abstract object? WorkerClose { get; }
 
     // Private events.
-    internal object? close;
+    internal abstract object? close { get; }
 }
 
 public abstract class RouterObserverEvents
 {
-    public          object?      Close;
-    public required ITransport   NewTransport;
-    public required IRtpObserver NewRtpObserver;
+    public abstract object?      Close          { get; }
+    public abstract ITransport   NewTransport   { get; }
+    public abstract IRtpObserver NewRtpObserver { get; }
 }
 
 public interface IRouter<TRouterAppData> : IEnhancedEventEmitter<RouterEvents>, IRouter

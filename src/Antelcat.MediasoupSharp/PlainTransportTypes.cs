@@ -76,16 +76,16 @@ public record PlainTransportOptions<TPlainTransportAppData>
 
 public abstract class PlainTransportEvents : TransportEvents
 {
-    public required TupleT    Tuple;
-    public required TupleT    RtcpTuple;
-    public required SctpState SctpStateChange;
+    public abstract TupleT    Tuple           { get; }
+    public abstract TupleT    RtcpTuple       { get; }
+    public abstract SctpState SctpStateChange { get; }
 }
 
 public abstract class PlainTransportObserverEvents : TransportObserverEvents
 {
-    public required TupleT    Tuple;
-    public required TupleT    RtcpTuple;
-    public required SctpState SctpStateChange;
+    public abstract TupleT    Tuple           { get; }
+    public abstract TupleT    RtcpTuple       { get; }
+    public abstract SctpState SctpStateChange { get; }
 }
 
 public interface IPlainTransport<TPlainTransportAppData>

@@ -18,12 +18,12 @@ public class DirectTransportOptions<TDirectTransportAppData>
 
 public abstract class DirectTransportEvents : TransportEvents
 {
-    public required List<byte> Rtcp;
+    public abstract List<byte> Rtcp { get; }
 }
 
 public abstract class DirectTransportObserverEvents : TransportObserverEvents
 {
-    public required List<byte> Rtcp;
+    public abstract List<byte> Rtcp { get; }
 }
 
 public interface IDirectTransport<TDirectTransportAppData>

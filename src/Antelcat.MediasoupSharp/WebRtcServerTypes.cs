@@ -19,21 +19,19 @@ public record WebRtcServerOptions<TWebRtcServerAppData>
     public TWebRtcServerAppData? AppData { get; set; }
 }
 
-public abstract class WebRtcServerEvents
+public abstract class WebRtcServerEvents : BuiltInEvents
 {
-    public object? WorkerClose;
-
-    public (string eventName, Exception error) ListenerError;
+    public abstract object? WorkerClose { get; }
 
     // Private events.
-    internal object? close;
+    internal abstract object? close { get; }
 }
 
 public abstract class WebRtcServerObserverEvents
 {
-    public          object?          Close;
-    public required IWebRtcTransport WebrtcTransportHandled;
-    public required IWebRtcTransport WebrtcTransportUnhandled;
+    public abstract object?          Close                    { get; }
+    public abstract IWebRtcTransport WebrtcTransportHandled   { get; }
+    public abstract IWebRtcTransport WebrtcTransportUnhandled { get; }
 }
 
 public interface IWebRtcServer<TWebRtcServerAppData> : IEnhancedEventEmitter<WebRtcServerEvents>, IWebRtcServer

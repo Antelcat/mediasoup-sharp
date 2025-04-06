@@ -76,33 +76,31 @@ public class ConsumerOptions<TConsumerAppData>
 }
 
 
-public abstract class ConsumerEvents
+public abstract class ConsumerEvents : BuiltInEvents
 {
-    public          object?            TransportClose;
-    public          object?            ProducerClose;
-    public          object?            ProducerPause;
-    public          object?            ProducerResume;
-    public required ConsumerScore      Score;
-    public          ConsumerLayers?    LayersChange;
-    public required TraceNotificationT Trace;
-    public required List<byte>         Rtp;
-
-    public required (string eventName, Exception error) ListenerError;
+    public abstract object?            TransportClose { get; }
+    public abstract object?            ProducerClose  { get; }
+    public abstract object?            ProducerPause  { get; }
+    public abstract object?            ProducerResume { get; }
+    public abstract ConsumerScore      Score          { get; }
+    public abstract ConsumerLayers?    LayersChange   { get; }
+    public abstract TraceNotificationT Trace          { get; }
+    public abstract List<byte>         Rtp            { get; }
 
     // Private events.
-    internal object? close;
-    internal object? producerClose;
+    internal abstract object? close         { get; }
+    internal abstract object? producerClose { get; }
 }
 
 
 public abstract class ConsumerObserverEvents
 {
-    public          object?             Close;
-    public          object?             Pause;
-    public          object?             Resume;
-    public required ConsumerScore       Score;
-    public          ConsumerLayers?     LayersChange;
-    public          TraceNotificationT? Trace;
+    public abstract object?             Close        { get; }
+    public abstract object?             Pause        { get; }
+    public abstract object?             Resume       { get; }
+    public abstract ConsumerScore       Score        { get; }
+    public abstract ConsumerLayers?     LayersChange { get; }
+    public abstract TraceNotificationT? Trace        { get; }
 }
 
 public interface IConsumer<TConsumerAppData> : IEnhancedEventEmitter<ConsumerEvents>, IConsumer

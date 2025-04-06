@@ -26,12 +26,12 @@ public class ActiveSpeakerObserverDominantSpeaker
 
 public abstract class ActiveSpeakerObserverEvents : RtpObserverEvents
 {
-    public required ActiveSpeakerObserverDominantSpeaker DominantSpeaker;
+    public abstract ActiveSpeakerObserverDominantSpeaker DominantSpeaker { get; }
 }
 
 public abstract class ActiveSpeakerObserverObserverEvents : RtpObserverObserverEvents
 {
-    public required ActiveSpeakerObserverDominantSpeaker DominantSpeaker;
+    public abstract ActiveSpeakerObserverDominantSpeaker DominantSpeaker { get; }
 }
 
 public class RtpObserverObserverConstructorOptions<TActiveSpeakerObserverAppData> :

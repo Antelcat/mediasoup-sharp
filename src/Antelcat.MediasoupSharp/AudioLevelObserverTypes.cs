@@ -42,15 +42,15 @@ public class AudioLevelObserverVolume
 
 public abstract class AudioLevelObserverEvents : RtpObserverEvents
 {
-    public required List<AudioLevelObserverVolume> Volumes;
-    public          object?                        Silence;
+    public abstract List<AudioLevelObserverVolume> Volumes { get; }
+    public abstract object?                        Silence { get; }
 }
 
 
 public abstract class AudioLevelObserverObserverEvents : RtpObserverObserverEvents
 {
-    public required List<AudioLevelObserverVolume> Volumes;
-    public          object?                        Silence;
+    public abstract List<AudioLevelObserverVolume> Volumes { get; }
+    public abstract object?                        Silence { get; }
 }
 
 public class AudioLevelObserverConstructorOptions<TAudioLevelObserverAppData>

@@ -109,18 +109,18 @@ public class WebRtcTransportListenIndividual
 
 public abstract class WebRtcTransportEvents : TransportEvents
 {
-    public required IceState  IceStateChange;
-    public required TupleT    IceSelectedTupleChange;
-    public required DtlsState DtlsStateChange;
-    public required SctpState SctpStateChange;
+    public abstract IceState  IceStateChange         { get; }
+    public abstract TupleT    IceSelectedTupleChange { get; }
+    public abstract DtlsState DtlsStateChange        { get; }
+    public abstract SctpState SctpStateChange        { get; }
 }
 
 public abstract class WebRtcTransportObserverEvents : TransportObserverEvents
 {
-    public required IceState  IceStateChange;
-    public required TupleT    IceSelectedTupleChange;
-    public required DtlsState DtlsStateChange;
-    public required SctpState SctpStateChange;
+    public abstract IceState  IceStateChange         { get; }
+    public abstract TupleT    IceSelectedTupleChange { get; }
+    public abstract DtlsState DtlsStateChange        { get; }
+    public abstract SctpState SctpStateChange        { get; }
 }
 
 public interface IWebRtcTransport<TWebRtcTransportAppData> :

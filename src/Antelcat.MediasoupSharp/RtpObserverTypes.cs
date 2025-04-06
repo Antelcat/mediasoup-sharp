@@ -3,23 +3,21 @@
 
 namespace Antelcat.MediasoupSharp;
 
-public abstract class RtpObserverEvents
+public abstract class RtpObserverEvents : BuiltInEvents
 {
-    public object? RouterClose;
-
-    public required (string eventName, Exception error) ListenerError;
+    public abstract object? RouterClose { get; }
 
     // Private events.
-    internal object? close;
+    internal abstract object? close { get; }
 }
 
 public abstract class RtpObserverObserverEvents
 {
-    public          object?   Close;
-    public          object?   Pause;
-    public          object?   Resume;
-    public required IProducer AddProducer;
-    public required IProducer RemoveProducer;
+    public abstract object?   Close          { get; }
+    public abstract object?   Pause          { get; }
+    public abstract object?   Resume         { get; }
+    public abstract IProducer AddProducer    { get; }
+    public abstract IProducer RemoveProducer { get; }
 }
 
 public class RtpObserverConstructorOptions<TRtpObserverAppData>

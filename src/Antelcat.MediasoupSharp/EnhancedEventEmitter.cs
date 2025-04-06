@@ -3,6 +3,12 @@ using Antelcat.NodeSharp.Events;
 
 namespace Antelcat.MediasoupSharp;
 
+public abstract class BuiltInEvents
+{
+    public required (string eventName, Exception error) ListenerError;
+}
+
+
 public class EnhancedEventEmitter : EventEmitter;
 
 public class EnhancedEventEmitter<T>(EnhancedEventEmitter emitter) : IEnhancedEventEmitter<T>
@@ -35,15 +41,7 @@ public static class EnhancedEventEmitterExtensions
 
     public static IEnhancedEventEmitter<T> On<T, TProperty>(this IEnhancedEventEmitter<T> emitter,
                                                             Expression<Func<T, TProperty>> eventName,
-                                                            Action method)
-    {
-        emitter.EventEmitter.On(GetMemberNameOrThrow(eventName), method);
-        return emitter;
-    }
-    
-    public static IEnhancedEventEmitter<T> On<T, TProperty>(this IEnhancedEventEmitter<T> emitter,
-                                                            Expression<Func<T, TProperty>> eventName,
-                                                            Func<Task> method)
+                                                            Delegate method)
     {
         emitter.EventEmitter.On(GetMemberNameOrThrow(eventName), method);
         return emitter;
@@ -51,15 +49,7 @@ public static class EnhancedEventEmitterExtensions
     
     public static IEnhancedEventEmitter<T> On<T, TProperty>(this EnhancedEventEmitter<T> emitter,
                                                             Expression<Func<T, TProperty>> eventName,
-                                                            Action method)
-    {
-        emitter.EventEmitter.On(GetMemberNameOrThrow(eventName), method);
-        return emitter;
-    }
-    
-    public static IEnhancedEventEmitter<T> On<T, TProperty>(this EnhancedEventEmitter<T> emitter,
-                                                            Expression<Func<T, TProperty>> eventName,
-                                                            Func<Task> method)
+                                                            Delegate method)
     {
         emitter.EventEmitter.On(GetMemberNameOrThrow(eventName), method);
         return emitter;

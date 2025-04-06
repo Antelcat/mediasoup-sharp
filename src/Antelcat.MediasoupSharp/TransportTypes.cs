@@ -5,31 +5,29 @@ using Antelcat.MediasoupSharp.FBS.Transport;
 namespace Antelcat.MediasoupSharp;
 
 
-public abstract class TransportEvents
+public abstract class TransportEvents : BuiltInEvents
 {
-    public          object?            RouterClose;
-    public          object?            ListenServerClose;
-    public required TraceNotificationT Trace;
-
-    public (string eventName, Exception error) ListenerError;
+    public abstract object?            RouterClose       { get; }
+    public abstract object?            ListenServerClose { get; }
+    public abstract TraceNotificationT Trace             { get; }
 
     // Private events.
-    internal object?       close;
-    internal IProducer     newProducer;
-    internal IProducer     producerClose;
-    internal IDataProducer newDataProducer;
-    internal IDataProducer dataProducerClose;
-    internal object?       listenServerClose;
+    internal abstract object?       close             { get; }
+    internal abstract IProducer     newProducer       { get; }
+    internal abstract IProducer     producerClose     { get; }
+    internal abstract IDataProducer newDataProducer   { get; }
+    internal abstract IDataProducer dataProducerClose { get; }
+    internal abstract object?       listenServerClose { get; }
 }
 
 public abstract class TransportObserverEvents
 {
-    public          object?            Close;
-    public required IProducer          NewProducer;
-    public required IConsumer          NewConsumer;
-    public required IDataProducer      NewDataProducer;
-    public required IDataConsumer      NewDataConsumer;
-    public required TraceNotificationT Trace;
+    public abstract object?            Close           { get; }
+    public abstract IProducer          NewProducer     { get; }
+    public abstract IConsumer          NewConsumer     { get; }
+    public abstract IDataProducer      NewDataProducer { get; }
+    public abstract IDataConsumer      NewDataConsumer { get; }
+    public abstract TraceNotificationT Trace           { get; }
 }
 
 public interface ITransport<TTransportAppData, out TEvents, out TObserver>

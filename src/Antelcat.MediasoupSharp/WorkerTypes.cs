@@ -120,22 +120,21 @@ public record WorkerSettings<TWorkerAppData>
     public TWorkerAppData? AppData { get; set; }
 }
 
-public abstract class WorkerEvents
+public abstract class WorkerEvents : BuiltInEvents
 {
-    public Exception?                          Died;
-    public object?                             SubprocessClose;
-    public (string eventName, Exception error) ListenerError;
+    public abstract Exception? Died            { get; set; }
+    public abstract object?    SubprocessClose { get; set; }
 
     // Private events.
-    internal object?    success;
-    internal Exception? failure;
+    internal abstract object?    success { get; set; }
+    internal abstract Exception? failure { get; set; }
 }
 
 public abstract class WorkerObserverEvents
 {
-    public object?       Close;
-    public required IWebRtcServer NewWebrtcServer;
-    public required IRouter       NewRouter;
+    public abstract object?       Close           { get; set; }
+    public abstract IWebRtcServer NewWebrtcServer { get; set; }
+    public abstract IRouter       NewRouter       { get; set; }
 }
 
 public interface IWorker<TWorkerAppData> : IEnhancedEventEmitter<WorkerEvents>, IWorker

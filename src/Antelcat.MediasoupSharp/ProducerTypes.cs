@@ -38,27 +38,25 @@ public class ProducerOptions<TProducerAppData>
     public TProducerAppData? AppData { get; set; }
 }
 
-public abstract class ProducerEvents
+public abstract class ProducerEvents : BuiltInEvents
 {
-    public          object?                             TransportClose;
-    public required List<ScoreT>                        Score;
-    public required VideoOrientationChangeNotificationT VideoOrientationChange;
-    public required TraceNotificationT                  Trace;
-
-    public (string eventName, Exception error) ListenerError;
+    public abstract object?                             TransportClose         { get; }
+    public abstract List<ScoreT>                        Score                  { get; }
+    public abstract VideoOrientationChangeNotificationT VideoOrientationChange { get; }
+    public abstract TraceNotificationT                  Trace                  { get; }
 
     // Private events.
-    internal object? close;
+    internal abstract object? close { get; }
 }
 
 public abstract class ProducerObserverEvents
 {
-    public object?                              Close;
-    public object?                              Pause;
-    public object?                              Resume;
-    public List<ScoreT>?                        Score;
-    public VideoOrientationChangeNotificationT? VideoOrientationChange;
-    public TraceNotificationT?                  Trace;
+    public abstract object?                              Close                  { get; }
+    public abstract object?                              Pause                  { get; }
+    public abstract object?                              Resume                 { get; }
+    public abstract List<ScoreT>?                        Score                  { get; }
+    public abstract VideoOrientationChangeNotificationT? VideoOrientationChange { get; }
+    public abstract TraceNotificationT?                  Trace                  { get; }
 }
 
 public interface IProducer<TProducerAppData> : IEnhancedEventEmitter<ProducerEvents>, IProducer

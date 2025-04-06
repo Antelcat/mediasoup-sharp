@@ -69,12 +69,12 @@ public class PipeConsumerOptions<TConsumerAppData>
 
 public abstract class PipeTransportEvents : TransportEvents
 {
-    public required SctpState SctpStateChange;
+    public abstract SctpState SctpStateChange { get; }
 }
 
 public abstract class PipeTransportObserverEvents : TransportObserverEvents
 {
-    public required SctpState SctpStateChange;
+    public abstract SctpState SctpStateChange { get; }
 }
 
 

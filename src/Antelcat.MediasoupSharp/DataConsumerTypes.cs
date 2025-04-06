@@ -54,27 +54,26 @@ public class DataConsumerOptions<TDataConsumerAppData>
     public TDataConsumerAppData? AppData { get; set; }
 }
 
-public abstract class DataConsumerEvents
+public abstract class DataConsumerEvents : BuiltInEvents
 {
-    public          object?              TransportClose;
-    public          object?              DataProducerClose;
-    public          object?              DataProducerPause;
-    public          object?              DataProducerResume;
-    public required MessageNotificationT Message;
-    public          object?              SctpSendBufferFull;
-    public          uint                 BufferedAmountLow;
-    public          (string eventName, Exception error)  ListenerError;
+    public abstract object?              TransportClose     { get; }
+    public abstract object?              DataProducerClose  { get; }
+    public abstract object?              DataProducerPause  { get; }
+    public abstract object?              DataProducerResume { get; }
+    public abstract MessageNotificationT Message            { get; }
+    public abstract object?              SctpSendBufferFull { get; }
+    public abstract uint                 BufferedAmountLow  { get; }
 
     // Private events.
-    internal object? close;
-    internal object? dataProducerClose;
+    internal abstract object? close             { get; }
+    internal abstract object? dataProducerClose { get; }
 }
 
 public abstract class DataConsumerObserverEvents
 {
-    public object? Close;
-    public object? Pause;
-    public object? Resume;
+    public abstract object? Close  { get; }
+    public abstract object? Pause  { get; }
+    public abstract object? Resume { get; }
 }
 
 public interface IDataConsumer<TDataConsumerAppData>

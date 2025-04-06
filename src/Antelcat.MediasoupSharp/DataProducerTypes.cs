@@ -35,21 +35,19 @@ public class DataProducerOptions<TDataProducerAppData>
     public TDataProducerAppData? AppData { get; set; }
 }
 
-public abstract class DataProducerEvents
+public abstract class DataProducerEvents : BuiltInEvents
 {
-    public object? TransportClose;
-
-    public (string eventName, Exception error) ListenerError;
+    public abstract object? TransportClose { get; }
 
     // Private events.
-    internal object? close;
+    internal abstract object? close { get; }
 }
 
 public abstract class DataProducerObserverEvents
 {
-    public object? Close;
-    public object? Pause;
-    public object? Resume;
+    public abstract object? Close  { get; }
+    public abstract object? Pause  { get; }
+    public abstract object? Resume { get; }
 }
 
 public interface IDataProducer<TDataConsumerAppData>
