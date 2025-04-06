@@ -3,7 +3,7 @@
     <Import Project="../Build.props" />
     
     <PropertyGroup>
-        <MediasoupVersion>3.15.6</MediasoupVersion>
+        <MediasoupVersion>3.15.7</MediasoupVersion>
         <TargetFrameworks>net7.0;</TargetFrameworks>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
