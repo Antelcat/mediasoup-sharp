@@ -930,46 +930,8 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
             SctpStreamParametersT? sctpStreamParameters = null;
             ushort?                sctpStreamId         = null;
 
-            // If this is not a DirectTransport, use sctpStreamParameters from the
-            // DataProducer (if type 'sctp') unless they are given in method parameters.
-            if (this is not IDirectTransport)
-            {
-                type = Antelcat.MediasoupSharp.FBS.DataProducer.Type.SCTP;
-
-                sctpStreamParameters =
-                    dataProducer.Data.SctpStreamParameters?.DeepClone() ?? new SctpStreamParametersT();
-
-                if (dataConsumerOptions.Ordered is { } ordered)
-                {
-                    sctpStreamParameters.Ordered = ordered;
-                }
-
-                if (dataConsumerOptions.MaxPacketLifeTime is { } maxPacketLifeTime)
-                {
-                    sctpStreamParameters.MaxPacketLifeTime = (ushort)maxPacketLifeTime;
-                }
-
-                if (dataConsumerOptions.MaxRetransmits is { } maxRetransmits)
-                {
-                    sctpStreamParameters.MaxRetransmits = (ushort)maxRetransmits;
-                }
-
-                // This may throw.
-                lock (sctpStreamIdsLock)
-                {
-                    sctpStreamId = GetNextSctpStreamId();
-
-                    if (sctpStreamIds == null || sctpStreamId > sctpStreamIds.Length - 1)
-                    {
-                        throw new IndexOutOfRangeException(nameof(sctpStreamIds));
-                    }
-
-                    sctpStreamIds[sctpStreamId.Value] = 1;
-                    sctpStreamParameters.StreamId     = sctpStreamId.Value;
-                }
-            }
             // If this is a DirectTransport, sctpStreamParameters must not be used.
-            else
+            if (this is IDirectTransport)
             {
                 type = Antelcat.MediasoupSharp.FBS.DataProducer.Type.DIRECT;
 
@@ -980,8 +942,59 @@ public abstract class TransportImpl<TTransportAppData, TEvents, TObserver>
                 )
                 {
                     logger.LogWarning(
-                        "ConsumeDataAsync() | Ordered, maxPacketLifeTime and maxRetransmits are ignored when consuming data on a DirectTransport"
+                        $"{nameof(ConsumeDataAsync)}() | Ordered, maxPacketLifeTime and maxRetransmits are ignored when consuming data on a DirectTransport"
                     );
+                }
+            }
+            // If this is not a DirectTransport, use sctpStreamParameters from the
+            // DataProducer (if type 'sctp') unless they are given in method parameters.
+            
+            // If the DataProducer is type 'sctp' and no sctpStreamParameters are given,
+            // generate proper ones.
+            else
+            {
+                type = Antelcat.MediasoupSharp.FBS.DataProducer.Type.SCTP;
+            
+                // This may throw.
+                lock (sctpStreamIdsLock)
+                {
+                    sctpStreamId = GetNextSctpStreamId();
+
+                    sctpStreamParameters = dataProducer.Data.SctpStreamParameters?.DeepClone() 
+                                           ?? new SctpStreamParametersT();
+
+                    if (dataConsumerOptions.Ordered is { } ordered)
+                    {
+                        sctpStreamParameters.Ordered = ordered;
+
+                        if (ordered)
+                        {
+                            sctpStreamParameters.MaxPacketLifeTime = null;
+                            sctpStreamParameters.MaxRetransmits    = null;
+                        }
+                    }
+                    else if (dataConsumerOptions.Ordered is null or false)
+                    {
+                        if (dataConsumerOptions.MaxPacketLifeTime is { } maxPacketLifeTime)
+                        {
+                            sctpStreamParameters.Ordered           = false;
+                            sctpStreamParameters.MaxPacketLifeTime = (ushort)maxPacketLifeTime;
+                        }
+
+                        if (dataConsumerOptions.MaxRetransmits is { } maxRetransmits)
+                        {
+                            sctpStreamParameters.Ordered        = false;
+                            sctpStreamParameters.MaxRetransmits = (ushort)maxRetransmits;
+                        }
+                    }
+
+                    if (sctpStreamIds == null || sctpStreamId > sctpStreamIds.Length - 1)
+                    {
+                        throw new IndexOutOfRangeException(nameof(sctpStreamIds));
+                    }
+
+                    sctpStreamIds[sctpStreamId.Value] = 1;
+                    sctpStreamParameters.StreamId     = sctpStreamId.Value;
                 }
             }
 
