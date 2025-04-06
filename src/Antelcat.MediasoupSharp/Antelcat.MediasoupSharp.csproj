@@ -3,14 +3,15 @@
     <Import Project="../Build.props" />
     
     <PropertyGroup>
+        <MediasoupVersion>3.15.5</MediasoupVersion>
         <TargetFrameworks>net7.0;</TargetFrameworks>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <LangVersion>preview</LangVersion>
-        <Version>3.15.4</Version>
-        <PackageReleaseNotes>mediasoup-sharp 3.15.4</PackageReleaseNotes>
-        <AssemblyVersion>3.15.4</AssemblyVersion>
-        <FileVersion>3.15.4</FileVersion>
+        <Version>$(MediasoupVersion)</Version>
+        <PackageReleaseNotes>mediasoup-sharp $(MediasoupVersion)</PackageReleaseNotes>
+        <AssemblyVersion>$(MediasoupVersion)</AssemblyVersion>
+        <FileVersion>$(MediasoupVersion)</FileVersion>
     </PropertyGroup>
 
     <ItemGroup>
